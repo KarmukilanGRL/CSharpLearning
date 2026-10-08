@@ -4,11 +4,11 @@
 
 ### Career Timeline
 
-- [X] Joined Granite River Labs Technology (GRL) as Intern — November 2023
-- [X] Converted to full-time Trainee Engineer — March 2024
-- [X] Promoted to Software Engineer during first appraisal — May 2025
-- [ ] Current role — Software Engineer
-- [ ] Planned organization switch — Within the next 2–3 months
+- [X]  Joined Granite River Labs Technology (GRL) as Intern — November 2023
+- [X]  Converted to full-time Trainee Engineer — March 2024
+- [X]  Promoted to Software Engineer during first appraisal — May 2025
+- [ ]  Current role — Software Engineer
+- [ ]  Planned organization switch — Within the next 2–3 months
 
 ### Current Experience
 
@@ -54,14 +54,14 @@ Based on the career decision framework:
 
 ### Target Job Titles
 
-- [ ] Software Engineer — .NET
-- [ ] Backend Software Engineer
-- [ ] .NET Backend Developer
-- [ ] C# Developer
-- [ ] ASP.NET Core Developer
-- [ ] Software Engineer — C#
-- [ ] Software Engineer — Backend
-- [ ] .NET Core Developer
+- [ ]  Software Engineer — .NET
+- [ ]  Backend Software Engineer
+- [ ]  .NET Backend Developer
+- [ ]  C# Developer
+- [ ]  ASP.NET Core Developer
+- [ ]  Software Engineer — C#
+- [ ]  Software Engineer — Backend
+- [ ]  .NET Core Developer
 
 ## Secondary Target
 
@@ -134,8 +134,9 @@ Interview
 
 # 4. Current Skill Assessment
 
-| Skill                        | Current Level                 | Target                   |
-| ---------------------------- | ----------------------------- | ------------------------ |
+
+| Skill                  | Current Level                 | Target                   |
+| ------------------------ | ------------------------------- | -------------------------- |
 | **C#**                 | Strong practical              | Interview Strong         |
 | **OOP**                | Good                          | Strong                   |
 | **LINQ**               | Good                          | Strong                   |
@@ -180,17 +181,17 @@ Interview
 
 **Interview Questions:**
 
-- [ ] Value type vs reference type?
-- [ ] What happens when an object is created?
-- [ ] Class vs struct?
-- [ ] const vs readonly?
-- [ ] What is boxing/unboxing?
+- [X]  Value type vs reference type?
+- [X]  What happens when an object is created?
+- [X]  Class vs struct?
+- [X]  const vs readonly?
+- [X]  What is boxing/unboxing?
 
 **Coding Exercises:**
 
-- [ ] Reverse string
-- [ ] Find duplicate characters
-- [ ] Character frequency
+- [X]  Reverse string
+- [X]  Find duplicate characters
+- [X]  Character frequency
 
 ### Tuesday — OOP
 
@@ -204,16 +205,16 @@ Interview
 
 **Interview Questions:**
 
-- [ ] Interface vs abstract class?
-- [ ] Method overloading vs overriding?
-- [ ] Compile-time vs runtime polymorphism?
+- [X]  Interface vs abstract class?
+- [X]  Method overloading vs overriding?
+- [X]  Compile-time vs runtime polymorphism?
 
 **Project Work:**
 
-- [ ] Create TestCase model
-- [ ] Create TestSuite model
-- [ ] Create TestExecutor
-- [ ] Create TestResult
+- [ ]  Create TestCase model
+- [ ]  Create TestSuite model
+- [ ]  Create TestExecutor
+- [ ]  Create TestResult
 
 ### Wednesday — Collections
 
@@ -227,10 +228,10 @@ Interview
 
 **Interview Questions:**
 
-- [ ] Dictionary internals?
-- [ ] HashSet vs List?
-- [ ] Why is Dictionary lookup generally O(1)?
-- [ ] IEnumerable vs ICollection?
+- [X]  Dictionary internals?
+- [X]  HashSet vs List?
+- [X]  Why is Dictionary lookup generally O(1)?
+- [X]  IEnumerable vs ICollection?
 
 ### Thursday — Generics + Delegates
 
@@ -242,9 +243,9 @@ Interview
 
 **Interview Questions:**
 
-- [ ] What is a delegate?
-- [ ] Func vs Action?
-- [ ] Why use generics?
+- [X]  What is a delegate?
+- [X]  Func vs Action?
+- [X]  Why use generics?
 
 ### Friday — SOLID
 
@@ -258,33 +259,33 @@ Interview
 
 **Practice:**
 
-- [ ] Create one poorly designed class
-- [ ] Refactor it using SOLID principles
-- [ ] Document the changes
+- [X]  Create one poorly designed class
+- [X]  Refactor it using SOLID principles
+- [X]  Document the changes
 
 ### Saturday — DSA + Project
 
 **DSA Problems:**
 
-- [ ] Two Sum
-- [ ] Contains Duplicate
-- [ ] Valid Anagram
-- [ ] Valid Palindrome
-- [ ] Best Time to Buy/Sell Stock
+- [ ]  Two Sum
+- [ ]  Contains Duplicate
+- [ ]  Valid Anagram
+- [ ]  Valid Palindrome
+- [ ]  Best Time to Buy/Sell Stock
 
 **Project:**
 
-- [ ] Create initial domain models
-- [ ] Create GitHub repository
-- [ ] Create README
-- [ ] Add initial project structure
+- [ ]  Create initial domain models
+- [ ]  Create GitHub repository
+- [ ]  Create README
+- [ ]  Add initial project structure
 
 ### Sunday — Revision
 
-- [ ] 10 C# questions
-- [ ] 5 OOP questions
-- [ ] 5 SOLID questions
-- [ ] Review all DSA problems
+- [ ]  10 C# questions
+- [ ]  5 OOP questions
+- [ ]  5 SOLID questions
+- [ ]  Review all DSA problems
 
 #### Week 1 Target
 
@@ -350,32 +351,32 @@ Interview
 
 **DSA Problems:**
 
-- [ ] Move Zeroes
-- [ ] Product of Array Except Self
-- [ ] Maximum Subarray
-- [ ] Group Anagrams
-- [ ] Longest Substring Without Repeating Characters
+- [ ]  Move Zeroes
+- [ ]  Product of Array Except Self
+- [ ]  Maximum Subarray
+- [ ]  Group Anagrams
+- [ ]  Longest Substring Without Repeating Characters
 
 **Project:**
 
-- [ ] Implement TestSuite with LINQ
-- [ ] Implement TestCase
-- [ ] Implement TestResult
-- [ ] Implement TestExecution
-- [ ] Add LINQ-based queries
+- [ ]  Implement TestSuite with LINQ
+- [ ]  Implement TestCase
+- [ ]  Implement TestResult
+- [ ]  Implement TestExecution
+- [ ]  Add LINQ-based queries
 
 ### Sunday — Mock Interview #1
 
 **Topics to Cover:**
 
-- [ ] Explain OOP principles
-- [ ] Interface vs abstract class
-- [ ] IEnumerable vs IQueryable
-- [ ] Dictionary internals
-- [ ] Deferred execution
-- [ ] Garbage Collection
-- [ ] throw vs throw ex
-- [ ] SOLID principles
+- [ ]  Explain OOP principles
+- [ ]  Interface vs abstract class
+- [ ]  IEnumerable vs IQueryable
+- [ ]  Dictionary internals
+- [ ]  Deferred execution
+- [ ]  Garbage Collection
+- [ ]  throw vs throw ex
+- [ ]  SOLID principles
 
 #### Week 2 Target
 
@@ -407,7 +408,7 @@ Interview
 
 **Project:**
 
-- [ ] Implement parallel test execution
+- [ ]  Implement parallel test execution
 
 ### Wednesday — Synchronization
 
@@ -434,30 +435,30 @@ Interview
 
 **Project:**
 
-- [ ] Implement ConcurrentQueue
-- [ ] Implement producer
-- [ ] Implement consumer
-- [ ] Connect test requests to background execution
+- [ ]  Implement ConcurrentQueue
+- [ ]  Implement producer
+- [ ]  Implement consumer
+- [ ]  Connect test requests to background execution
 
 ### Saturday — DSA
 
 **Problems:**
 
-- [ ] Valid Parentheses
-- [ ] Min Stack
-- [ ] Implement Queue using Stack
-- [ ] Daily Temperatures
-- [ ] Sliding Window Maximum
+- [ ]  Valid Parentheses
+- [ ]  Min Stack
+- [ ]  Implement Queue using Stack
+- [ ]  Daily Temperatures
+- [ ]  Sliding Window Maximum
 
 ### Sunday — Interview Preparation
 
-- [ ] 20 concurrency questions
-- [ ] Task vs Thread
-- [ ] lock vs SemaphoreSlim
-- [ ] ConcurrentDictionary use cases
-- [ ] Deadlock explanation
-- [ ] CancellationToken usage
-- [ ] ThreadPool concepts
+- [ ]  20 concurrency questions
+- [ ]  Task vs Thread
+- [ ]  lock vs SemaphoreSlim
+- [ ]  ConcurrentDictionary use cases
+- [ ]  Deadlock explanation
+- [ ]  CancellationToken usage
+- [ ]  ThreadPool concepts
 
 #### Week 3 Target
 
@@ -529,12 +530,12 @@ POST   /api/test-runs/{id}/cancel
 
 **Topics to Cover:**
 
-- [ ] 25 ASP.NET Core questions
-- [ ] Explain middleware pipeline
-- [ ] Explain Dependency Injection
-- [ ] Service lifetimes and implications
-- [ ] Request lifecycle
-- [ ] REST API design principles
+- [ ]  25 ASP.NET Core questions
+- [ ]  Explain middleware pipeline
+- [ ]  Explain Dependency Injection
+- [ ]  Service lifetimes and implications
+- [ ]  Request lifecycle
+- [ ]  REST API design principles
 
 #### Week 4 Target
 
@@ -591,28 +592,28 @@ POST   /api/test-runs/{id}/cancel
 
 **Practice Exercises:**
 
-- [ ] Solve 15 SQL interview problems
-- [ ] Master JOIN operations
-- [ ] Master CTE queries
-- [ ] Master window functions
-- [ ] Master aggregations
+- [ ]  Solve 15 SQL interview problems
+- [ ]  Master JOIN operations
+- [ ]  Master CTE queries
+- [ ]  Master window functions
+- [ ]  Master aggregations
 
-**Project Milestone #2 — Database Schema:**
+**Project Milestone #2#2 — Database Schema:**
 
-- [ ] Users table
-- [ ] TestSuites table
-- [ ] TestCases table
-- [ ] TestRuns table
-- [ ] TestResults table
-- [ ] TestLogs table
-- [ ] Define relationships
-- [ ] Create indexes
+- [ ]  Users table
+- [ ]  TestSuites table
+- [ ]  TestCases table
+- [ ]  TestRuns table
+- [ ]  TestResults table
+- [ ]  TestLogs table
+- [ ]  Define relationships
+- [ ]  Create indexes
 
 ### Sunday — Interview Preparation
 
-- [ ] 25 SQL interview questions
-- [ ] 10 SQL coding problems
-- [ ] Explain clustered vs non-clustered indexes
+- [ ]  25 SQL interview questions
+- [ ]  10 SQL coding problems
+- [ ]  Explain clustered vs non-clustered indexes
 
 #### Week 5 Target
 
@@ -672,19 +673,19 @@ POST   /api/test-runs/{id}/cancel
 
 **Implementation:**
 
-- [ ] EF Core service layer
-- [ ] Repository pattern (if needed)
-- [ ] Pagination
-- [ ] Filtering, Sorting
-- [ ] Search functionality
+- [ ]  EF Core service layer
+- [ ]  Repository pattern (if needed)
+- [ ]  Pagination
+- [ ]  Filtering, Sorting
+- [ ]  Search functionality
 
 ### Sunday — Interview Preparation
 
-- [ ] 25 EF Core questions
-- [ ] 10 SQL problems
-- [ ] Explain N+1 problem
-- [ ] Explain AsNoTracking
-- [ ] Explain EF Core tracking
+- [ ]  25 EF Core questions
+- [ ]  10 SQL problems
+- [ ]  Explain N+1 problem
+- [ ]  Explain AsNoTracking
+- [ ]  Explain EF Core tracking
 
 #### Week 6 Target
 
@@ -700,9 +701,9 @@ POST   /api/test-runs/{id}/cancel
 
 **Activity:**
 
-- [ ] Refactor existing project using SOLID
-- [ ] Identify SRP violations
-- [ ] Identify DIP opportunities
+- [ ]  Refactor existing project using SOLID
+- [ ]  Identify SRP violations
+- [ ]  Identify DIP opportunities
 
 ### Tuesday — Design Patterns
 
@@ -717,10 +718,10 @@ POST   /api/test-runs/{id}/cancel
 
 **For Each Pattern:**
 
-- [ ] Understand purpose
-- [ ] Understand when to use
-- [ ] Understand when NOT to use
-- [ ] Implement one example
+- [ ]  Understand purpose
+- [ ]  Understand when to use
+- [ ]  Understand when NOT to use
+- [ ]  Implement one example
 
 ### Wednesday — Clean Architecture
 
@@ -755,11 +756,11 @@ POST   /api/test-runs/{id}/cancel
 
 **Implementation:**
 
-- [ ] JWT Authentication
-- [ ] Role-based authorization
-- [ ] Global exception handling
-- [ ] Structured logging
-- [ ] Input validation
+- [ ]  JWT Authentication
+- [ ]  Role-based authorization
+- [ ]  Global exception handling
+- [ ]  Structured logging
+- [ ]  Input validation
 
 ### Sunday — Mock Interview #3
 
@@ -767,10 +768,10 @@ POST   /api/test-runs/{id}/cancel
 
 **Topics to Cover:**
 
-- [ ] Explain project architecture
-- [ ] Explain SOLID decisions
-- [ ] Explain authentication flow
-- [ ] Explain security measures
+- [ ]  Explain project architecture
+- [ ]  Explain SOLID decisions
+- [ ]  Explain authentication flow
+- [ ]  Explain security measures
 
 #### Week 7 Target
 
@@ -795,10 +796,10 @@ POST   /api/test-runs/{id}/cancel
 
 **Project:**
 
-- [ ] Add Redis caching
-- [ ] Cache GET /api/test-suites
-- [ ] Cache GET /api/test-cases
-- [ ] Implement cache expiration
+- [ ]  Add Redis caching
+- [ ]  Cache GET /api/test-suites
+- [ ]  Cache GET /api/test-cases
+- [ ]  Implement cache expiration
 
 ### Wednesday — WebSockets
 
@@ -816,9 +817,9 @@ POST   /api/test-runs/{id}/cancel
 
 **Project:**
 
-- [ ] Implement WebSocket endpoint
-- [ ] Connect test execution to WebSocket
-- [ ] Stream execution updates
+- [ ]  Implement WebSocket endpoint
+- [ ]  Connect test execution to WebSocket
+- [ ]  Stream execution updates
 
 **Events to Stream:**
 
@@ -854,11 +855,11 @@ ASP.NET Core API
 
 **Prepare to Explain (10–15 minutes):**
 
-- [ ] Overall project architecture
-- [ ] WebSocket integration decisions
-- [ ] Concurrency handling
-- [ ] Background execution strategy
-- [ ] Caching strategy
+- [ ]  Overall project architecture
+- [ ]  WebSocket integration decisions
+- [ ]  Concurrency handling
+- [ ]  Background execution strategy
+- [ ]  Caching strategy
 
 #### Week 8 Target
 
@@ -920,26 +921,26 @@ ASP.NET Core API
 
 Cover:
 
-- [ ] Requirements
-- [ ] APIs
-- [ ] Database schema
-- [ ] Caching strategy
-- [ ] Concurrency handling
-- [ ] Scaling approach
-- [ ] Failure handling
-- [ ] Monitoring strategy
+- [ ]  Requirements
+- [ ]  APIs
+- [ ]  Database schema
+- [ ]  Caching strategy
+- [ ]  Concurrency handling
+- [ ]  Scaling approach
+- [ ]  Failure handling
+- [ ]  Monitoring strategy
 
 **Problem 2: Real-Time Notification System**
 
 Cover:
 
-- [ ] Requirements
-- [ ] API design
-- [ ] WebSocket integration
-- [ ] Database design
-- [ ] Redis caching
-- [ ] Scaling strategy
-- [ ] Failure handling
+- [ ]  Requirements
+- [ ]  API design
+- [ ]  WebSocket integration
+- [ ]  Database design
+- [ ]  Redis caching
+- [ ]  Scaling strategy
+- [ ]  Failure handling
 
 ### Sunday — Mock Interview #4
 
@@ -949,9 +950,9 @@ Cover:
 
 **Topics:**
 
-- [ ] Complete mock interview
-- [ ] Record weak areas
-- [ ] Create revision list
+- [ ]  Complete mock interview
+- [ ]  Record weak areas
+- [ ]  Create revision list
 
 #### Week 9 Target
 
@@ -987,10 +988,10 @@ Azure SQL Database
 
 **Concepts:**
 
-- [ ] Deployment workflow
-- [ ] Configuration management
-- [ ] Environment variables
-- [ ] Secrets management
+- [ ]  Deployment workflow
+- [ ]  Configuration management
+- [ ]  Environment variables
+- [ ]  Secrets management
 
 ### Wednesday — Docker Fundamentals
 
@@ -1005,11 +1006,11 @@ Azure SQL Database
 
 **Project:**
 
-- [ ] Create Dockerfile
-- [ ] Build Docker image
-- [ ] Run container
-- [ ] Connect API to SQL Database
-- [ ] Configure environment variables
+- [ ]  Create Dockerfile
+- [ ]  Build Docker image
+- [ ]  Run container
+- [ ]  Connect API to SQL Database
+- [ ]  Configure environment variables
 
 ### Friday — CI/CD Pipeline
 
@@ -1031,31 +1032,31 @@ Deploy
 
 **Pipeline Steps:**
 
-- [ ] Checkout
-- [ ] Restore dependencies
-- [ ] Build
-- [ ] Run tests
-- [ ] Publish artifacts
-- [ ] Build Docker image
+- [ ]  Checkout
+- [ ]  Restore dependencies
+- [ ]  Build
+- [ ]  Run tests
+- [ ]  Publish artifacts
+- [ ]  Build Docker image
 
-**Project Milestone #5:**
+**Project Milestone #5#5:**
 
-- [ ] Clean README documentation
-- [ ] Architecture diagram
-- [ ] API documentation
-- [ ] Docker containerization
-- [ ] Unit tests
-- [ ] CI/CD pipeline
-- [ ] WebSocket demo
-- [ ] Redis integration
-- [ ] SQL database schema
-- [ ] EF Core implementation
+- [ ]  Clean README documentation
+- [ ]  Architecture diagram
+- [ ]  API documentation
+- [ ]  Docker containerization
+- [ ]  Unit tests
+- [ ]  CI/CD pipeline
+- [ ]  WebSocket demo
+- [ ]  Redis integration
+- [ ]  SQL database schema
+- [ ]  EF Core implementation
 
 ### Sunday — Interview Preparation
 
-- [ ] 25 Azure questions
-- [ ] 15 Docker questions
-- [ ] 10 CI/CD questions
+- [ ]  25 Azure questions
+- [ ]  15 Docker questions
+- [ ]  10 CI/CD questions
 
 #### Week 10 Target
 
@@ -1070,58 +1071,58 @@ Deploy
 
 **Cover:**
 
-- [ ] Functional requirements
-- [ ] Non-functional requirements
-- [ ] API design
-- [ ] Database schema
-- [ ] Caching strategy
-- [ ] Scaling approach
+- [ ]  Functional requirements
+- [ ]  Non-functional requirements
+- [ ]  API design
+- [ ]  Database schema
+- [ ]  Caching strategy
+- [ ]  Scaling approach
 
 ### Tuesday — System Design: Chat Application
 
 **Cover:**
 
-- [ ] WebSocket architecture
-- [ ] Message storage
-- [ ] Connection management
-- [ ] Scaling strategy
-- [ ] Offline message handling
+- [ ]  WebSocket architecture
+- [ ]  Message storage
+- [ ]  Connection management
+- [ ]  Scaling strategy
+- [ ]  Offline message handling
 
 ### Wednesday — System Design: File Upload Service
 
 **Cover:**
 
-- [ ] Upload API design
-- [ ] Storage strategy
-- [ ] Metadata management
-- [ ] Large file handling
-- [ ] Authentication & authorization
-- [ ] Scaling approach
+- [ ]  Upload API design
+- [ ]  Storage strategy
+- [ ]  Metadata management
+- [ ]  Large file handling
+- [ ]  Authentication & authorization
+- [ ]  Scaling approach
 
 ### Thursday — System Design: Notification Service
 
 **Cover:**
 
-- [ ] API design
-- [ ] Queue architecture
-- [ ] Worker processes
-- [ ] Retry mechanisms
-- [ ] Failure handling
+- [ ]  API design
+- [ ]  Queue architecture
+- [ ]  Worker processes
+- [ ]  Retry mechanisms
+- [ ]  Failure handling
 
 ### Friday — System Design: Real-Time Test Execution Platform
 
 **Comprehensive Design:**
 
-- [ ] Functional & non-functional requirements
-- [ ] API design
-- [ ] Database schema
-- [ ] Redis caching
-- [ ] WebSocket integration
-- [ ] Background workers
-- [ ] Queue system
-- [ ] Scaling strategy
-- [ ] Failure handling & recovery
-- [ ] Monitoring approach
+- [ ]  Functional & non-functional requirements
+- [ ]  API design
+- [ ]  Database schema
+- [ ]  Redis caching
+- [ ]  WebSocket integration
+- [ ]  Background workers
+- [ ]  Queue system
+- [ ]  Scaling strategy
+- [ ]  Failure handling & recovery
+- [ ]  Monitoring approach
 
 ### Saturday — DSA Marathon
 
@@ -1129,14 +1130,14 @@ Deploy
 
 **Focus Areas:**
 
-- [ ] Arrays (2 problems)
-- [ ] Strings (2 problems)
-- [ ] HashMap (1 problem)
-- [ ] Sliding Window (1 problem)
-- [ ] Two Pointer (1 problem)
-- [ ] Binary Search (1 problem)
-- [ ] Stack/Queue (1 problem)
-- [ ] Trees (1 problem)
+- [ ]  Arrays (2 problems)
+- [ ]  Strings (2 problems)
+- [ ]  HashMap (1 problem)
+- [ ]  Sliding Window (1 problem)
+- [ ]  Two Pointer (1 problem)
+- [ ]  Binary Search (1 problem)
+- [ ]  Stack/Queue (1 problem)
+- [ ]  Trees (1 problem)
 
 ### Sunday — Full Mock Interview #5
 
@@ -1151,8 +1152,8 @@ Deploy
 
 **Follow-up:**
 
-- [ ] Record weak areas
-- [ ] Create revision list
+- [ ]  Record weak areas
+- [ ]  Create revision list
 
 #### Week 11 Target
 
@@ -1224,18 +1225,19 @@ Deploy
 
 **Cover for Each:**
 
-- [ ] API design
-- [ ] Database schema design
-- [ ] Caching strategy
-- [ ] Scaling approach
-- [ ] Failure handling & resilience
+- [ ]  API design
+- [ ]  Database schema design
+- [ ]  Caching strategy
+- [ ]  Scaling approach
+- [ ]  Failure handling & resilience
 
 ### Saturday — Full Interview Simulation
 
 **Complete Mock Interview — 3 hours**
 
+
 | Round | Topic                | Duration |
-| ----- | -------------------- | -------- |
+| ------- | ---------------------- | ---------- |
 | 1     | DSA Coding           | 45 min   |
 | 2     | C#/.NET              | 45 min   |
 | 3     | Backend/Architecture | 45 min   |
@@ -1246,23 +1248,23 @@ Deploy
 
 #### Introduction & Communication
 
-- [ ] Prepare 60-second introduction
-- [ ] Prepare 2-minute career summary
-- [ ] Prepare 5-minute GRL project explanation
-- [ ] Prepare 10-minute major project explanation
+- [ ]  Prepare 60-second introduction
+- [ ]  Prepare 2-minute career summary
+- [ ]  Prepare 5-minute GRL project explanation
+- [ ]  Prepare 10-minute major project explanation
 
 #### Behavioral Questions
 
-- [ ] Why are you switching companies?
-- [ ] Why this company/role?
-- [ ] Why should we hire you?
-- [ ] Biggest technical challenge you solved?
-- [ ] Biggest bug you debugged?
-- [ ] Biggest failure and learning?
-- [ ] Conflict with a teammate?
-- [ ] Leadership example?
-- [ ] Difficult deadline experience?
-- [ ] Technical decision you made?
+- [ ]  Why are you switching companies?
+- [ ]  Why this company/role?
+- [ ]  Why should we hire you?
+- [ ]  Biggest technical challenge you solved?
+- [ ]  Biggest bug you debugged?
+- [ ]  Biggest failure and learning?
+- [ ]  Conflict with a teammate?
+- [ ]  Leadership example?
+- [ ]  Difficult deadline experience?
+- [ ]  Technical decision you made?
 
 #### Week 12 Target
 
@@ -1275,8 +1277,9 @@ Deploy
 
 # 6. DSA Target
 
+
 | Topic             | Target Problems |
-| ----------------- | --------------- |
+| ------------------- | ----------------- |
 | Arrays            | 15              |
 | Strings           | 10              |
 | HashMap / HashSet | 10              |
@@ -1289,46 +1292,47 @@ Deploy
 | Recursion         | 5               |
 | Sorting           | 5               |
 | Miscellaneous     | 7               |
-| **Total**   | **~100**  |
+| **Total**         | **~100**        |
 
 ### Goals
 
-- [ ] ~100 well-understood problems
-- [ ] Understand time complexity for each solution
-- [ ] Understand space complexity for each solution
-- [ ] Explain solution approach before coding
-- [ ] Write clean, idiomatic C# solutions
+- [ ]  ~100 well-understood problems
+- [ ]  Understand time complexity for each solution
+- [ ]  Understand space complexity for each solution
+- [ ]  Explain solution approach before coding
+- [ ]  Write clean, idiomatic C# solutions
 
 ---
 
 # 7. Interview Question Target
 
-| Area                   | Target                |
-| ---------------------- | --------------------- |
-| C#                     | 60                    |
-| OOP / SOLID            | 30                    |
-| LINQ                   | 25                    |
-| Async / Multithreading | 40                    |
-| ASP.NET Core           | 50                    |
-| Web API                | 30                    |
-| EF Core                | 25                    |
-| SQL                    | 50                    |
-| Design Patterns        | 20                    |
-| Microservices          | 25                    |
-| Redis                  | 15                    |
-| WebSocket              | 15                    |
-| Azure                  | 25                    |
-| Docker / CI/CD         | 15                    |
-| System Design          | 15                    |
-| Behavioral             | 20                    |
-| **Total**        | **~460 topics** |
+
+| Area                   | Target          |
+| ------------------------ | ----------------- |
+| C#                     | 60              |
+| OOP / SOLID            | 30              |
+| LINQ                   | 25              |
+| Async / Multithreading | 40              |
+| ASP.NET Core           | 50              |
+| Web API                | 30              |
+| EF Core                | 25              |
+| SQL                    | 50              |
+| Design Patterns        | 20              |
+| Microservices          | 25              |
+| Redis                  | 15              |
+| WebSocket              | 15              |
+| Azure                  | 25              |
+| Docker / CI/CD         | 15              |
+| System Design          | 15              |
+| Behavioral             | 20              |
+| **Total**              | **~460 topics** |
 
 ### Goals
 
-- [ ] Understand core concepts deeply
-- [ ] Explain concepts without memorization
-- [ ] Provide practical examples from experience
-- [ ] Relate concepts to GRL projects
+- [ ]  Understand core concepts deeply
+- [ ]  Explain concepts without memorization
+- [ ]  Provide practical examples from experience
+- [ ]  Relate concepts to GRL projects
 
 ---
 
@@ -1336,8 +1340,9 @@ Deploy
 
 ## Technology Stack
 
-| Component                       | Technology                         |
-| ------------------------------- | ---------------------------------- |
+
+| Component                 | Technology                         |
+| --------------------------- | ------------------------------------ |
 | **Frontend**              | React / Simple UI                  |
 | **Backend**               | ASP.NET Core Web API               |
 | **Database**              | SQL Server                         |
@@ -1355,54 +1360,54 @@ Deploy
 
 ### Core Features
 
-- [ ] User authentication & management
-- [ ] Role-based authorization
-- [ ] Test suite management (CRUD)
-- [ ] Test case management (CRUD)
-- [ ] Test execution
-- [ ] Test result storage & retrieval
-- [ ] Test log storage & retrieval
+- [ ]  User authentication & management
+- [ ]  Role-based authorization
+- [ ]  Test suite management (CRUD)
+- [ ]  Test case management (CRUD)
+- [ ]  Test execution
+- [ ]  Test result storage & retrieval
+- [ ]  Test log storage & retrieval
 
 ### Backend Features
 
-- [ ] RESTful API design
-- [ ] DTOs (Data Transfer Objects)
-- [ ] Dependency Injection container
-- [ ] Global exception handling
-- [ ] Input validation
-- [ ] Structured logging
+- [ ]  RESTful API design
+- [ ]  DTOs (Data Transfer Objects)
+- [ ]  Dependency Injection container
+- [ ]  Global exception handling
+- [ ]  Input validation
+- [ ]  Structured logging
 
 ### Async & Concurrency
 
-- [ ] Background test execution
-- [ ] CancellationToken support
-- [ ] Concurrent test execution
-- [ ] Producer/consumer pattern
-- [ ] Thread-safe operations
+- [ ]  Background test execution
+- [ ]  CancellationToken support
+- [ ]  Concurrent test execution
+- [ ]  Producer/consumer pattern
+- [ ]  Thread-safe operations
 
 ### Real-time Features
 
-- [ ] WebSocket connection management
-- [ ] Live execution status updates
-- [ ] Test result streaming
-- [ ] Connection reconnection handling
-- [ ] Heartbeat mechanism
+- [ ]  WebSocket connection management
+- [ ]  Live execution status updates
+- [ ]  Test result streaming
+- [ ]  Connection reconnection handling
+- [ ]  Heartbeat mechanism
 
 ### Performance Optimization
 
-- [ ] Redis caching
-- [ ] Pagination
-- [ ] SQL indexes
-- [ ] EF Core query optimization
-- [ ] AsNoTracking() for read-only queries
+- [ ]  Redis caching
+- [ ]  Pagination
+- [ ]  SQL indexes
+- [ ]  EF Core query optimization
+- [ ]  AsNoTracking() for read-only queries
 
 ### DevOps & Deployment
 
-- [ ] Dockerfile & Docker Compose
-- [ ] GitHub Actions CI/CD
-- [ ] Automated test execution
-- [ ] Build pipeline
-- [ ] Azure deployment
+- [ ]  Dockerfile & Docker Compose
+- [ ]  GitHub Actions CI/CD
+- [ ]  Automated test execution
+- [ ]  Build pipeline
+- [ ]  Azure deployment
 
 ---
 
@@ -1423,8 +1428,9 @@ Deploy
 
 ## Primary Application Categories
 
-| Category            | Target | Roles                                                      |
-| ------------------- | ------ | ---------------------------------------------------------- |
+
+| Category      | Target | Roles                                                      |
+| --------------- | -------- | ------------------------------------------------------------ |
 | **Primary**   | 50%    | C# / .NET Backend, ASP.NET Core, Software Engineer — .NET |
 | **Secondary** | 20%    | .NET + Azure combination roles                             |
 | **Tertiary**  | 15%    | .NET + React / Full Stack                                  |
@@ -1505,52 +1511,53 @@ Software Engineer — C#/.NET Backend
 
 **What to Explain:**
 
-- [ ] Why REST was replaced with WebSocket
-- [ ] WebSocket architecture and implementation
-- [ ] Concurrency handling in real-time systems
-- [ ] Buffer management and memory optimization
-- [ ] Impact on performance and scalability
-- [ ] Failure handling and recovery mechanisms
-- [ ] Testing strategies for real-time systems
+- [ ]  Why REST was replaced with WebSocket
+- [ ]  WebSocket architecture and implementation
+- [ ]  Concurrency handling in real-time systems
+- [ ]  Buffer management and memory optimization
+- [ ]  Impact on performance and scalability
+- [ ]  Failure handling and recovery mechanisms
+- [ ]  Testing strategies for real-time systems
 
 ### Memory Investigation & Optimization
 
 **What to Explain:**
 
-- [ ] Identified 8–15 GB memory issue
-- [ ] Profiling process and tools used
-- [ ] Root-cause investigation methodology
-- [ ] Solution implementation & optimization
-- [ ] Validation and testing results
-- [ ] Performance improvements achieved
+- [ ]  Identified 8–15 GB memory issue
+- [ ]  Profiling process and tools used
+- [ ]  Root-cause investigation methodology
+- [ ]  Solution implementation & optimization
+- [ ]  Validation and testing results
+- [ ]  Performance improvements achieved
 
 ### NuGet & Package Management
 
 **What to Explain:**
 
-- [ ] Package dependency resolution
-- [ ] GitHub Packages authentication
-- [ ] Version conflict resolution
-- [ ] Package restore troubleshooting
-- [ ] Dependency tree management
+- [ ]  Package dependency resolution
+- [ ]  GitHub Packages authentication
+- [ ]  Version conflict resolution
+- [ ]  Package restore troubleshooting
+- [ ]  Dependency tree management
 
 ### Backend Architecture
 
 **What to Explain:**
 
-- [ ] DTO (Data Transfer Object) patterns
-- [ ] API layer design
-- [ ] Service layer organization
-- [ ] WebSocket integration points
-- [ ] Frontend-backend communication
-- [ ] End-to-end execution lifecycle
+- [ ]  DTO (Data Transfer Object) patterns
+- [ ]  API layer design
+- [ ]  Service layer organization
+- [ ]  WebSocket integration points
+- [ ]  Frontend-backend communication
+- [ ]  End-to-end execution lifecycle
 
 ---
 
 # 13. Weekly Progress Tracker
 
+
 | Week | Main Topic                              | Completed | Interview Ready |
-| ---- | --------------------------------------- | --------- | --------------- |
+| ------ | ----------------------------------------- | ----------- | ----------------- |
 | 1    | C# + OOP                                | [ ]       | [ ]             |
 | 2    | LINQ + Advanced C#                      | [ ]       | [ ]             |
 | 3    | Async + Multithreading                  | [ ]       | [ ]             |
@@ -1574,134 +1581,134 @@ Software Engineer — C#/.NET Backend
 
 ### C# & OOP
 
-- [ ] Strong C# fundamentals
-- [ ] Strong OOP principles
-- [ ] Strong SOLID principles
-- [ ] Value types vs reference types
-- [ ] Memory management & GC
-- [ ] Exception handling patterns
-- [ ] Delegates & events
-- [ ] Generics mastery
+- [ ]  Strong C# fundamentals
+- [ ]  Strong OOP principles
+- [ ]  Strong SOLID principles
+- [ ]  Value types vs reference types
+- [ ]  Memory management & GC
+- [ ]  Exception handling patterns
+- [ ]  Delegates & events
+- [ ]  Generics mastery
 
 ### LINQ & Collections
 
-- [ ] Strong LINQ (Where, Select, GroupBy, etc.)
-- [ ] Deferred vs immediate execution
-- [ ] IEnumerable vs IQueryable
-- [ ] Collections internals (Dictionary, HashSet, etc.)
-- [ ] Performance characteristics
+- [ ]  Strong LINQ (Where, Select, GroupBy, etc.)
+- [ ]  Deferred vs immediate execution
+- [ ]  IEnumerable vs IQueryable
+- [ ]  Collections internals (Dictionary, HashSet, etc.)
+- [ ]  Performance characteristics
 
 ### Asynchronous Programming
 
-- [ ] Strong async/await
-- [ ] Multithreading fundamentals
-- [ ] Task vs Thread
-- [ ] CancellationToken usage
-- [ ] Concurrent collections
-- [ ] Deadlock prevention
+- [ ]  Strong async/await
+- [ ]  Multithreading fundamentals
+- [ ]  Task vs Thread
+- [ ]  CancellationToken usage
+- [ ]  Concurrent collections
+- [ ]  Deadlock prevention
 
 ### ASP.NET Core & Web APIs
 
-- [ ] Strong ASP.NET Core architecture
-- [ ] REST API design principles
-- [ ] Dependency Injection patterns
-- [ ] Middleware pipeline
-- [ ] Authentication & Authorization
-- [ ] Global exception handling
+- [ ]  Strong ASP.NET Core architecture
+- [ ]  REST API design principles
+- [ ]  Dependency Injection patterns
+- [ ]  Middleware pipeline
+- [ ]  Authentication & Authorization
+- [ ]  Global exception handling
 
 ### Database & ORM
 
-- [ ] Strong SQL Server knowledge
-- [ ] JOIN operations mastery
-- [ ] Window functions expertise
-- [ ] Index strategy & optimization
-- [ ] Transaction handling
-- [ ] EF Core expertise
-- [ ] N+1 problem solutions
+- [ ]  Strong SQL Server knowledge
+- [ ]  JOIN operations mastery
+- [ ]  Window functions expertise
+- [ ]  Index strategy & optimization
+- [ ]  Transaction handling
+- [ ]  EF Core expertise
+- [ ]  N+1 problem solutions
 
 ### Advanced Backend
 
-- [ ] JWT authentication flow
-- [ ] Redis caching strategies
-- [ ] WebSocket real-time patterns
-- [ ] Background services
-- [ ] Microservices fundamentals
-- [ ] Design patterns usage
+- [ ]  JWT authentication flow
+- [ ]  Redis caching strategies
+- [ ]  WebSocket real-time patterns
+- [ ]  Background services
+- [ ]  Microservices fundamentals
+- [ ]  Design patterns usage
 
 ### DevOps & Cloud
 
-- [ ] Docker containerization
-- [ ] CI/CD pipeline setup
-- [ ] Azure fundamentals (App Service, SQL, Storage)
-- [ ] Git & GitHub workflows
-- [ ] Unit testing best practices
+- [ ]  Docker containerization
+- [ ]  CI/CD pipeline setup
+- [ ]  Azure fundamentals (App Service, SQL, Storage)
+- [ ]  Git & GitHub workflows
+- [ ]  Unit testing best practices
 
 ## Coding Excellence
 
 ### DSA Competency
 
-- [ ] ~100 DSA problems solved
-- [ ] Easy problems: very comfortable
-- [ ] Medium problems: comfortable
-- [ ] Can explain time complexity
-- [ ] Can explain space complexity
-- [ ] Clean, idiomatic C# solutions
+- [ ]  ~100 DSA problems solved
+- [ ]  Easy problems: very comfortable
+- [ ]  Medium problems: comfortable
+- [ ]  Can explain time complexity
+- [ ]  Can explain space complexity
+- [ ]  Clean, idiomatic C# solutions
 
 ## Project Deliverables
 
-- [ ] **Complete backend project** deployed
-- [ ] **GitHub repository** with clean history
-- [ ] **README** with setup instructions
-- [ ] **Architecture diagram** documenting design
-- [ ] **API documentation** (Swagger/OpenAPI)
-- [ ] **Unit tests** with good coverage
-- [ ] **Docker setup** working
-- [ ] **CI/CD pipeline** functional
-- [ ] **Redis** integration working
-- [ ] **WebSocket** feature demonstrated
-- [ ] **SQL Server** schema designed
-- [ ] **EF Core** properly configured
+- [ ]  **Complete backend project** deployed
+- [ ]  **GitHub repository** with clean history
+- [ ]  **README** with setup instructions
+- [ ]  **Architecture diagram** documenting design
+- [ ]  **API documentation** (Swagger/OpenAPI)
+- [ ]  **Unit tests** with good coverage
+- [ ]  **Docker setup** working
+- [ ]  **CI/CD pipeline** functional
+- [ ]  **Redis** integration working
+- [ ]  **WebSocket** feature demonstrated
+- [ ]  **SQL Server** schema designed
+- [ ]  **EF Core** properly configured
 
 ## Interview Readiness
 
 ### Question Preparation
 
-- [ ] 4+ full mock interviews completed
-- [ ] 400+ interview topics reviewed
-- [ ] 5+ system design problems solved
-- [ ] 10+ project discussion questions answered
-- [ ] 10+ behavioral questions rehearsed
+- [ ]  4+ full mock interviews completed
+- [ ]  400+ interview topics reviewed
+- [ ]  5+ system design problems solved
+- [ ]  10+ project discussion questions answered
+- [ ]  10+ behavioral questions rehearsed
 
 ### Presentations Ready
 
-- [ ] 60-second introduction prepared
-- [ ] 2-minute career summary polished
-- [ ] 5-minute GRL project explanation ready
-- [ ] 10-minute major project deep-dive prepared
+- [ ]  60-second introduction prepared
+- [ ]  2-minute career summary polished
+- [ ]  5-minute GRL project explanation ready
+- [ ]  10-minute major project deep-dive prepared
 
 ## Job Search Preparation
 
 ### Career Documentation
 
-- [ ] Resume updated & optimized
-- [ ] LinkedIn profile refreshed
-- [ ] Portfolio (GitHub) showcase-ready
-- [ ] Naukri profile active
+- [ ]  Resume updated & optimized
+- [ ]  LinkedIn profile refreshed
+- [ ]  Portfolio (GitHub) showcase-ready
+- [ ]  Naukri profile active
 
 ### Application Strategy
 
-- [ ] Job alerts created
-- [ ] Referral strategy initiated
-- [ ] Application tracker set up
-- [ ] **Applications started by Week 4–5**
-- [ ] **Daily tracking maintained**
+- [ ]  Job alerts created
+- [ ]  Referral strategy initiated
+- [ ]  Application tracker set up
+- [ ]  **Applications started by Week 4–5**
+- [ ]  **Daily tracking maintained**
 
 ### Feedback Loop
 
-- [ ] Interview feedback recorded
-- [ ] Weak areas identified
-- [ ] Revision plan created
-- [ ] Continuous improvement process active
+- [ ]  Interview feedback recorded
+- [ ]  Weak areas identified
+- [ ]  Revision plan created
+- [ ]  Continuous improvement process active
 
 ---
 
@@ -1709,8 +1716,9 @@ Software Engineer — C#/.NET Backend
 
 ## Current State
 
-| Aspect                         | Detail                                  |
-| ------------------------------ | --------------------------------------- |
+
+| Aspect                   | Detail                                  |
+| -------------------------- | ----------------------------------------- |
 | **Organization**         | Granite River Labs (GRL)                |
 | **Position**             | Software Engineer                       |
 | **Full-Time Experience** | ~2.5 years                              |
@@ -1719,8 +1727,9 @@ Software Engineer — C#/.NET Backend
 
 ## Target State
 
-| Aspect                     | Target                            |
-| -------------------------- | --------------------------------- |
+
+| Aspect               | Target                            |
+| ---------------------- | ----------------------------------- |
 | **Organization**     | New, growth-oriented organization |
 | **Position**         | Backend Software Engineer         |
 | **Experience Level** | 2–4 YOE (Years of Experience)    |
