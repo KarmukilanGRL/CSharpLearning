@@ -9582,7 +9582,6 @@ The benefit may be that the calling thread isn't the one performing the CPU-boun
           execute work       no thread blocked
 ```
 
-
 #### Remember these 5 points
 
 1. **Task ≠ Thread**
@@ -9590,7 +9589,6 @@ The benefit may be that the calling thread isn't the one performing the CPU-boun
 3. **`Task.Run()` queues work to the ThreadPool**
 4. **Use `Task.Run()` mainly for CPU-bound work**
 5. **Don't use `Task.Run()` to wrap naturally async I/O**
-
 
 ThreadPool vs Async/Await
 
@@ -9623,5 +9621,2071 @@ ThreadPool vs Async/Await
    Thread Usage	Uses a ThreadPool thread to do active background work.	Frees up the thread while waiting for an external response.
    CPU Impact	Keeps the CPU busy with intensive processing.	Keeps the CPU efficient by preventing idle threads from wasting slots.
 
-
 ## Parallel Programming:
+
+* Concurrency vs Parallelism
+* `Parallel.For`
+* `Parallel.ForEach`
+* `Parallel.Invoke`
+* `Parallel` vs `Task.WhenAll`
+* CPU-bound vs I/O-bound work
+* Basic interview questions around parallel execution
+
+### Thread Safety
+
+When multiple threads execute code at the same time, they may access the same shared data. That creates the possibility of incorrect results.
+
+Example
+int counter = 0;
+
+Parallel.For(0, 10000, i =>
+{
+    counter++;
+});
+
+Console.WriteLine(counter);
+
+You might expect: 10000
+
+But you may get something less than 10000.
+
+Why? Because:
+
+counter++; is actually roughly:
+
+1. Read counter
+2. Add 1
+3. Write counter
+
+Imagine two threads:
+
+Thread 1: reads 10
+Thread 2: reads 10
+
+Thread 1: adds 1 → 11
+Thread 2: adds 1 → 11
+
+Thread 1: writes 11
+Thread 2: writes 11
+
+Two increments happened, but the final value increased only once. This is called a race condition.
+
+### Race Condition
+
+A **race condition** occurs when multiple threads access shared data concurrently and the final result depends on the timing/order of their execution.
+
+ Interview definition:
+
+> A race condition occurs when multiple threads access shared mutable data concurrently, and the program's result depends on the unpredictable timing of those operations.
+>
+
+### How do we make code thread-safe?
+
+Common mechanisms in C# include:
+
+1. `lock`
+2. `Monitor`
+3. `Interlocked`
+4. Thread-safe collections
+5. Immutable objects
+6. Proper synchronization/design
+
+### `lock`
+
+<pre class="overflow-visible! px-0!" data-start="1948" data-end="2129"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">counter</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;
+</span><span class="ͼv">private</span><span></span><span class="ͼv">static</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">object</span><span>();
+
+</span><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">10000</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+    {
+        </span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+    }
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now only **one thread at a time** can execute the protected section.
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2216" data-end="2370"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1 → acquires lock
+           counter++
+           releases lock
+
+Thread 2 → acquires lock
+           counter++
+           releases lock</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So the operation becomes safe.
+
+#### What exactly does `lock` do?
+
+`lock` provides  **mutual exclusion** .
+
+That means:
+
+> At most one thread can enter the locked section for a particular lock object at a time.
+
+Syntax:
+
+<pre class="overflow-visible! px-0!" data-start="2596" data-end="2655"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockObject</span><span>)
+{
+    </span><span class="ͼt">// critical section</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The code inside the block is called the  **critical section** .
+
+#### Why use a private object for locking?
+
+Recommended:
+
+<pre class="overflow-visible! px-0!" data-start="2783" data-end="2842"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">object</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="2851" data-end="2905"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼt">// critical section</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Avoid:
+
+<pre class="overflow-visible! px-0!" data-start="2915" data-end="2940"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼv">this</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+and:
+
+<pre class="overflow-visible! px-0!" data-start="2948" data-end="2982"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼz">"some string"</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+because external code may also obtain the same lock and create unexpected synchronization problems.
+
+#### What is the difference between `lock` and `Interlocked`?
+
+A useful rule:
+
+**`lock`**
+
+Used when you need to protect a **larger block of code** or multiple operations.
+
+<pre class="overflow-visible! px-0!" data-start="3287" data-end="3364"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">balance</span><span></span><span class="ͼv">-=</span><span></span><span class="ͼ11">amount</span><span>;
+    </span><span class="ͼ11">transactionCount</span><span class="ͼv">++</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+**`Interlocked`**
+
+Used for simple atomic operations.
+
+<pre class="overflow-visible! px-0!" data-start="3421" data-end="3470"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So:
+
+> `Interlocked` is lightweight and suitable for individual atomic operations, while `lock` is used to protect a critical section containing multiple operations.
+>
+
+### `Monitor` vs `lock`
+
+Both are used for  **thread synchronization** , but `lock` is essentially a simpler, safer syntax built on top of `Monitor`.
+
+The compiler effectively translates this conceptually into `Monitor.Enter()` and `Monitor.Exit()`.
+
+#### `Monitor`
+
+You can write the same thing explicitly:
+
+<pre class="overflow-visible! px-0!" data-start="421" data-end="557"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Enter</span><span>(</span><span class="ͼ11">_lock</span><span>);
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Exit</span><span>(</span><span class="ͼ11">_lock</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The `finally` is important because the lock must be released even if an exception occurs.
+
+#### Why use `Monitor`?
+
+`Monitor` gives you capabilities that `lock` doesn't directly expose, especially:
+
+#### `Monitor.Wait()`
+
+Temporarily releases the lock and waits for another thread to signal.
+
+#### `Monitor.Pulse()`
+
+Wakes one waiting thread.
+
+#### `Monitor.PulseAll()`
+
+Wakes all waiting threads.
+
+These are useful for  **producer-consumer synchronization** .
+
+
+| `lock`                      | `Monitor`                            |
+| ----------------------------- | -------------------------------------- |
+| Easier syntax               | More control                         |
+| Simple mutual exclusion     | Mutual exclusion + waiting/signaling |
+| Automatically releases lock | Must explicitly release              |
+| Less error-prone            | More flexible but easier to misuse   |
+| Internally uses`Monitor`    | Underlying synchronization mechanism |
+
+`lock` is a simplified and safer syntax for using `Monitor`. Both provide mutual exclusion, but `Monitor` exposes additional methods such as `Wait`, `Pulse`, and `PulseAll`, giving more control over thread synchronization.
+
+#### Important point
+
+Don't write:
+
+<pre class="overflow-visible! px-0!" data-start="1651" data-end="1718"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Enter</span><span>(</span><span class="ͼ11">_lock</span><span>);
+</span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+</span><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Exit</span><span>(</span><span class="ͼ11">_lock</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+because if `counter++` throws an exception, the lock may never be released.
+
+Prefer:
+
+<pre class="overflow-visible! px-0!" data-start="1806" data-end="1902"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Enter</span><span>(</span><span class="ͼ11">_lock</span><span>);
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">Monitor</span><span>.</span><span class="ͼ11">Exit</span><span>(</span><span class="ͼ11">_lock</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+### Interlocked
+
+`Interlocked` is used when you need to perform  **simple operations on shared variables atomically** .
+
+ The problem earlier we had:
+
+<pre class="overflow-visible! px-0!" data-start="187" data-end="267"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">counter</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;
+
+</span><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">10000</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`counter++` is  **not atomic** , so multiple threads can interfere with each other.
+
+#### `Interlocked.Increment`
+
+<pre class="overflow-visible! px-0!" data-start="394" data-end="528"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">counter</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;
+
+</span><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">10000</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref </span><span></span><span class="ͼ11">counter</span><span>);
+});
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now the result will reliably be:
+
+<pre class="overflow-visible! px-0!" data-start="564" data-end="581"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>10000</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`Interlocked.Increment()` performs the read → increment → write operation atomically.
+
+
+#### Common `Interlocked` methods
+
+##### Increment
+
+<pre class="overflow-visible! px-0!" data-start="726" data-end="775"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Equivalent conceptually to:
+
+<pre class="overflow-visible! px-0!" data-start="806" data-end="839"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>counter = counter + 1</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+but performed atomically.
+
+##### Decrement
+
+<pre class="overflow-visible! px-0!" data-start="883" data-end="932"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Decrement</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Add
+
+<pre class="overflow-visible! px-0!" data-start="943" data-end="990"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>, </span><span class="ͼy">10</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Exchange
+
+<pre class="overflow-visible! px-0!" data-start="1006" data-end="1057"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Exchange</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼv">value</span><span>, </span><span class="ͼy">100</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Sets `value` to `100` atomically.
+
+##### CompareExchange
+
+This is particularly important for interviews:
+
+<pre class="overflow-visible! px-0!" data-start="1163" data-end="1241"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">CompareExchange</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼv">value</span><span>, </span><span class="ͼ11">newValue</span><span>, </span><span class="ͼ11">expectedValue</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+It means:
+
+> If the current value equals `expectedValue`, replace it with `newValue`.
+
+Otherwise, leave it unchanged.
+
+#### `lock` vs `Interlocked`
+
+**`Interlocked` = atomic operations on shared variables**
+
+Know these:
+
+<pre class="overflow-visible! px-0!" data-start="2684" data-end="2744"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Increment
+Decrement
+Add
+Exchange
+CompareExchange</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+And the key comparison:
+
+<pre class="overflow-visible! px-0!" data-start="2771" data-end="2873"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Interlocked → simple atomic operation
+lock        → critical section / multiple operations</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+
+
+This is an important interview question.
+
+##### `Interlocked`
+
+Use it for  **simple atomic operations** :
+
+<pre class="overflow-visible! px-0!" data-start="1497" data-end="1546"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### `lock`
+
+Use it when you need to protect a  **larger critical section** :
+
+<pre class="overflow-visible! px-0!" data-start="1624" data-end="1723"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">balance</span><span></span><span class="ͼv">-=</span><span></span><span class="ͼ11">amount</span><span>;
+    </span><span class="ͼ11">transactionCount</span><span class="ͼv">++</span><span>;
+    </span><span class="ͼ11">LogTransaction</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Simple rule
+
+> **One simple operation → `Interlocked`**
+>
+> **Multiple related operations → `lock`**
+>
+
+#### **Is `Interlocked` completely lock-free?**
+
+Generally, yes, `Interlocked` operations are implemented using atomic CPU instructions rather than acquiring a traditional managed lock.
+
+That's one reason they can be very efficient for simple synchronization scenarios.
+
+But don't conclude that `Interlocked` can replace `lock` everywhere.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="2212" data-end="2306"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">balance</span><span>);
+</span><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">transactionCount</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+doesn't automatically make the  **relationship between those two operations atomic** .
+
+If both must change as one consistent operation, you generally need a synchronization strategy such as:
+
+<pre class="overflow-visible! px-0!" data-start="2499" data-end="2568"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">balance</span><span class="ͼv">++</span><span>;
+    </span><span class="ͼ11">transactionCount</span><span class="ͼv">++</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+
+
+### Thread-Safe Collections
+
+When multiple threads access a collection simultaneously, normal collections such as Dictionary<TKey,TValue> and List<T></t> are not generally thread-safe for concurrent writes.
+
+.NET provides the System.Collections.Concurrent namespace for this.
+
+#### `ConcurrentDictionary<TKey, TValue>`
+
+This is the most important one for interviews.
+
+Normal dictionary:
+
+<pre class="overflow-visible! px-0!" data-start="393" data-end="445"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Concurrent version:
+
+<pre class="overflow-visible! px-0!" data-start="468" data-end="530"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">ConcurrentDictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Multiple threads can safely add/update entries:
+
+<pre class="overflow-visible! px-0!" data-start="581" data-end="661"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">1000</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryAdd</span><span>(</span><span class="ͼ11">i</span><span>, </span><span class="ͼ11">$</span><span class="ͼz">"User {i}"</span><span>);
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You don't need to put a `lock` around every operation.
+
+ Important methods
+
+<pre class="overflow-visible! px-0!" data-start="742" data-end="891"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryGetValue</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">out</span><span></span><span class="ͼv">value</span><span>);
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryRemove</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">out</span><span></span><span class="ͼv">value</span><span>);
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryUpdate</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼ11">newValue</span><span>, </span><span class="ͼ11">oldValue</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+There is also:
+
+<pre class="overflow-visible! px-0!" data-start="909" data-end="1002"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">users</span><span>.</span><span class="ͼ11">AddOrUpdate</span><span>(
+    </span><span class="ͼ11">key</span><span>,
+    </span><span class="ͼ11">addValue</span><span>,
+    (</span><span class="ͼ11">key</span><span>, </span><span class="ͼ11">oldValue</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">oldValue</span><span></span><span class="ͼv">+</span><span></span><span class="ͼy">1</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="1010" data-end="1051"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">users</span><span>.</span><span class="ͼ11">GetOrAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### ConcurrentQueue< T ><T></t>
+
+Thread-safe FIFO collection.
+
+First In → First Out
+
+Example:
+
+ConcurrentQueue< T>  queue = new();
+
+queue.Enqueue("A");
+queue.Enqueue("B");
+
+queue.TryDequeue(out string? item);
+
+Useful for producer-consumer scenarios.
+
+#### ConcurrentStack< T><T></t>
+
+Thread-safe LIFO collection.
+
+ConcurrentStack< T > stack = new();
+
+stack.Push(10);
+stack.Push(20);
+
+stack.TryPop(out int item);
+20 ← removed first
+10
+
+#### ConcurrentBag< T ><T></t>
+
+Thread-safe unordered collection.
+
+ConcurrentBag<int></int> bag = new();
+
+Parallel.For(0, 1000, i =>
+{
+    bag.Add(i);
+});
+
+Unlike a queue or stack, it doesn't guarantee FIFO or LIFO ordering.
+
+It is particularly useful when multiple threads are adding/removing items and ordering isn't important.
+
+
+
+| Collection                          | Thread-safe for concurrent operations? |
+| ------------------------------------- | ---------------------------------------- |
+| `List<T>`                           | ❌ No                                  |
+| `Dictionary<TKey,TValue>`           | ❌ No                                  |
+| `Queue<T>`                          | ❌ No                                  |
+| `Stack<T>`                          | ❌ No                                  |
+| `ConcurrentDictionary<TKey,TValue>` | ✅                                     |
+| `ConcurrentQueue<T>`                | ✅                                     |
+| `ConcurrentStack<T>`                | ✅                                     |
+| `ConcurrentBag<T>`                  | ✅                                     |
+
+#### Sample Questions
+
+##### Can I make a `Dictionary` thread-safe using `lock`?
+
+Yes.
+
+<pre class="overflow-visible! px-0!" data-start="2319" data-end="2471"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+</span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">1</span><span>, </span><span class="ͼz">"John"</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But if your application needs  **frequent concurrent access** , a `ConcurrentDictionary` can be a better fit because it is specifically designed for concurrent operations and can allow greater concurrency than one coarse-grained lock around the entire dictionary.
+
+Is Concurrent always faster than normal?
+
+Don't say:
+
+> "Concurrent collections are always faster."
+
+That's incorrect.
+
+The correct answer is:
+
+> Concurrent collections are designed for safe concurrent access and can provide better scalability than manually locking a normal collection, but the appropriate choice depends on the access pattern.
+
+##### Easy memory trick
+
+<pre class="overflow-visible! px-0!" data-start="3098" data-end="3396"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dictionary       → normal single-threaded/general use
+ConcurrentDictionary → multiple threads
+
+Queue            → FIFO
+ConcurrentQueue  → thread-safe FIFO
+
+Stack            → LIFO
+ConcurrentStack  → thread-safe LIFO
+
+Bag              → unordered
+ConcurrentBag    → thread-safe unordered</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+
+#### `ConcurrentDictionary` — Important Interview Traps
+
+##### `GetOrAdd()`
+
+Suppose multiple threads try to add the same key:
+
+<pre class="overflow-visible! px-0!" data-start="226" data-end="334"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">ConcurrentDictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span>();
+
+</span><span class="ͼ11">string</span><span></span><span class="ͼ11">user</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">GetOrAdd</span><span>(</span><span class="ͼy">1</span><span>, </span><span class="ͼz">"John"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+It means:
+
+> If key `1` exists, return its existing value. Otherwise, add `"John"` and return the value.
+
+This avoids doing:
+
+<pre class="overflow-visible! px-0!" data-start="462" data-end="535"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">ContainsKey</span><span>(</span><span class="ͼy">1</span><span>))
+{
+    </span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">TryAdd</span><span>(</span><span class="ͼy">1</span><span>, </span><span class="ͼz">"John"</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The problem with the second approach is that the  **check and add are separate operations** .
+
+Two threads could both observe that the key doesn't exist.
+
+##### `AddOrUpdate()`
+
+Very useful when multiple threads need to update the same value.
+
+<pre class="overflow-visible! px-0!" data-start="784" data-end="930"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">counts</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">ConcurrentDictionary</span><span class="ͼv"><</span><span class="ͼ11">string</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span>();
+
+</span><span class="ͼ11">counts</span><span>.</span><span class="ͼ11">AddOrUpdate</span><span>(
+    </span><span class="ͼz">"apple"</span><span>,
+    </span><span class="ͼy">1</span><span>,
+    (</span><span class="ͼ11">key</span><span>, </span><span class="ͼ11">oldValue</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">oldValue</span><span></span><span class="ͼv">+</span><span></span><span class="ͼy">1</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Meaning:
+
+<pre class="overflow-visible! px-0!" data-start="942" data-end="1020"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>If "apple" doesn't exist → add 1
+
+If "apple" exists → oldValue + 1</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So this is useful for things like counters.
+
+##### Is the value factory executed only once?
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1146" data-end="1211"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">users</span><span>.</span><span class="ͼ11">GetOrAdd</span><span>(
+    </span><span class="ͼy">1</span><span>,
+    </span><span class="ͼ11">key</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">CreateUser</span><span>(</span><span class="ͼ11">key</span><span>));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+A common interview mistake is saying:
+
+> "`CreateUser()` will execute exactly once."
+
+Not necessarily.
+
+Under contention, the value factory can potentially execute  **multiple times** , even though only one resulting value is added to the dictionary.
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1468" data-end="1492"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetOrAdd</span><span>()</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+guarantees the dictionary operation, but you should  **not assume the factory executes exactly once** .
+
+This matters if the factory performs expensive work or has side effects.
+
+##### `AddOrUpdate()` has a similar consideration
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1740" data-end="1849"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">counts</span><span>.</span><span class="ͼ11">AddOrUpdate</span><span>(
+    </span><span class="ͼz">"apple"</span><span>,
+    </span><span class="ͼy">1</span><span>,
+    (</span><span class="ͼ11">key</span><span>, </span><span class="ͼ11">oldValue</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">ExpensiveCalculation</span><span>(</span><span class="ͼ11">oldValue</span><span>));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The update delegate may be invoked multiple times because of concurrent updates.
+
+Therefore, avoid putting operations with important side effects inside these delegates.
+
+##### Why not simply use `lock`?
+
+You could write:
+
+<pre class="overflow-visible! px-0!" data-start="2078" data-end="2181"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼv">if</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">ContainsKey</span><span>(</span><span class="ͼ11">id</span><span>))
+    {
+        </span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">id</span><span>, </span><span class="ͼ11">user</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is thread-safe.
+
+But `ConcurrentDictionary` provides built-in atomic operations such as:
+
+<pre class="overflow-visible! px-0!" data-start="2278" data-end="2349"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetOrAdd</span><span>()
+</span><span class="ͼ11">AddOrUpdate</span><span>()
+</span><span class="ͼ11">TryAdd</span><span>()
+</span><span class="ͼ11">TryRemove</span><span>()
+</span><span class="ͼ11">TryUpdate</span><span>()</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This makes concurrent access easier to express and can allow more concurrency than protecting the entire dictionary with one lock.
+
+##### Is this thread-safe?
+
+<pre class="overflow-visible! px-0!" data-start="2539" data-end="2613"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">ContainsKey</span><span>(</span><span class="ͼ11">key</span><span>))
+{
+    </span><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">TryAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If `dict` is a `ConcurrentDictionary`?
+
+**The individual operations are thread-safe, but the overall check-then-add logic is not the correct atomic pattern.**
+
+Instead:
+
+<pre class="overflow-visible! px-0!" data-start="2785" data-end="2825"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">GetOrAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is exactly why concurrent collections provide compound operations.
+
+##### Remember this distinction:
+
+<pre class="overflow-visible! px-0!" data-start="2949" data-end="3027"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread-safe operation
+        ≠
+Thread-safe sequence of operations</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="3043" data-end="3104"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">ContainsKey</span><span>(</span><span class="ͼ11">key</span><span>);
+</span><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">TryAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Each operation is safe, but their  **combination isn't atomic** .
+
+Use:
+
+<pre class="overflow-visible! px-0!" data-start="3177" data-end="3217"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dict</span><span>.</span><span class="ͼ11">GetOrAdd</span><span>(</span><span class="ͼ11">key</span><span>, </span><span class="ͼv">value</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+when you need the whole operation to behave atomically.
+
+### Producer–Consumer Pattern
+
+This is an important  **parallel programming / multithreading interview concept** .
+
+The basic idea is simple:
+
+> One or more threads **produce** data, while one or more other threads **consume** that data.
+
+A shared collection acts as the communication channel.
+
+#### Real-world example
+
+Think of an order-processing system:
+
+<pre class="overflow-visible! px-0!" data-start="353" data-end="809"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>              ┌──────────────┐
+Orders ──────►│   Producer   │
+              └──────┬───────┘
+                     │
+                     ▼
+              ┌──────────────┐
+              │     Queue    │
+              └──────┬───────┘
+                     │
+                     ▼
+              ┌──────────────┐
+              │   Consumer   │
+              └──────────────┘
+                     │
+                     ▼
+              Process Order</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The producer adds orders to the queue.
+
+The consumer takes orders from the queue and processes them.
+
+#### Why do we need this pattern?
+
+Suppose a web application receives 10,000 requests.
+
+You don't necessarily want every request to immediately perform expensive processing.
+
+Instead:
+
+<pre class="overflow-visible! px-0!" data-start="1100" data-end="1184"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request
+   ↓
+Add work to queue
+   ↓
+Background workers
+   ↓
+Process work</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This provides:
+
+* Decoupling
+* Controlled processing
+* Better resource utilization
+* Ability to handle bursts of work
+
+#### BlockingCollection< T ><T></t>
+
+One classic .NET implementation of the producer-consumer pattern is:
+
+BlockingCollection<int></int> queue = new();
+
+Producer:
+
+queue.Add(10);
+queue.Add(20);
+queue.Add(30);
+
+Consumer:
+
+foreach (var item in queue.GetConsumingEnumerable())
+{
+    Console.WriteLine($"Processing {item}");
+}
+
+The important part is: GetConsumingEnumerable()
+
+The consumer can wait for new items instead of continuously checking the queue.
+
+##### Why is it called "Blocking"?
+
+Imagine the queue is empty.
+
+The consumer asks:
+
+<pre class="overflow-visible! px-0!" data-start="1895" data-end="1931"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>"Give me the next item."</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+There is nothing available.
+
+Instead of:
+
+<pre class="overflow-visible! px-0!" data-start="1975" data-end="2042"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Check → empty
+Check → empty
+Check → empty
+Check → empty</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+the consumer can wait until an item becomes available.
+
+That's the "blocking" behavior.
+
+##### Completing the collection
+
+The producer eventually needs to tell consumers:
+
+"I am finished adding items."
+
+Use:
+
+queue.CompleteAdding();
+
+Example:
+
+var queue = new BlockingCollection<int></int>();
+
+// Producer
+for (int i = 1; i <= 5; i++)
+{
+    queue.Add(i);
+}
+
+queue.CompleteAdding();
+
+// Consumer
+foreach (var item in queue.GetConsumingEnumerable())
+{
+    Console.WriteLine($"Processing {item}");
+}
+
+After all items are consumed, the enumeration finishes.
+
+##### Bounded capacity
+
+This is an important feature.
+
+You can limit the queue size:
+
+var queue = new BlockingCollection<int></int>(100);
+
+Now the collection can contain at most 100 items.
+
+If the producer tries to add more while the collection is full, it can wait until space becomes available.
+
+This is called backpressure.
+
+##### Why is backpressure useful?
+
+Imagine:
+
+Producer → 1,000,000 items/sec
+Consumer → 100 items/sec
+
+Without a limit, memory usage could grow continuously.
+
+With bounded capacity:
+
+Producer
+   ↓
+[ Queue: max 100 ]
+   ↓
+Consumer
+
+The producer gets slowed down when the queue is full.
+
+#### BlockingCollection vs ConcurrentQueue
+
+This is an important interview comparison.
+
+ConcurrentQueue<T></t>
+
+Provides a thread-safe queue:
+
+queue.Enqueue(item);
+queue.TryDequeue(out item);
+
+But it doesn't inherently provide the same blocking producer-consumer coordination.
+
+BlockingCollection<T></t>
+
+Provides:
+
+Thread-safe producer/consumer operations
+Blocking behavior
+Bounded capacity
+Completion semantics
+
+#### **What is the Producer-Consumer pattern?**
+
+> Producer-Consumer is a concurrency pattern where producer threads generate work and place it into a shared thread-safe queue, while consumer threads retrieve and process that work independently. It decouples production from processing and helps control resource usage.
+>
+
+### Channel<T></t>< T > - Modern Producer–Consumer
+
+Channel< T > is a modern .NET mechanism for building asynchronous producer-consumer pipelines.
+
+It belongs to: using System.Threading.Channels;
+
+The key difference from BlockingCollection<T></t> is that Channel<T></t> works very naturally with async/await.
+
+#### Basic Channel
+
+Create a channel:
+
+var channel = Channel.CreateUnbounded<int></int>();
+
+It has:
+
+Writer → Channel → Reader
+
+##### Producer
+
+await channel.Writer.WriteAsync(10);
+await channel.Writer.WriteAsync(20);
+await channel.Writer.WriteAsync(30);
+
+##### Consumer
+
+while (await channel.Reader.WaitToReadAsync())
+{
+    while (channel.Reader.TryRead(out var item))
+    {
+        Console.WriteLine($"Processing {item}");
+    }
+}
+
+So:
+
+Producer
+   │
+   ▼
+┌─────────┐
+│ Channel │
+└─────────┘
+   │
+   ▼
+Consumer
+
+#### Why use Channel<T></t>?
+
+The biggest advantage is that the consumer doesn't need to block a thread while waiting.
+
+For example:
+
+await channel.Reader.WaitToReadAsync();
+
+The asynchronous operation can wait without tying up a worker thread.
+
+This makes Channel<T></t> particularly useful for:
+
+Background processing
+Async pipelines
+Message processing
+Work queues
+Producer-consumer architectures
+
+#### Bounded Channel
+
+Just like BlockingCollection, we can limit capacity.
+
+var channel = Channel.CreateBounded<int></int>(100);
+
+Now the channel can hold at most 100 items.
+
+This provides backpressure.
+
+If the channel is full:
+
+await channel.Writer.WriteAsync(item);
+
+can asynchronously wait until space becomes available.
+
+This is much better than continuously creating more work and allowing memory usage to grow indefinitely.
+
+#### Completing a Channel
+
+Once the producer has finished:
+
+<pre class="overflow-visible! px-0!" data-start="1852" data-end="1892"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">channel</span><span>.</span><span class="ͼ11">Writer</span><span>.</span><span class="ͼ11">Complete</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then the consumer can finish after processing the remaining items.
+
+A common pattern is:
+
+<pre class="overflow-visible! px-0!" data-start="1984" data-end="2104"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼv">foreach</span><span> (</span><span class="ͼv">var</span><span></span><span class="ͼ11">item</span><span></span><span class="ͼv">in</span><span></span><span class="ͼ11">channel</span><span>.</span><span class="ͼ11">Reader</span><span>.</span><span class="ͼ11">ReadAllAsync</span><span>())
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">$</span><span class="ͼz">"Processing {item}"</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is a very clean way to consume a channel.
+
+#### `BlockingCollection` vs `Channel`
+
+
+| `BlockingCollection<T>`                      | `Channel<T>`                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| Older producer-consumer abstraction          | Modern async-friendly abstraction                               |
+| Blocking APIs                                | Async APIs                                                      |
+| Can block threads                            | Doesn't need to block a thread while waiting                    |
+| Works well with synchronous processing       | Excellent for async pipelines                                   |
+| Built around`IProducerConsumerCollection<T>` | Built specifically around async producer-consumer communication |
+
+BlockingCollection<T></t> is useful for traditional blocking producer-consumer scenarios, whereas Channel<T></t> is designed for asynchronous producer-consumer communication and integrates naturally with async/await. For modern asynchronous applications, Channel<T></t> is often a better fit.
+
+#### Real backend example
+
+Imagine an API receives orders:
+
+HTTP Request
+     │
+     ▼
+Channel<Order></order>
+     │
+     ├──► Worker 1
+     ├──► Worker 2
+     └──► Worker 3
+             │
+             ▼
+        Process Order
+
+The API can quickly enqueue the order:
+
+await channel.Writer.WriteAsync(order);
+
+while background workers process orders independently.
+
+This helps separate:
+
+Receiving work from processing work.
+
+#### Is Channel<T></t> the same as ConcurrentQueue<T></t>?
+
+No.
+
+ConcurrentQueue<T></t> is primarily a thread-safe queue.
+
+Channel<T></t> provides a broader producer-consumer communication abstraction, including:
+
+Async reads/writes
+Waiting
+Completion
+Bounded capacity
+Backpressure
+
+#### Simple Mindmap
+
+ConcurrentQueue
+       ↓
+Thread-safe queue
+
+BlockingCollection
+       ↓
+Blocking producer-consumer
+
+Channel<T></t>
+       ↓
+Async producer-consumer
+
+### Deadlocks
+
+A **deadlock** occurs when two or more threads are waiting for each other indefinitely, so none of them can continue
+
+#### Example:
+
+Imagine two locks:
+
+<pre class="overflow-visible! px-0!" data-start="229" data-end="286"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">object</span><span></span><span class="ͼ11">lockA</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+</span><span class="ͼ11">object</span><span></span><span class="ͼ11">lockB</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Thread 1:
+
+<pre class="overflow-visible! px-0!" data-start="299" data-end="398"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockA</span><span>)
+{
+    </span><span class="ͼ11">Thread</span><span>.</span><span class="ͼ11">Sleep</span><span>(</span><span class="ͼy">100</span><span>);
+
+    </span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockB</span><span>)
+    {
+        </span><span class="ͼt">// work</span><span>
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Thread 2:
+
+<pre class="overflow-visible! px-0!" data-start="411" data-end="510"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockB</span><span>)
+{
+    </span><span class="ͼ11">Thread</span><span>.</span><span class="ͼ11">Sleep</span><span>(</span><span class="ͼy">100</span><span>);
+
+    </span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockA</span><span>)
+    {
+        </span><span class="ͼt">// work</span><span>
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Possible execution:
+
+<pre class="overflow-visible! px-0!" data-start="533" data-end="887"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1                  Thread 2
+   │                         │
+   │ acquires lockA         │
+   │                         │ acquires lockB
+   │                         │
+   │ waits for lockB        │
+   │                         │
+   │                         │ waits for lockA
+   │                         │
+   └───────── DEADLOCK ──────┘</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Thread 1 cannot continue until Thread 2 releases `lockB`.
+
+Thread 2 cannot continue until Thread 1 releases `lockA`.
+
+Neither can proceed.
+
+#### Four Conditions for Deadlock
+
+
+
+A deadlock generally requires all four of these conditions:
+
+##### Mutual Exclusion
+
+A resource can be held by only one thread at a time.
+
+Thread 1 owns Lock A
+
+##### Hold and Wait
+
+A thread holds one resource while waiting for another.
+
+Thread 1:
+holds A
+waits for B
+
+##### No Preemption
+
+A resource cannot simply be forcibly taken away from the thread holding it.
+
+The thread must release it.
+
+##### Circular Wait
+
+There is a circular dependency.
+
+Thread 1 → waits for Thread 2
+Thread 2 → waits for Thread 1
+
+Or:
+
+T1 → Lock A → Lock B
+T2 → Lock B → Lock A
+
+##### Interview answer
+
+Deadlock occurs when threads are permanently blocked waiting for resources held by each other. The four necessary conditions are mutual exclusion, hold and wait, no preemption, and circular wait.
+
+#### How do we prevent deadlocks?
+
+##### Consistent lock ordering
+
+This is one of the best approaches.
+
+Instead of:
+
+<pre class="overflow-visible! px-0!" data-start="2078" data-end="2121"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1: A → B
+Thread 2: B → A</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+always acquire them in the same order:
+
+<pre class="overflow-visible! px-0!" data-start="2163" data-end="2206"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1: A → B
+Thread 2: A → B</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="2222" data-end="2297"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockA</span><span>)
+{
+    </span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockB</span><span>)
+    {
+        </span><span class="ͼt">// work</span><span>
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+and everywhere else:
+
+<pre class="overflow-visible! px-0!" data-start="2321" data-end="2396"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockA</span><span>)
+{
+    </span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">lockB</span><span>)
+    {
+        </span><span class="ͼt">// work</span><span>
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now Thread 2 waits for `lockA` instead of creating a circular dependency.
+
+##### Keep lock duration short
+
+Avoid:
+
+<pre class="overflow-visible! px-0!" data-start="2518" data-end="2607"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">DoExpensiveDatabaseOperation</span><span>();
+    </span><span class="ͼ11">CallExternalAPI</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You're holding the lock while doing potentially slow operations.
+
+Prefer keeping the critical section as small as possible.
+
+##### Avoid unnecessary nested locks
+
+The more locks you acquire simultaneously, the greater the possibility of circular dependencies.
+
+#### Deadlock vs Race Condition
+
+
+| Race Condition                                | Deadlock                                       |
+| ----------------------------------------------- | ------------------------------------------------ |
+| Produces incorrect/unpredictable result       | Threads stop progressing                       |
+| Threads are still executing                   | Threads are waiting indefinitely               |
+| Usually caused by unsynchronized shared state | Usually caused by circular resource dependency |
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="3234" data-end="3378"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Race condition:
+10,000 increments → 9,743 ❌
+
+Deadlock:
+Thread 1 waits for Thread 2
+Thread 2 waits for Thread 1
+→ application stuck ❌</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+
+> "Using `lock` makes your application thread-safe."
+
+Not necessarily.
+
+`lock` can prevent certain race conditions,  **but incorrect locking can introduce deadlocks** .
+
+Also, if you protect only some accesses to shared state while other accesses remain unprotected, the overall code may still not be thread-safe.
+
+### Starvation and Livelock
+
+#### Starvation
+
+**Starvation** occurs when a thread is continuously denied the resources or CPU time it needs to make progress.
+
+The important difference from deadlock:
+
+> In starvation, the system may still be progressing, but a particular thread is being neglected.
+
+ Example
+
+Imagine:
+
+<pre class="overflow-visible! px-0!" data-start="427" data-end="564"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread A → continuously gets the lock
+Thread B → keeps waiting
+Thread C → continuously gets the lock
+Thread B → still waiting</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Thread B may remain waiting for a very long time while other threads continue executing.
+
+<pre class="overflow-visible! px-0!" data-start="656" data-end="727"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>A → runs
+C → runs
+A → runs
+C → runs
+A → runs
+B → waiting...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ Common causes:
+
+* Unfair resource allocation
+* Excessive lock contention
+* A high-priority thread continuously getting resources
+* Poor synchronization design
+
+#### Livelock
+
+Livelock is different.
+
+In a  **deadlock** , threads are stuck and doing nothing.
+
+In a  **livelock** , threads are actively running but  **making no useful progress** .
+
+ Real-world analogy:
+
+Imagine two people trying to pass each other in a hallway:
+
+<pre class="overflow-visible! px-0!" data-start="1161" data-end="1296"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Person A → moves left
+Person B → moves left
+
+Person A → moves right
+Person B → moves right
+
+Person A → left
+Person B → left</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Both are moving, but neither gets past the other. That's essentially a livelock.
+
+Programming example:
+
+Imagine two threads repeatedly detect a conflict and back off:
+
+<pre class="overflow-visible! px-0!" data-start="1474" data-end="1555"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">while</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">TryAcquireResource</span><span>())
+{
+    </span><span class="ͼ11">Thread</span><span>.</span><span class="ͼ11">Sleep</span><span>(</span><span class="ͼy">10</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If both threads repeatedly respond to each other's behavior in a way that causes them to retry simultaneously, they can keep changing state without making useful progress.
+
+#### Deadlock vs Starvation vs Livelock
+
+
+|                 | Deadlock                     | Starvation                      | Livelock                                     |
+| ----------------- | ------------------------------ | --------------------------------- | ---------------------------------------------- |
+| Threads active? | ❌ Usually waiting           | ✅ Some threads active          | ✅ Yes                                       |
+| Progress?       | ❌ No                        | ⚠️ Some threads progress      | ❌ No useful progress                        |
+| Main problem    | Circular waiting             | Resource never reaches a thread | Threads continuously react/retry             |
+| Example         | A waits for B, B waits for A | B never gets CPU/lock           | A and B keep getting out of each other's way |
+
+Deadlock   → Nobody moves
+Starvation → One doesn't get a chance
+Livelock   → Everyone moves, nobody gets anywhere
+
+#### Questions
+
+##### Can starvation eventually lead to a deadlock?
+
+Not necessarily.
+
+They are different concurrency problems.
+
+A system can have starvation while other threads continue making progress. A deadlock requires a circular waiting situation (or an equivalent resource dependency cycle).
+
+##### How can we reduce these problems?
+
+ For starvation
+
+* Avoid unnecessarily long lock durations
+* Reduce lock contention
+* Design fair resource allocation where appropriate
+* Avoid unnecessarily prioritizing one group of work
+
+ For livelock
+
+* Add randomized/exponential backoff
+* Avoid synchronized retries
+* Limit retry attempts
+* Redesign the synchronization algorithm
+
+ For deadlock
+
+* Consistent lock ordering
+* Minimize nested locks
+* Keep critical sections small
+* Avoid unnecessary synchronization
+
+### `SemaphoreSlim` vs `lock` vs `Mutex`
+
+#### `lock` — one thread at a time
+
+You've already seen:
+
+<pre class="overflow-visible! px-0!" data-start="186" data-end="280"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼt">// critical section</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Only **one thread** can enter the critical section at a time.
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="353" data-end="427"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread A ──► 🔒 ──► Work
+Thread B ──► waits
+Thread C ──► waits</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Use `lock` when you need to protect  **shared in-memory state** .
+
+#### `SemaphoreSlim` — allow N concurrent operations
+
+This is the key difference.
+
+Suppose you want  **only 3 operations at a time** .
+
+<pre class="overflow-visible! px-0!" data-start="633" data-end="684"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">semaphore</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">SemaphoreSlim</span><span>(</span><span class="ͼy">3</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="693" data-end="812"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">WaitAsync</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼt">// limited concurrent work</span><span>
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">Release</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You can have:
+
+<pre class="overflow-visible! px-0!" data-start="829" data-end="941"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>SemaphoreSlim(3)
+
+Thread A ──► ✅
+Thread B ──► ✅
+Thread C ──► ✅
+Thread D ──► waits
+Thread E ──► waits</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+> `lock` allows **1** thread; `SemaphoreSlim` can allow **N** concurrent operations.
+>
+
+#### Why `SemaphoreSlim` is important with `async/await`
+
+This is one of the most important interview points.
+
+You **cannot** do this:
+
+<pre class="overflow-visible! px-0!" data-start="1175" data-end="1237"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">SomeOperationAsync</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+C# does not allow `await` inside a `lock` statement.
+
+Why?
+
+Because `lock` is designed around  **thread ownership** .
+
+An asynchronous operation can suspend and later continue on a different thread. A monitor lock is not designed for that pattern.
+
+Instead, use:
+
+<pre class="overflow-visible! px-0!" data-start="1501" data-end="1621"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">WaitAsync</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">SomeOperationAsync</span><span>();
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">Release</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This works naturally with asynchronous code.
+
+#### Real-world example
+
+Imagine your application needs to call an external API.
+
+You have 1,000 requests:
+
+<pre class="overflow-visible! px-0!" data-start="1782" data-end="1827"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>1000 requests
+     ↓
+External API</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Sending all 1,000 simultaneously might overload the API.
+
+You can limit concurrency:
+
+<pre class="overflow-visible! px-0!" data-start="1915" data-end="1967"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">semaphore</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">SemaphoreSlim</span><span>(</span><span class="ͼy">10</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now only 10 calls execute concurrently:
+
+<pre class="overflow-visible! px-0!" data-start="2010" data-end="2164"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>          ┌─ Request 1
+          ├─ Request 2
+          ├─ Request 3
+          ├─ ...
+Semaphore ┤
+   (10)   └─ Request 10
+
+Requests 11+ → wait</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is a very practical backend use case.
+
+#### `SemaphoreSlim` vs `Semaphore`
+
+There are two related classes:
+
+<pre class="overflow-visible! px-0!" data-start="2284" data-end="2321"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Semaphore</span><span>
+</span><span class="ͼ11">SemaphoreSlim</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`SemaphoreSlim` is generally preferred when you need  **in-process asynchronous synchronization** .
+
+It supports:
+
+<pre class="overflow-visible! px-0!" data-start="2436" data-end="2478"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">WaitAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+while `Semaphore` is a heavier OS-level synchronization primitive and can be used for cross-process synchronization.
+
+#### What about `Mutex`?
+
+`Mutex` is another synchronization primitive.
+
+The major distinction:
+
+> A `Mutex` can be used for synchronization  **across processes** , whereas `lock` and `SemaphoreSlim` are generally used within the current process.
+
+Example scenario:
+
+<pre class="overflow-visible! px-0!" data-start="2868" data-end="2992"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Application A
+     │
+     └──────┐
+            │
+         Mutex
+            │
+     ┌──────┘
+     │
+Application B</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This can be useful when multiple application processes need to coordinate access to the same resource.
+
+For normal in-process application code, `Mutex` is usually unnecessary compared with lighter mechanisms.
+
+
+| Feature               | `lock`           | `SemaphoreSlim`   | `Mutex`                       |
+| ----------------------- | ------------------ | ------------------- | ------------------------------- |
+| Concurrent access     | 1                | N                 | 1                             |
+| `async/await`friendly | ❌               | ✅                | Not ideal                     |
+| Cross-process         | ❌               | ❌                | ✅                            |
+| Main purpose          | Critical section | Limit concurrency | Cross-process synchronization |
+| Lightweight           | ✅               | ✅                | ❌ comparatively              |
+
+#### Why use `SemaphoreSlim` instead of `lock` with async code?
+
+> `lock` cannot contain an `await`, whereas `SemaphoreSlim` provides `WaitAsync()`, allowing asynchronous code to wait without blocking a thread. It can also limit concurrency to more than one operation.
+>
+
+#### SemphoreSlim(1) vs lock
+
+They can both provide effectively  **one-at-a-time access** , but they aren't interchangeable.
+
+`SemaphoreSlim(1)` is particularly useful when the protected operation contains asynchronous work:
+
+<pre class="overflow-visible! px-0!" data-start="4163" data-end="4281"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">WaitAsync</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">DoSomethingAsync</span><span>();
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">semaphore</span><span>.</span><span class="ͼ11">Release</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+### ReaderWriterLockSlim
+
+`ReaderWriterLockSlim` is useful when you have  **shared data that is read frequently but modified less often** .
+
+The key idea:
+
+> Multiple threads can read simultaneously, but only one thread can write, and writing is exclusive with respect to readers.
+>
+
+#### Why do we need it?
+
+Suppose we have:
+
+<pre class="overflow-visible! px-0!" data-start="329" data-end="373"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">cache</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And imagine:
+
+<pre class="overflow-visible! px-0!" data-start="389" data-end="444"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>100 threads → reading
+2 threads   → writing</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+With a normal `lock`:
+
+<pre class="overflow-visible! px-0!" data-start="469" data-end="526"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼv">var</span><span></span><span class="ͼv">value</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">cache</span><span>[</span><span class="ͼ11">id</span><span>];
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Only **one reader** can enter at a time.
+
+<pre class="overflow-visible! px-0!" data-start="570" data-end="646"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Reader 1 → 🔒
+Reader 2 → waits
+Reader 3 → waits
+Reader 4 → waits</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+That's safe, but potentially inefficient.
+
+With `ReaderWriterLockSlim`:
+
+<pre class="overflow-visible! px-0!" data-start="721" data-end="832"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Reader 1 ──┐
+Reader 2 ──┤
+Reader 3 ──┼──► READ simultaneously
+Reader 4 ──┘
+
+Writer ─────────► waits</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Multiple readers can proceed concurrently.
+
+#### Basic usage
+
+<pre class="overflow-visible! px-0!" data-start="901" data-end="967"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">ReaderWriterLockSlim</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Reading
+
+<pre class="overflow-visible! px-0!" data-start="982" data-end="1092"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterReadLock</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">var</span><span></span><span class="ͼv">value</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">cache</span><span>[</span><span class="ͼ11">id</span><span>];
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitReadLock</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Writing
+
+<pre class="overflow-visible! px-0!" data-start="1107" data-end="1219"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterWriteLock</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼ11">cache</span><span>[</span><span class="ͼ11">id</span><span>] </span><span class="ͼv">=</span><span></span><span class="ͼz">"Updated"</span><span>;
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitWriteLock</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Why is writing exclusive?
+
+Imagine:
+
+<pre class="overflow-visible! px-0!" data-start="1268" data-end="1361"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Reader 1 → reading old data
+Reader 2 → reading old data
+Writer   → modifying data</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Allowing the writer to modify the data while readers are accessing it could produce inconsistent results.
+
+Therefore:
+
+<pre class="overflow-visible! px-0!" data-start="1482" data-end="1577"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Read + Read    → ✅ allowed
+Read + Write   → ❌
+Write + Read   → ❌
+Write + Write  → ❌</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Example
+
+<pre class="overflow-visible! px-0!" data-start="1598" data-end="2127"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">_users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+</span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">ReaderWriterLockSlim</span><span></span><span class="ͼ11">_lock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span class="ͼv">?</span><span></span><span class="ͼ11">GetUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>)
+{
+    </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterReadLock</span><span>();
+
+    </span><span class="ͼv">try</span><span>
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">_users</span><span>.</span><span class="ͼ11">TryGetValue</span><span>(</span><span class="ͼ11">id</span><span>, </span><span class="ͼv">out</span><span></span><span class="ͼv">var</span><span></span><span class="ͼ11">user</span><span>)
+            </span><span class="ͼv">?</span><span></span><span class="ͼ11">user</span><span>
+            : </span><span class="ͼy">null</span><span>;
+    }
+    </span><span class="ͼv">finally</span><span>
+    {
+        </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitReadLock</span><span>();
+    }
+}
+
+</span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">AddUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>, </span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+{
+    </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterWriteLock</span><span>();
+
+    </span><span class="ͼv">try</span><span>
+    {
+        </span><span class="ͼ11">_users</span><span>[</span><span class="ͼ11">id</span><span>] </span><span class="ͼv">=</span><span></span><span class="ͼ11">name</span><span>;
+    }
+    </span><span class="ͼv">finally</span><span>
+    {
+        </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitWriteLock</span><span>();
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+#### Upgradeable Read Lock
+
+`ReaderWriterLockSlim` also supports an  **upgradeable read lock** .
+
+This is useful when you want to:
+
+1. Read first.
+2. Determine whether a write is necessary.
+3. Upgrade to a write lock.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="2361" data-end="2678"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterUpgradeableReadLock</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">if</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">_users</span><span>.</span><span class="ͼ11">ContainsKey</span><span>(</span><span class="ͼ11">id</span><span>))
+    {
+        </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">EnterWriteLock</span><span>();
+
+        </span><span class="ͼv">try</span><span>
+        {
+            </span><span class="ͼ11">_users</span><span>[</span><span class="ͼ11">id</span><span>] </span><span class="ͼv">=</span><span></span><span class="ͼ11">name</span><span>;
+        }
+        </span><span class="ͼv">finally</span><span>
+        {
+            </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitWriteLock</span><span>();
+        }
+    }
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼ11">_lock</span><span>.</span><span class="ͼ11">ExitUpgradeableReadLock</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Only one thread can hold the upgradeable read lock at a time.
+
+#### `lock` vs `ReaderWriterLockSlim`
+
+
+| `lock`                             | `ReaderWriterLockSlim`        |
+| ------------------------------------ | ------------------------------- |
+| One thread at a time               | Multiple readers              |
+| Simple                             | More complex                  |
+| Good for general critical sections | Good for read-heavy workloads |
+| Less overhead                      | More synchronization overhead |
+| Easier to use correctly            | Easier to misuse              |
+
+`ReaderWriterLockSlim` is useful for read-heavy shared data because multiple readers can access the resource concurrently, while writers obtain exclusive access. A normal `lock` allows only one thread into the critical section regardless of whether it is reading or writing.
+
+### `SpinLock` and `SpinWait`
+
+#### What is spinning?
+
+Normally, when a thread can't acquire a lock, it  **waits/blocks** .
+
+With spinning, the thread repeatedly checks whether the resource has become available.
+
+<pre class="overflow-visible! px-0!" data-start="349" data-end="500"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Blocking:
+
+Thread → waits → OS schedules something else → eventually resumes
+
+
+Spinning:
+
+Thread → check → check → check → check → acquired</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The advantage is avoiding the overhead of putting the thread to sleep and waking it up.
+
+The disadvantage is that the thread  **continues consuming CPU while waiting** .
+
+#### `SpinLock`
+
+.NET provides:
+
+<pre class="overflow-visible! px-0!" data-start="709" data-end="731"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">SpinLock</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="743" data-end="945"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">SpinLock</span><span></span><span class="ͼ11">spinLock</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼ11">bool</span><span></span><span class="ͼ11">lockTaken</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">false</span><span>;
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼ11">spinLock</span><span>.</span><span class="ͼ11">Enter</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">lockTaken</span><span>);
+
+    </span><span class="ͼt">// Critical section</span><span>
+}
+</span><span class="ͼv">finally</span><span>
+{
+    </span><span class="ͼv">if</span><span> (</span><span class="ͼ11">lockTaken</span><span>)
+    {
+        </span><span class="ͼ11">spinLock</span><span>.</span><span class="ͼ11">Exit</span><span>();
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Unlike:
+
+<pre class="overflow-visible! px-0!" data-start="956" data-end="986"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`SpinLock` actively spins while waiting for the lock.
+
+`SpinLock` is generally considered an  **advanced optimization** .
+
+You should first write correct synchronization using simpler primitives such as `lock`, `Interlocked`, or `SemaphoreSlim`.
+
+Only use spinning when profiling or the workload characteristics justify it.
+
+#### Why would anyone use this?
+
+Imagine the critical section takes an extremely short amount of time:
+
+<pre class="overflow-visible! px-0!" data-start="1152" data-end="1193"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Lock held for:
+10 nanoseconds</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If a thread blocks and gets rescheduled, the overhead of blocking/waking could be greater than simply waiting briefly.
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1320" data-end="1381"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Very short wait
+     ↓
+Spinning can be beneficial</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But if the lock is held for a long time:
+
+<pre class="overflow-visible! px-0!" data-start="1425" data-end="1473"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Long wait
+     ↓
+Spinning wastes CPU</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### `SpinWait`
+
+`SpinWait` helps implement controlled spinning.
+
+<pre class="overflow-visible! px-0!" data-start="1546" data-end="1635"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">SpinWait</span><span></span><span class="ͼ11">spinWait</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼv">while</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">condition</span><span>)
+{
+    </span><span class="ͼ11">spinWait</span><span>.</span><span class="ͼ11">SpinOnce</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Instead of continuously doing:
+
+<pre class="overflow-visible! px-0!" data-start="1669" data-end="1721"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">while</span><span> (</span><span class="ͼv">!</span><span class="ͼ11">condition</span><span>)
+{
+    </span><span class="ͼt">// burn CPU</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`SpinWait` gradually adjusts its behavior and can eventually yield to avoid excessive CPU consumption.
+
+#### SpinLock vs `lock`
+
+
+| `lock`                              | `SpinLock`                       |
+| ------------------------------------- | ---------------------------------- |
+| Can block waiting thread            | Spins while waiting              |
+| Better for normal critical sections | Useful for extremely short waits |
+| Easier to use                       | More error-prone                 |
+| General-purpose                     | Specialized                      |
+| Usually preferred                   | Use only when justified          |
+
+`SpinLock` uses busy-waiting instead of immediately blocking the thread. It can be useful when lock contention is expected to last for a very short time, because blocking and rescheduling can be more expensive than briefly spinning. However, spinning consumes CPU, so it is inappropriate for long waits.
+
+#### Is `SpinLock` always faster than `lock`?
+
+**No.**
+
+That's one of the most important things to remember.
+
+If the lock is held for a long time:
+
+<pre class="overflow-visible! px-0!" data-start="2646" data-end="2730"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread spins
+   ↓
+CPU consumed
+   ↓
+Still waiting
+   ↓
+More CPU consumed</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+A normal blocking mechanism may be much better.
+
+#### When should you use it?
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="2821" data-end="2959"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Very short contention
+       ↓
+Maybe SpinLock
+
+Unknown/normal contention
+       ↓
+lock
+
+Async operation
+       ↓
+SemaphoreSlim</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+### `volatile` and Memory Visibility
+
+The key problem is:
+
+> When one thread changes a value, how do we make sure another thread observes the updated value correctly?
+>
+
+#### The problem
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="266" data-end="302"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">bool</span><span></span><span class="ͼ11">isRunning</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">true</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Thread 1:
+
+<pre class="overflow-visible! px-0!" data-start="315" data-end="365"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">while</span><span> (</span><span class="ͼ11">isRunning</span><span>)
+{
+    </span><span class="ͼt">// do work</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Thread 2:
+
+<pre class="overflow-visible! px-0!" data-start="378" data-end="410"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">isRunning</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">false</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You might expect Thread 1 to immediately notice:
+
+<pre class="overflow-visible! px-0!" data-start="462" data-end="491"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>isRunning = false</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But in multithreaded code,  **memory visibility and compiler/runtime/CPU reordering matter** .
+
+This is where `volatile` comes in.
+
+#### `volatile`
+
+You can declare:
+
+<pre class="overflow-visible! px-0!" data-start="663" data-end="716"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">volatile</span><span></span><span class="ͼ11">bool</span><span></span><span class="ͼ11">isRunning</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">true</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now reads and writes to that field have the required volatile memory-ordering semantics so that threads don't incorrectly rely on a stale cached value.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="881" data-end="1046"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">private</span><span></span><span class="ͼv">volatile</span><span></span><span class="ͼ11">bool</span><span></span><span class="ͼ11">_isRunning</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">true</span><span>;
+
+</span><span class="ͼv">void</span><span></span><span class="ͼ11">Worker</span><span>()
+{
+    </span><span class="ͼv">while</span><span> (</span><span class="ͼ11">_isRunning</span><span>)
+    {
+        </span><span class="ͼt">// work</span><span>
+    }
+}
+
+</span><span class="ͼv">void</span><span></span><span class="ͼ11">Stop</span><span>()
+{
+    </span><span class="ͼ11">_isRunning</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">false</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Once `_isRunning` becomes `false`, the worker can observe the change according to the volatile guarantees.
+
+#### What does `volatile` solve?
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="1203" data-end="1386"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1                    Thread 2
+
+read _isRunning             write _isRunning = false
+       │                              │
+       └──── visibility/order ─────────┘</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+It primarily addresses  **visibility and ordering** , not compound-operation atomicity.
+
+#### Very important: `volatile` does NOT make this safe
+
+<pre class="overflow-visible! px-0!" data-start="1537" data-end="1588"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">volatile</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">counter</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;
+
+</span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is still  **not an atomic increment** .
+
+Why?
+
+Because:
+
+<pre class="overflow-visible! px-0!" data-start="1650" data-end="1683"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>counter++</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+is conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1703" data-end="1759"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Read counter
+    ↓
+Add 1
+    ↓
+Write counter</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Two threads can still interfere.
+
+So this:
+
+<pre class="overflow-visible! px-0!" data-start="1805" data-end="1840"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">volatile</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">counter</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+does **not** replace:
+
+<pre class="overflow-visible! px-0!" data-start="1865" data-end="1914"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Interlocked</span><span>.</span><span class="ͼ11">Increment</span><span>(</span><span class="ͼv">ref</span><span></span><span class="ͼ11">counter</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### volatile vs Interlocked
+
+This distinction is extremely important.
+
+volatile
+
+Primarily provides:
+
+Visibility
++
+Memory ordering guarantees
+Interlocked
+
+Provides:
+
+Atomic operations
++
+Memory synchronization guarantees
+
+Example:
+
+volatile bool _stopRequested;
+
+is reasonable for a simple flag.
+
+For a counter:
+
+Interlocked.Increment(ref counter);
+
+is appropriate.
+
+#### `volatile` vs `lock`
+
+`lock` provides much stronger synchronization.
+
+<pre class="overflow-visible! px-0!" data-start="2437" data-end="2482"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">lock</span><span> (</span><span class="ͼ11">_lock</span><span>)
+{
+    </span><span class="ͼ11">counter</span><span class="ͼv">++</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The lock protects the entire critical section.
+
+`volatile` does **not** provide mutual exclusion.
+
+So multiple threads can still access a volatile variable simultaneously.
+
+#### Does `volatile` make a variable thread-safe?
+
+**No.**
+
+Better interview answer:
+
+> `volatile` ensures appropriate memory visibility and ordering for reads and writes to the field, but it doesn't make compound operations such as `counter++` atomic and doesn't provide mutual exclusion.
+>
+
+#### Important limitation
+
+C# `volatile` can only be applied to certain types, such as:
+
+<pre class="overflow-visible! px-0!" data-start="3068" data-end="3144"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>bool
+byte
+sbyte
+short
+ushort
+int
+uint
+char
+float
+reference types</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+and some pointer-related types in appropriate contexts.
+
+You cannot simply declare every arbitrary struct as volatile.
+
+
+| Feature                     | `volatile`                   | `Interlocked`           | `lock`            |
+| ----------------------------- | ------------------------------ | ------------------------- | ------------------- |
+| Visibility                  | ✅                           | ✅                      | ✅                |
+| Atomic simple operations    | Limited read/write semantics | ✅                      | ✅                |
+| Protect multiple operations | ❌                           | ❌                      | ✅                |
+| Mutual exclusion            | ❌                           | ❌                      | ✅                |
+| Typical use                 | Flags/state                  | Counters/atomic updates | Critical sections |
+
+volatile   → "Can other threads see my change?"
+Interlocked → "Can I change this atomically?"
+lock       → "Can only one thread execute this section?"
+
+### `async` + synchronization pitfalls
+
+Avoid synchronously blocking on asynchronous work:
+
+<pre class="overflow-visible! px-0!" data-start="575" data-end="624"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or:
+
+<pre class="overflow-visible! px-0!" data-start="631" data-end="667"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Wait</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Prefer:
+
+<pre class="overflow-visible! px-0!" data-start="678" data-end="726"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetDataAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+ Why?
+
+Blocking an async operation can:
+
+* Block a thread unnecessarily
+* Cause **ThreadPool starvation**
+* In some synchronization-context environments, contribute to a **deadlock**
+
+The classic pattern is:
+
+<pre class="overflow-visible! px-0!" data-start="940" data-end="1087"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread
+  ↓
+.Result / .Wait()
+  ↓
+waiting for async operation
+  ↓
+continuation needs a thread/context
+  ↓
+blocked thread cannot continue</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ Interview answer
+
+> We should avoid blocking on asynchronous operations with `.Result` or `.Wait()`. Instead, propagate `async/await` through the call chain. Blocking can cause thread-pool starvation and, in synchronization-context scenarios, deadlocks.
+>
