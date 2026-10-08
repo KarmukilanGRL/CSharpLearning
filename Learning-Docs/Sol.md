@@ -1,0 +1,9627 @@
+## C# Fundamentals
+
+### value vs reference types:
+
+
+| Feature                 | Value Types                               | Reference Types                              |
+| ------------------------- | ------------------------------------------- | ---------------------------------------------- |
+| **Data Storage**        | Stores actual data directly.              | Stores a reference (memory address) to data. |
+| **Memory Allocation**   | Usually on the Stack.                     | Data on the Heap; reference on the Stack.    |
+| **Assignment Behavior** | Copies the actual data value.             | Copies the reference pointer only.           |
+| **Default Value**       | Built-in default (e.g.,`0`,`false`).      | `null`(no address pointing to data).         |
+| **Garbage Collection**  | Cleaned up immediately when out of scope. | Managed by the Garbage Collector.            |
+
+Value type: Modifying the copied value will give no impact on original variable.
+
+Common Value Types
+
+* **Built-in Numerics:** `int`, `float`, `double`, `decimal`, `byte`, `long`.
+* **Others:** `bool`, `char`, `DateTime`.
+* **User-defined:** `struct`, `enum`.
+
+Reference type: it stores the address of the data where it live. Usually the data on heap, the address in stack
+
+Common Reference Types
+
+* Built-in: object, string, dynamic.
+* User-defined: class, interface, delegate, record.
+* Collections: Arrays (int[], string[]), List < T >, Dictionary<TKey, TValue>.
+
+### String:
+
+It is a reference type. C# overrides its operator to make it like a value type.
+
+It represents a sequential collection of UTF-16 code units (text).
+
+#### Immutability:
+
+	Read only. Once you create a string object in memory, you cannot change its value.
+Example, conctnating a string object doesn't modify existing original object. It creates new in heap and unallocate the existing.
+
+#### Why?
+
+	Security: Filepath or URL cannot be altered maliciously.
+	Thread safety: Multiple thread can read the same string without lock.
+	String intern: it allows pointing to same address incase of identical.
+
+#### String intern:
+
+	C# maintain a hidden table called intern pool. During compilation, the identical strings are stored only once and pointing to the same memory address to save space.
+
+#### string vs String:
+
+	no functional difference.
+
+	string is a keyword, String is a actual .NET framework class. Both defines same in IL (Intermediate language)
+
+#### StringBuilder:
+
+	it is a mutable string. used when performing heavy modification like concatnating 100's of string in loop. It modifies an internal character array buffer directly without constantly spawning new objects on the heap, saving huge amounts of memory and garbage collection time.
+
+#### to check empty or null:
+
+`string.IsNullOrEmpty(str)`
+
+**`string.IsNullOrWhiteSpace(str)`**
+
+#### How == and .Equals() compares string.
+
+== works as comparing memory address for other reference type variables. But C# string, uses == to compare teh actual string value. both results same on string.
+
+#### String Interpolation:
+
+uses dollar sign. `$"Hello {name}"` Compiler actually turns this into string.Format()
+
+### Boxing vs UnBoxing:
+
+Boxing: Converting value to reference type
+
+Unboxing: Extracting value from reference type
+
+#### Boxing:
+
+implicit. it creates memory in heap and copies value from stack
+
+int age = 25;          // Stored on the Stack
+object boxedAge = age; // Allocates memory on Heap, copies 25 into it
+
+#### Unboxing:
+
+explicit. must be casted explicitely the object to extract its original value. C# internally verifies type match and copies value back to stack
+
+object boxedAge = 25;  // Boxed
+int age = (int)boxedAge; // Unboxed back to Stack
+
+#### Why expensive?
+
+boxing requires new memory allocation in heap, object initialization header, pressure on GC to clean it up later.
+
+unboxing requires runtime type-safety check. requires memory to copy to stack.
+
+#### What if unboxing to wrong type?
+
+throws invalid cast exception.
+
+object obj = 10;           // Boxed int
+double x = (double)obj;    // Throws InvalidCastException!
+double y = (int)obj;       // Works: Unboxes to int, then converts to double
+
+#### Generic solve boxing problem?
+
+ArrayList stores everything as object. requires boxing to add elements and requires unboxing to read the elements.
+
+Generic requires type specific structure at compile time. List< int > allocates int [] on heap. The individual integers are stored directly inside that array *without* being boxed into individual objects.
+
+#### Example of "hidden" or implicit boxing?
+
+* **String Formatting/Concatenation:** `string.Format("Count: {0}", 5);` boxes the `5` because `string.Format` accepts `object` parameters.
+* **Calling `GetType()`:** Value types inherit `GetType()` from `System.Object`. Calling `myInt.GetType()` forces boxing to access the object header.
+* **Interfaces:** Assigning a `struct` to an interface variable boxes the struct.
+
+#### ToString() on value type causes boxing?
+
+No, it's a overrriden method. Compiler calls it directly without boxing on value types. But stuct does not override ToString(), it causes boxing.
+
+#### Difference btwn Value and Reference type interms of null?
+
+value types cannot be assigned to null, cuz it stores value directly in stack. once its boxed to object, the reference variable can set to null, means pointing to nothing [no address]. c# provides nullable< T > eg: int?, double? to handle null value types.
+
+#### Memory allocated during unboxing?
+
+No, unboxing requires only run time type check and copies value back to stack. No memory allocation in heap.
+
+### ref vs out vs in:
+
+C# method parameters are naturally as pass by value. it allows method parameters to pass by reference. pass by value, copies the variable into method, but pass by reference carries pointer to the method.
+reference vs output vs input
+
+Quick Comparison Matrix
+
+
+| Keyword   | Must Be Initialized Before Calling? | Must Be Assigned Inside the Method? | Can the Method Modify It? | Use Case                                                      |
+| ----------- | ------------------------------------- | ------------------------------------- | --------------------------- | --------------------------------------------------------------- |
+| **`ref`** | Yes                                 | Optional                            | Yes                       | **Read and Write:**Modify an existing value.                  |
+| **`out`** | No                                  | **Yes**(Before method exits)        | Yes                       | **Write-Only:**Return multiple values from a method.          |
+| **`in`**  | Yes                                 | **No**(Compiler error if tried)     | **No**(Read-Only)         | **Read-Only:**Pass large`structs`efficiently without copying. |
+
+ref is jus like a pointer, must be initialized before. out is majorly used in buid in method like int.TryParse(x, out y). in is used to pass large struct into method to void copying the entire data.
+
+#### difference between ref and out in IL?
+
+both compiles to exactly same as pointer (&) in CLR/IL code. C# only enforce rules like ref should be initialized before calling and out should be assigned before return.
+
+### Value Types Inside Reference Types:
+
+In C#, memory allocation is determined by  **where an object is declared** , not what type it is. Because a reference type instance lives on the Heap,  **everything inside it stays on the Heap with it** .
+
+public class Player
+{
+    public int Score;       // Value type inside a reference type
+    public bool IsActive;   // Value type inside a reference type
+}
+
+Player p1 = new Player();
+
+Stack: p1 which holds memory address of Player() [MEM address size: 4 bytes in 64 bit, 2 bytes in 32 bit machine]
+Heap: a block of memory is allocated for the `Player` object. Inside this exact block of heap memory, 4 bytes are allocated directly for the `Score` integer, and 1 byte is allocated for `IsActive`
+
+#### "Value types go on the stack, reference types go on the heap." Is this statement true?
+
+No. value type go wherever it is declared.
+
+#### embedding a value type inside a class cause Boxing?
+
+No. Boxing occurs only when value type is converting to reference type explicitly or implicitly. When a value type is a field inside a class, it is just raw data packed cleanly into the class's memory layout. No extra wrappers or type-checking headers are created for that value type.
+
+#### what happens to the embedded value types when the parent object is garbage collected?
+
+They are destroyed instantly along with the parent.
+
+#### If a class has a struct as a field, and you modify a property of that struct, what happens in memory?
+
+* **The modification happens directly inside the Heap memory space allocated for that class instance.**
+* **Since structs are value types, they copy their data on assignment. However, accessing and modifying a struct field ***directly on the class instance* (e.g., `p1.TelemetryData.X = 10;`) updates the data right inside the heap object without making a temporary stack copy.
+
+#### What happens if a method takes an embedded value type as an argument? (e.g., `UpdateScore(p1.Score)`)
+
+* **C# extracts the value from the Heap, copies it, and passes that fresh copy onto the Stack frame of the executing method.**
+* **Any changes made to the parameter inside that method will ****not** affect the original value stored on the Heap, because it was passed  *by value* **. If you want to modify it, you would need to pass it using the **`ref` keyword.
+
+### Stack vs Heap:
+
+**different memory-management areas** used by a .NET process.
+
+#### Stack
+
+The **stack** is primarily used for things such as:
+
+* method call frames
+* local variables
+* parameters
+* return information
+* references/local values associated with a method invocation
+
+It follows  **LIFO** : Last in-First Out
+
+#### Heap
+
+The **managed heap** is where objects that are allocated by the CLR generally live.
+
+#### Why is the Stack fast?
+
+The stack follows a predictable structure.
+
+MethodA()
+{
+    MethodB();
+}
+
+MethodB()
+{
+    MethodC();
+}
+
+MethodC()
+{
+}
+here after method C, its memory will be freed, then B and then A().
+
+#### Why does the Heap need Garbage Collection?
+
+void CreatePerson()
+{
+    Person p = new Person();
+}
+after method, local reference variable P will be cleared. but new Person() in heap exists.
+
+Stack                  Heap
+
+p ───X                 Person object
+                       ┌──────────────┐
+                       │ unreachable  │
+                       └──────────────┘
+
+The GC eventually identifies that object as unreachable and reclaims its memory.
+
+#### Stack vs Heap — interview comparison
+
+
+| Stack                                              | Managed Heap                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| Used for method execution state                    | Used for dynamically allocated managed objects                |
+| LIFO structure                                     | Managed by GC                                                 |
+| Very fast allocation/deallocation for stack frames | Allocation is generally more involved                         |
+| Limited in size                                    | Much larger than typical thread stacks                        |
+| Automatically unwound as methods return            | Objects remain until no longer reachable and GC reclaims them |
+| Each thread has its own stack                      | Managed heap is shared by threads                             |
+
+### Class vs Struct:
+
+`class` is a reference type. `struct` is a value type.
+Actual difference is how the object copies from one to another. Class assignment copies a reference. Struct assignment copies the value.
+
+class Person
+{
+    public string Name;
+}
+
+Person p1 = new Person();
+p1.Name = "Kumar";
+
+Person p2 = p1;
+
+p2.Name = "Raj";
+
+What is `p1.Name` now?**`Raj` Why? Because `p1` and `p2` refer to the  **same object** . `p1 = p2` copies the  **reference** , not the whole object.
+
+struct Point
+{
+    public int X;
+    public int Y;
+}
+
+Point p1 = new Point();
+p1.X = 10;
+
+Point p2 = p1;
+
+p2.X = 20;
+
+Console.WriteLine(p1.X); results 10. Because `p1 = p2` copies the  **value** .
+
+#### Class can be null, struct normally cannot
+
+reference type can be assigned to null. but value type cannot be null naturally. But can use the Nullable< T >
+Point point = null; - error
+
+Point? point = null; - accepted
+
+#### Struct can be boxed
+
+struct is natually value type. Hence it can support boxing or unboxing. Class is naturally a reference type, stores in heap - dont need boxed or unboxed.
+
+#### Structs can contain reference types
+
+struct Employee
+{
+    public int Id;
+    public string Name;
+}
+
+Employee
+├── Id      → value
+└── Name    → reference
+
+The struct itself is a value type, but it can contain references.
+
+#### Can a struct/class contain another struct/class?
+
+Yes. Nested struct. Same can be done in class. Nested Class.
+
+class inside class
+class inside struct
+struct inside class
+struct inside struct
+All four is allowed in C#. Nesting doesn't change whether the nested type is a value type or reference type.
+
+#### Can a struct inherit from a class?
+
+No. A struct  **cannot inherit from another class or struct** .
+
+every struct implicitly derives from:
+
+System.ValueType
+    ↓
+System.Object
+
+but it can implement interfaces.
+
+struct Point : IComparable< point >
+{
+    public int X;
+    public int Y;
+
+    public int CompareTo(Point other)
+    {
+        return X.CompareTo(other.X);
+    }
+}
+
+You  **cannot change that inheritance hierarchy** .
+
+Example:
+
+Struct Employee
+   ↓
+System.ValueType
+   ↓
+System.Object
+
+#### Can a class inherit from a class?
+
+Yes. it's allowed. Becasue the class is directly from System.Object
+
+This is normal  **class inheritance** .
+
+#### Inheritance of Struct and Class:
+
+
+| Relationship                 | Class | Struct |
+| ------------------------------ | ------: | -------: |
+| Class → Class inheritance   |    ✅ |     — |
+| Struct → Class inheritance  |    ❌ |     ❌ |
+| Struct → Struct inheritance |    ❌ |     ❌ |
+| Class → Struct inheritance  |    ❌ |     ❌ |
+| Implement interface          |    ✅ |     ✅ |
+
+Classes support inheritance; structs don't support class/struct inheritance, but both classes and structs can implement interfaces.
+
+#### `struct` doesn't automatically mean "better performance"
+
+"Structs can avoid object allocation in some scenarios, but their performance depends on size, copying, boxing, lifetime, and usage. Large structs can actually be expensive because copying them can be costly."
+
+#### readonly struct:
+
+readonly struct Point
+{
+    public int X { get; }
+    public int Y { get; }
+
+    public Point(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+}
+
+This communicates that the struct is intended to be immutable.
+
+#### Interview comparison:
+
+
+| Feature                      | Class             | Struct                      |
+| ------------------------------ | ------------------- | ----------------------------- |
+| Type                         | Reference type    | Value type                  |
+| Assignment                   | Copies reference  | Copies value                |
+| Can be`null`                 | Yes               | No, unless nullable         |
+| Inheritance                  | Yes               | No class/struct inheritance |
+| Interfaces                   | Yes               | Yes                         |
+| Boxing                       | Not required      | Can be boxed                |
+| Object identity              | Usually important | Usually value is important  |
+| Can contain fields           | Yes               | Yes                         |
+| Can contain reference fields | Yes               | Yes                         |
+| Typical use                  | Entities/objects  | Small value-like data       |
+| Copying                      | Reference copied  | Entire value copied         |
+
+### Mutable vs Immutable:
+
+#### **Mutable = the object's state can be changed after it is created.**
+
+class Person
+{
+    public string Name { get; set; }
+}
+
+var person = new Person
+{
+    Name = "John"
+};
+
+person.Name = "Kumar";
+
+The same `Person` object changed from:
+
+<pre class="overflow-visible! px-0!" data-start="501" data-end="550"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Name = "John"
+       ↓
+Name = "Kumar"</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So `Person` is  **mutable** .
+
+#### Immutable = once an object is created, its state cannot be changed.
+
+class Person
+{
+    public string Name { get; }
+
+    public Person(string name)
+    {
+        Name = name;
+    }
+}
+
+var person = new Person("John");
+
+person.Name = "Kumar";  // ❌
+
+You can't change `Name`.
+
+If you want `"Kumar"`, you create a  **new object** :
+
+<pre class="overflow-visible! px-0!" data-start="995" data-end="1043"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">person2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Person</span><span>(</span><span class="ͼz">"Kumar"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+The original object remains unchanged.
+
+#### Why is immutability useful?
+
+Predictability. Suppose if an object is created for Mutable example and it passes to many methods. Any method can change the object field.
+but with immutable object, You know that state won't unexpectedly change.
+
+#### Immutability and thread safety:
+
+"Immutability can make concurrent code easier to reason about and can reduce synchronization requirements."
+
+This becomes particularly useful when multiple threads access the same object.
+
+Thread A ──┐
+           ↓
+        Employee
+           ↑
+Thread B ──┘
+
+You potentially have synchronization concerns, when both thread reads or write simultaneosly.
+Incase of immutable object, multiple threads can safely read the same object without worrying about someone modifying its state.
+
+#### `readonly` does NOT automatically mean immutable:
+
+class Person
+{
+    public readonly List<string></string>< string ><string></string> Names = new();
+}
+
+person.Names = new List< string ><string></string>(); this is wrong
+
+person.Names.Add("John"); this is correct
+
+Because `readonly` prevents changing the **reference** after initialization.
+
+It doesn't make the object being referenced immutable.
+
+readonly
+    ↓
+reference cannot point somewhere else
+
+but
+
+object itself may still be mutable
+
+#### `const`:
+
+`const` means the value is a compile-time constant.
+
+const int MaxAge = 100;
+
+// MaxAge = 200; ❌
+
+const
+ ↓
+compile-time constant
+
+readonly
+ ↓
+assigned once
+ ↓
+cannot be reassigned afterward
+
+immutable object
+ ↓
+object's state cannot change after creation
+
+#### `init` helps us create immutable-style objects:
+
+**`init` accessor was introduced in C# 9, released with .NET 5 in November 2020.** It allows a property to be assigned only during object initialization, constructor execution, or within the type itself—not after the object has been initialized.
+
+class Person
+{
+    public string Name { get; init; }
+    public int Age { get; init; }
+}
+
+var person = new Person
+{
+    Name = "John",
+    Age = 25
+};
+
+person.Name = "Kumar"; // ❌
+
+`init` allows setting the property  **during object initialization** , but not afterward.
+
+#### Mutable vs Immutable:
+
+
+| Mutable                                 | Immutable                          |
+| ----------------------------------------- | ------------------------------------ |
+| State can change after creation         | State cannot change after creation |
+| Same object can be modified             | Changes require a new object       |
+| Can be harder to reason about           | Easier to reason about             |
+| Shared mutable state can cause problems | Shared immutable state is safer    |
+| `List<T>` is mutable                    | `string` is immutable              |
+
+Class  → can be mutable or immutable
+Struct → can be mutable or immutable
+
+Mutability is about whether an object's state can change, not whether it is a class or struct.
+
+### Equality:
+
+"==" and "Equals()" and GetHashCode()
+
+                 Equality
+                    │
+          ┌─────────┴─────────┐
+          ↓                   ↓
+         ==                Equals()
+       operator              method
+          │                   │
+          │                   └── Can be overridden
+          │
+          └── Can be overloaded
+
+                    +
+
+              GetHashCode()
+                    │
+                    ↓
+             hash-based collections
+             Dictionary / HashSet
+
+==
+→ operator
+→ behavior depends on type/operator overload
+
+Equals()
+→ method
+→ can be overridden
+
+GetHashCode()
+→ hash-based collections
+→ must be consistent with Equals()
+
+#### ==:
+
+An  **operator** .
+
+Its behavior depends on the type.
+
+<pre class="overflow-visible! px-0!" data-start="342" data-end="362"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">a</span><span></span><span class="ͼv">==</span><span></span><span class="ͼ11">b</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+It can mean:
+
+* value comparison
+* reference comparison
+* custom comparison if the type overloads `==`
+
+#### `Equals()`
+
+A  **method** .
+
+<pre class="overflow-visible! px-0!" data-start="504" data-end="529"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">a</span><span>.</span><span class="ͼ11">Equals</span><span>(</span><span class="ͼ11">b</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+It asks:
+
+> "According to this type's equality rules, are these two values/objects equal?"
+
+A type can override it.
+
+#### `GetHashCode()`
+
+A method that produces an integer hash code.
+
+a.GetHashCode()
+
+Primarily important for:
+
+Dictionary<TKey, TValue>
+HashSet<T></t>
+
+The most important rule:
+
+If a.Equals(b) is true, then a.GetHashCode() and b.GetHashCode() must be the same.
+
+But:
+
+Same hash code does not guarantee Equals() is true
+
+it can also be overridden.
+
+public override int GetHashCode()
+{
+    return HashCode.Combine(Name);
+}
+
+#### Hash Collision:
+
+different hash code → not equal
+same hash code → equal --> this is a wrong statement
+
+Equals == true
+      ↓
+Hash codes MUST be equal
+
+Hash codes equal
+      ↓
+Does NOT guarantee Equals == true
+
+#### Behviour of == and Equals()
+
+if its a value type - both consider value equality.
+
+if its a reference type - both consider reference equality.
+
+But both can be overridden.
+
+Example: String is reference type. but == and Equals() naturally compares value equality. because its overridden implicitely.
+same follows for record [specific behavior]
+
+#### Struct doesn't have ==:
+
+A custom struct does  **not automatically get a useful `==` operator just because it's a value type** .
+
+p1 == p2 is unavailable.
+
+For a normal struct, `Equals()` provides value-oriented equality behavior based on its fields.
+
+### Record:
+
+Its behaves as class but brings value based equality in nature.
+
+Instead of writing all this yourself:
+
+<pre class="overflow-visible! px-0!" data-start="1145" data-end="1198"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Equals</span><span>()
+</span><span class="ͼ11">GetHashCode</span><span>()
+</span><span class="ͼv">==</span><span>
+</span><span class="ͼv">!=</span><span>
+</span><span class="ͼ11">ToString</span><span>()</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+you can write:
+
+<pre class="overflow-visible! px-0!" data-start="1216" data-end="1254"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">record</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And C# provides **value-based equality behavior** for you.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1330" data-end="1425"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">e1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼy">1</span><span>);
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">e2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼy">1</span><span>);
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">e1</span><span></span><span class="ͼv">==</span><span></span><span class="ͼ11">e2</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+→ `true`
+
+That's the core idea behind `record`.
+
+#### Does `record` mean value type?
+
+A normal `record` is a **reference type. It is conceptually a special kind of class.**
+
+#### Record Struct:
+
+record struct Employee(int Id);
+
+which is a  **value type** .
+
+record Employee
+    ↓
+reference type
+
+record struct Employee
+    ↓
+value type
+
+#### Immutability:
+
+For a positional record:
+
+<pre class="overflow-visible! px-0!" data-start="3875" data-end="3926"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">record</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span>, </span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+the generated properties are typically  **init-only** .
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="3988" data-end="4053"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">e</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼy">1</span><span>, </span><span class="ͼz">"John"</span><span>);
+
+</span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼz">"Kumar"</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+❌ Not allowed.
+
+But you can create a modified copy using `with`.
+
+#### `with` expression:
+
+This is one of the most important record features.
+
+<pre class="overflow-visible! px-0!" data-start="4204" data-end="4293"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">e1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼy">1</span><span>, </span><span class="ͼz">"John"</span><span>);
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">e2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">e1</span><span></span><span class="ͼ11">with</span><span>
+{
+    </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼz">"Kumar"</span><span>
+};</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### "How do you modify an immutable record?"
+
+Use a `with` expression to create a new record with modified values.
+
+#### Record can also be written using property syntax:
+
+Instead of:
+
+<pre class="overflow-visible! px-0!" data-start="4879" data-end="4930"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">record</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span>, </span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+you can write:
+
+<pre class="overflow-visible! px-0!" data-start="4948" data-end="5052"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">record</span><span></span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">init</span><span>; }
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">init</span><span>; }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Record's `ToString()`:
+
+record Employee(int Id, string Name);
+
+var e = new Employee(1, "John");
+
+Console.WriteLine(e);
+
+results as same as ToString():
+
+Employee { Id = 1, Name = John }
+
+#### Record vs Struct vs Record Struct:
+
+class: Reference type
+Object identity
+Reference equality by default
+Supports inheritance
+
+record: Reference type
+Value-based equality
+Designed for data-centric objects
+Supports record inheritance
+
+struct: Value type
+Value semantics
+No class/struct inheritance
+Can implement interfaces
+
+record struct: Value type
+Value-based equality
+Record-style functionality
+No class/struct inheritance
+
+#### shallow vs deep copy:
+
+Consider:
+
+record Employee(int Id, List<string></string> Skills);
+
+Then:
+
+var e1 = new Employee(
+    1,
+    new List<string></string> { "C#", "SQL" }
+);
+
+Now:
+
+var e2 = e1 with
+{
+    Id = 2
+};
+
+The with operation creates another record, but the List<string></string> reference can still refer to the same list.
+
+Conceptually:
+
+e1 ─────→ Record A
+           Id = 1
+           Skills ──────┐
+                        ↓
+                     List
+                   C#, SQL
+                        ↑
+e2 ─────→ Record B      │
+           Id = 2       │
+           Skills ──────┘
+
+So:
+
+with does not automatically perform a deep copy of every referenced object.
+
+#### When should you use a record?
+
+DTOs
+
+API request/response models
+
+Value-like domain concepts
+
+#### When would you prefer a class?
+
+Use a class when **identity and mutable state** are important.
+
+#### What is a record?
+
+A record is a C# type designed primarily for data-centric objects. A `record` is a reference type and provides value-based equality by default, unlike a normal class which uses reference equality by default. Records also provide concise syntax, init-only properties for positional records, generated equality and hash-code behavior, a useful `ToString()`, and support non-destructive mutation using the `with` expression. If I need value semantics for a value type, I can use `record struct`
+
+### readonly / const / static:
+
+const
+    ↓
+constant value
+    ↓
+compile-time
+
+readonly
+    ↓
+field assigned only during initialization
+    ↓
+runtime value allowed
+
+static
+    ↓
+belongs to the type
+    ↓
+shared across instances
+
+static readonly
+    ↓
+one shared value
+    +
+cannot be reassigned after initialization
+
+#### Const:
+
+Compile time constant. cannot be changed after initialization.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="226" data-end="268"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">const</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">MaxRetryCount</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">3</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You cannot do:
+
+<pre class="overflow-visible! px-0!" data-start="286" data-end="323"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">MaxRetryCount</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">5</span><span>; </span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="7305" data-end="7379"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div></div></div></div></div></div></pre>
+
+Key point
+
+A `const` value must be known at  **compile time** .
+
+So this works:
+
+<pre class="overflow-visible! px-0!" data-start="408" data-end="501"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">const</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">MaxAge</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">100</span><span>;
+</span><span class="ͼv">const</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">AppName</span><span></span><span class="ͼv">=</span><span></span><span class="ͼz">"MyApp"</span><span>;
+</span><span class="ͼv">const</span><span></span><span class="ͼ11">double</span><span></span><span class="ͼ11">Pi</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">3.14</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But this doesn't:
+
+<pre class="overflow-visible! px-0!" data-start="522" data-end="575"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">const</span><span></span><span class="ͼ11">DateTime</span><span></span><span class="ͼ11">Now</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">DateTime</span><span>.</span><span class="ͼ11">Now</span><span>; </span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Because `DateTime.Now` is determined at runtime.
+
+Const can be declared as class field or local parameter. It doesn't need object to call it. It's implicitely static, associated with its type.
+
+Cannot combine static and const. Both are technically same.
+
+#### readonly:
+
+A `readonly` field can be assigned during declaration or in the constructor, but cannot be reassigned afterward.
+
+Readonly value can be determined during runtime. Major difference from const.
+
+##### `readonly` does NOT mean immutable:
+
+Consider:
+
+class Employee
+{
+    public readonly List<string></string> Skills = new();
+}
+
+You cannot:
+
+employee.Skills = new List<string></string>(); // ❌
+
+But you can:
+
+employee.Skills.Add("C#"); // ✅
+
+readonly
+   ↓
+reference cannot be reassigned
+
+NOT
+
+object cannot be modified
+
+#### static:
+
+The member belongs to the type rather than a particular object.
+
+class Employee
+{
+    public int Id;
+    public static string CompanyName = "ABC";
+}
+
+if two or more object created, CompanyName is shared among all objects.
+
+##### static does NOT mean constant
+
+static
+  ↓
+shared
+
+NOT
+
+unchangeable
+
+<pre class="overflow-visible! px-0!" data-start="3937" data-end="3981"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Counter</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You can change it:
+
+<pre class="overflow-visible! px-0!" data-start="4003" data-end="4027"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Counter</span><span class="ͼv">++</span><span>;</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### static readonly:
+
+One shared value that can be determined at runtime but cannot subsequently be reassigned.
+
+static
+   ↓
+one shared value
+
+readonly
+   ↓
+cannot be reassigned after initialization
+
+#### const and static readonly same?
+
+No. const must be initialized at compile time, but static readonly can be assigned at runtime.
+
+const string ConnectionString = LoadConnectionString(); // ❌
+
+#### Comparison table
+
+
+|                                  | `const` | `readonly`            | `static` | `static readonly` |
+| ---------------------------------- | --------- | ----------------------- | ---------- | ------------------- |
+| Can change after initialization? | ❌      | ❌                    | ✅       | ❌                |
+| Compile-time value required?     | ✅      | ❌                    | ❌       | ❌                |
+| Runtime initialization?          | ❌      | ✅                    | ✅       | ✅                |
+| Belongs to type?                 | Yes     | No, normally instance | Yes      | Yes               |
+| Shared across objects?           | Yes     | No, normally          | Yes      | Yes               |
+
+#### What's the difference between `const`, `readonly`, and `static`?
+
+`const` represents a compile-time constant and its value must be known at compile time. A `readonly` field can be assigned during declaration or construction and then cannot be reassigned. `static` means the member belongs to the type rather than an individual instance and is shared across instances. `static readonly` combines both concepts: one shared value that can be initialized at runtime but cannot subsequently be reassigned
+
+## OOPs
+
+Object Oriented Programming. OOP is a way of organizing your application around objects that contain both data and the behavior that works on that data.
+
+The 4 major concepts of OOP
+
+You'll often hear these four words:
+
+1. Encapsulation
+2. Inheritance
+3. Polymorphism
+4. Abstraction
+
+These are the four pillars of OOP.
+
+OOP
+├── Encapsulation              ✅
+├── Inheritance                ✅
+│   ├── virtual / override     ✅
+│   ├── base                   ✅
+│   └── new / method hiding    ✅
+├── Polymorphism               ✅
+│   ├── Overloading            ✅
+│   └── Runtime polymorphism   ✅
+├── Upcasting / Downcasting    ✅
+│   ├── is                     ✅
+│   ├── as                     ✅
+│   └── explicit casting       ✅
+├── Abstraction                ✅
+├── Abstract class             ✅
+├── Interface                  ✅
+├── Abstract vs Interface      ✅
+└── Composition vs Inheritance ✅
+
+### Encapsulation:
+
+Encapsulation is bundling data and the methods that operate on that data together, while controlling how that data can be accessed or modified.
+
+genrally achieved using access modifieres:
+
+* `private`
+* `public`
+* `protected`
+
+public fields can be modifed outside class using object. but private fields cant be modified outside class, even object doesn't know the private field exists. This is kind of encapsulation.
+
+#### Without encapsulation
+
+<pre class="overflow-visible! px-0!" data-start="1715" data-end="1802"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Outside code
+     ↓
+Directly modifies data
+     ↓
+Object can become invalid</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+#### With encapsulation
+
+<pre class="overflow-visible! px-0!" data-start="1828" data-end="1929"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Outside code
+     ↓
+Public method/property
+     ↓
+Validation / rules
+     ↓
+Private state</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Properties
+
+class fields can initialized as properties by adding get set methods.
+
+public decimal Balance { get; private set; }
+
+The above property can be read outside but not overwritten. Only the class can modify it. This is  **encapsulation through access control** .
+
+#### Is a property with a private setter enough to guarantee encapsulation?
+
+No. It s not about just property and access modifiers. It's about controlling access and enforcing the rules of the object's state.
+
+#### Example:
+
+In a cart system, any one can misplace the order as successfull without performing payment.
+
+public class Order
+{
+    public string Status;
+}
+
+order.Status = "Completed";
+
+Better:
+
+public class Order
+{
+    public string Status { get; private set; }
+
+    public void MarkAsPaid()
+    {
+        Status = "Paid";
+    }
+
+    public void MarkAsCompleted()
+    {
+        if (Status != "Paid")
+            throw new InvalidOperationException(
+                "Order must be paid first.");
+
+        Status = "Completed";
+    }
+}
+
+#### What is encapsulation?
+
+Encapsulation is the OOP principle of controlling access to an object's internal state and exposing only the operations needed to interact with it. In C#, we typically achieve this using access modifiers, properties, and methods. It helps prevent invalid state and ensures that changes to an object's state go through the appropriate business rules.
+
+### Access Modifiers:
+
+
+| Modifier             | Accessible from               |
+| ---------------------- | ------------------------------- |
+| `public`             | Anywhere                      |
+| `private`            | Same type                     |
+| `protected`          | Same type + derived types     |
+| `internal`           | Same assembly                 |
+| `protected internal` | Same assembly OR derived type |
+| `private protected`  | Same assembly + derived type  |
+
+#### default:
+
+
+| Declaration       | Default access |
+| ------------------- | ---------------- |
+| Top-level class   | `internal`     |
+| Top-level struct  | `internal`     |
+| Class field       | `private`      |
+| Class method      | `private`      |
+| Class property    | `private`      |
+| Class constructor | `private`      |
+| Nested class      | `private`      |
+| Interface member  | `public`*      |
+
+Interface members have special rules and modern C# also allows explicitly declared access modifiers in certain cases
+
+### Inheritance:
+
+Inheritance allows one class to **reuse and extend** the members of another class.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="219" data-end="417"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Eat</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Eating"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Bark</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Barking"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+Animal → Base class / Parent class / Superclass
+
+Dog    → Derived class / Child class / Subclass
+
+#### private and protected
+
+Private members are **not directly accessible** from the derived class. Only the public fields and members are accessible in derived class.
+
+This is why access modifiers matter.
+
+private
+   ↓
+Only declaring class
+
+protected
+   ↓
+Declaring class + derived classes
+
+#### Constructors and inheritance
+
+Dog dog = new Dog();
+
+It calls Animal constructor first and Dog constructor next. Because the  **base-class constructor executes before the derived-class constructor body** .
+
+new Dog()
+   ↓
+Animal constructor
+   ↓
+Dog constructor
+   ↓
+Dog object ready
+
+#### Calling a parameterized base constructor
+
+<pre class="overflow-visible! px-0!" data-start="2624" data-end="2828"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span>;
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">Animal</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+    {
+        </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">name</span><span>;
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">Dog</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+        : </span><span class="ͼv">base</span><span>(</span><span class="ͼ11">name</span><span>)
+    {
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+Dog dog = new Dog("Tommy");
+
+: base(name) calls the base class contructor. `if the base class doesn't have a parameterless constructor, the derived class must explicitly call an available base constructor`
+
+#### No Support for Multiple Inheritance:
+
+This is invalid:
+
+<pre class="overflow-visible! px-0!" data-start="3215" data-end="3264"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>, </span><span class="ͼ11">LivingThing</span><span>
+{
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+if both `Animal` and `LivingThing` are classes.
+
+You can inherit from only  **one class** :
+
+<pre class="overflow-visible! px-0!" data-start="3357" data-end="3393"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But you can implement multiple interfaces:
+
+<pre class="overflow-visible! px-0!" data-start="3439" data-end="3494"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>, </span><span class="ͼ11">IAnimal</span><span>, </span><span class="ͼ11">IMovable</span><span>
+{
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Is inheritance always a good idea?
+
+Inheritance represents an  **"is-a" relationship** . But don't force inheritance just because two classes share some code.
+
+#### What is inheritance in C#?
+
+Inheritance allows a derived class to reuse and extend the members of a base class. In C#, a class can inherit from only one base class, using the `:` syntax. It represents an 'is-a' relationship and supports code reuse and polymorphism.
+
+#### `virtual` + `override`
+
+<pre class="overflow-visible! px-0!" data-start="230" data-end="459"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal sound"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Bark"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+virtual - Derived classes are allowed to provide their own implementation.
+
+override - I'm replacing/overriding the virtual implementation from the base class
+
+Why do we need `virtual`?
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="782" data-end="843"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">animal</span><span>.</span><span class="ͼ11">MakeSound</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+What should happen?
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="875" data-end="891"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Bark</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Even though the **reference type** is `Animal`, the actual object is `Dog`. This is  **runtime polymorphism** .
+
+#### base
+
+The `base` keyword lets the derived class access members of its base class.
+
+**class**Dog : **Animal**
+{
+    **public**override**void**MakeSound()
+    {
+        **base**.**MakeSound**();
+
+        **Console**.**WriteLine**(**"Bark"**);
+    }
+}
+
+base with constructor
+
+**class**Dog : **Animal**
+{
+    **public**Dog(**string**name)
+        : **base**(**name**)
+    {
+    }
+}
+
+base(...)
+    → call base constructor
+
+base.SomeMethod()
+    → call base implementation
+
+#### Method hiding with `new`
+
+<pre class="overflow-visible! px-0!" data-start="2242" data-end="2458"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public </span><span></span><span class="ͼv">void </span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal sound"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public </span><span></span><span class="ͼv">new </span><span></span><span class="ͼv">void </span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Bark"</span><span>);
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here we're **not overriding** anything.
+
+We're hiding the base method.
+
+The `new` keyword says I know a member with the same name exists in the base class, and I intentionally want to hide it.
+
+Dog dog = new Dog();
+
+dog.MakeSound();
+
+This results Bark. Because the reference is `Dog`.
+
+Animal animal = new Dog();
+
+animal.MakeSound();
+
+This results Animal Sound. Because `MakeSound()` isn't virtual. The method is selected based on the  **reference type.**
+
+<pre class="overflow-visible! px-0!" data-start="3035" data-end="3086"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Compare `override` vs `new`
+
+##### Using `override`
+
+<pre class="overflow-visible! px-0!" data-start="3200" data-end="3422"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Dog"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="3424" data-end="3475"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">a</span><span>.</span><span class="ͼ11">MakeSound</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="3486" data-end="3501"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Because of runtime polymorphism.
+
+##### Using `new`
+
+<pre class="overflow-visible! px-0!" data-start="3559" data-end="3768"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">new</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Dog"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="3770" data-end="3821"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">a</span><span>.</span><span class="ͼ11">MakeSound</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="3832" data-end="3850"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Animal</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Because the method isn't virtual.
+
+##### Table
+
+
+|                              | `override`                                      | `new`                      |
+| ------------------------------ | ------------------------------------------------- | ---------------------------- |
+| Base method                  | Must be`virtual`/`abstract`/override-compatible | Doesn't need to be virtual |
+| Purpose                      | Replace virtual behavior                        | Hide base member           |
+| Runtime polymorphism         | ✅ Yes                                          | ❌ No                      |
+| Reference type matters       | Less for virtual dispatch                       | Yes                        |
+| Recommended for polymorphism | ✅                                              | ❌                         |
+
+virtual
+   ↓
+"Derived classes may override me"
+
+override
+   ↓
+"I am providing the derived implementation"
+
+base
+   ↓
+"Give me the base implementation"
+
+new
+   ↓
+"I am hiding the base member"
+
+### Polymorphism:
+
+poly morph - means to many forms. In C#, it means the **same interface/reference/method call can behave differently depending on the object or arguments involved.**
+
+Polymorphism
+├── Compile-time polymorphism
+│   └── Method overloading
+│
+└── Runtime polymorphism
+    └── virtual / override
+
+#### Compile-time polymorphism
+
+Method overloading. Must be defined in compile time. Same method name, but different parameters. Also known as Static polymorphism.
+
+<pre class="overflow-visible! px-0!" data-start="1007" data-end="1264"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Calculator</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>)
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">c</span><span>)
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">c</span><span>;
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">double</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">double</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">double</span><span></span><span class="ͼ11">b</span><span>)
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1272" data-end="1408"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Calculator</span><span></span><span class="ͼ11">calculator</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Calculator</span><span>();
+
+</span><span class="ͼ11">calculator</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>);
+</span><span class="ͼ11">calculator</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>, </span><span class="ͼy">30</span><span>);
+</span><span class="ͼ11">calculator</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">10.5</span><span>, </span><span class="ͼy">20.5</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Runtime polymorphism:
+
+Method overriding using virtual and override keywords.
+
+<pre class="overflow-visible! px-0!" data-start="1729" data-end="2046"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Sound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Sound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Dog"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Cat</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Sound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Cat"</span><span>);
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="2054" data-end="2158"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+</span><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Cat</span><span>();
+
+</span><span class="ͼ11">animal1</span><span>.</span><span class="ͼ11">Sound</span><span>();
+</span><span class="ͼ11">animal2</span><span>.</span><span class="ͼ11">Sound</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="2169" data-end="2188"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog
+Cat</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Why is this useful in backend applications?
+
+Imagine:
+
+<pre class="overflow-visible! px-0!" data-start="2457" data-end="2532"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">interface</span><span></span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Different implementations:
+
+<pre class="overflow-visible! px-0!" data-start="2562" data-end="2857"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">CreditCardProcessor</span><span> : </span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Credit card payment"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">UpiProcessor</span><span> : </span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"UPI payment"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Your service can work with the abstraction:
+
+<pre class="overflow-visible! px-0!" data-start="2904" data-end="2989"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">IPaymentProcessor </span><span></span><span class="ͼ11">processor </span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new </span><span></span><span class="ͼ11">UpiProcessor</span><span>();
+
+</span><span class="ͼ11">processor</span><span>.</span><span class="ͼ11">Pay</span><span>(</span><span class="ͼy">1000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Later:
+
+<pre class="overflow-visible! px-0!" data-start="2999" data-end="3073"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">processor</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">CreditCardProcessor</span><span>();
+
+</span><span class="ͼ11">processor</span><span>.</span><span class="ͼ11">Pay</span><span>(</span><span class="ͼy">1000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The calling code doesn't need to know the concrete implementation.
+
+This is one of the most important reasons polymorphism is useful in backend development:
+
+> **Code can depend on an abstraction while different implementations provide different behavior.**
+
+This becomes especially important with **Dependency Injection.**
+
+#### Overloading vs Overriding
+
+
+|              | Overloading        | Overriding               |
+| -------------- | -------------------- | -------------------------- |
+| Polymorphism | Compile-time       | Runtime                  |
+| Relationship | Usually same class | Base + derived           |
+| Method name  | Same               | Same                     |
+| Parameters   | Must differ        | Same signature           |
+| Keyword      | None required      | `override`               |
+| Base method  | Not required       | `virtual`/`abstract`etc. |
+| Decision     | Compiler           | Runtime                  |
+
+#### What is polymorphism in C#?
+
+Polymorphism means one interface or method call can have multiple behaviors. In C#, the two common forms are compile-time polymorphism through method overloading and runtime polymorphism through virtual and overridden methods. Runtime polymorphism allows a base-class reference to invoke the derived-class implementation based on the actual object at runtime.
+
+### Upcasting vs Downcasting:
+
+#### Upcasting:
+
+treating a  **derived-class object as its base-class type** .
+
+<pre class="overflow-visible! px-0!" data-start="184" data-end="474"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Sound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Animal"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Sound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Dog"</span><span>);
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Fetch</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Fetching"</span><span>);
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="482" data-end="538"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dog</span><span></span><span class="ͼ11">dog</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dog</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is  **upcasting** :
+
+<pre class="overflow-visible! px-0!" data-start="564" data-end="602"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog
+ ↑
+ |
+Animal reference</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Or:
+
+<pre class="overflow-visible! px-0!" data-start="609" data-end="647"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Animal animal = new Dog();</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Is explicit casting required? No.
+
+<pre class="overflow-visible! px-0!" data-start="689" data-end="723"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dog</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is implicit because every `Dog` **is an** `Animal`.
+
+What can we access?
+
+After:
+
+<pre class="overflow-visible! px-0!" data-start="815" data-end="855"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+you can access members available through `Animal`:
+
+<pre class="overflow-visible! px-0!" data-start="909" data-end="944"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">animal</span><span>.</span><span class="ͼ11">Sound</span><span>();  </span><span class="ͼt">// ✅</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But:
+
+<pre class="overflow-visible! px-0!" data-start="952" data-end="987"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">animal</span><span>.</span><span class="ͼ11">Fetch</span><span>();  </span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Why?
+
+Because the **reference type** is `Animal`.
+
+Even though the actual object is `Dog`.
+
+This is an important distinction:
+
+<pre class="overflow-visible! px-0!" data-start="1116" data-end="1235"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Reference type → controls what members are accessible
+Actual object  → controls overridden virtual behavior</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1242" data-end="1271"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">animal</span><span>.</span><span class="ͼ11">Sound</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+calls:
+
+<pre class="overflow-visible! px-0!" data-start="1281" data-end="1304"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog.Sound()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+because `Sound()` is virtual/overridden.
+
+#### Downcasting:
+
+converting a  **base-class reference back to a derived-class reference** .
+
+<pre class="overflow-visible! px-0!" data-start="1465" data-end="1529"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">Dog</span><span></span><span class="ͼ11">dog</span><span></span><span class="ͼv">=</span><span> (</span><span class="ͼ11">Dog</span><span>)</span><span class="ͼ11">animal</span><span>;</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1537" data-end="1568"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dog</span><span>.</span><span class="ͼ11">Fetch</span><span>(); </span><span class="ͼt">// ✅</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Because `dog` is now a `Dog` reference.
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1665" data-end="1729"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Animal</span><span></span><span class="ͼ11">animal</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Cat</span><span>();
+
+</span><span class="ͼ11">Dog</span><span></span><span class="ͼ11">dog</span><span></span><span class="ͼv">=</span><span> (</span><span class="ͼ11">Dog</span><span>)</span><span class="ͼ11">animal</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This compiles.
+
+But at runtime:
+
+<pre class="overflow-visible! px-0!" data-start="1764" data-end="1798"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>InvalidCastException ❌</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+because the actual object is:
+
+<pre class="overflow-visible! px-0!" data-start="1831" data-end="1846"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Cat</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+not:
+
+<pre class="overflow-visible! px-0!" data-start="1854" data-end="1869"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Safe downcasting with "is":
+
+<pre class="overflow-visible! px-0!" data-start="1931" data-end="1988"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">if</span><span> (</span><span class="ͼ11">animal </span><span></span><span class="ͼv">is </span><span></span><span class="ͼ11">Dog </span><span></span><span class="ͼ11">dog</span><span>)
+{
+    </span><span class="ͼ11">dog</span><span>.</span><span class="ͼ11">Fetch</span><span>();
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is called  **pattern matching** .
+
+It checks:
+
+> "Is the actual object a `Dog`?"
+
+If yes, it gives you a `Dog` variable.
+
+##### `as` operator:
+
+<pre class="overflow-visible! px-0!" data-start="2209" data-end="2287"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Dog</span><span class="ͼv">? </span><span></span><span class="ͼ11">dog </span><span></span><span class="ͼv">= </span><span></span><span class="ͼ11">animal </span><span></span><span class="ͼv">as </span><span></span><span class="ͼ11">Dog</span><span>;
+
+</span><span class="ͼv">if</span><span> (</span><span class="ͼ11">dog</span><span></span><span class="ͼv">!=</span><span></span><span class="ͼy">null</span><span>)
+{
+    </span><span class="ͼ11">dog</span><span>.</span><span class="ͼ11">Fetch</span><span>();
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If the cast is unsuccessful, `as` returns:
+
+<pre class="overflow-visible! px-0!" data-start="2333" data-end="2349"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>null</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+instead of throwing `InvalidCastException`.
+
+##### is vs as vs explicit cast:
+
+
+| Approach            | Failed conversion            |
+| --------------------- | ------------------------------ |
+| `(Dog)animal`       | Throws`InvalidCastException` |
+| `animal is Dog dog` | `false`                      |
+| `animal as Dog`     | `null`                       |
+
+### Abstraction:
+
+Expose what an object can do while hiding the implementation details of how it does it.
+
+abstract class Payment
+{
+    public abstract void Pay(decimal amount);
+}
+
+class CreditCardPayment : Payment
+{
+    public override void Pay(decimal amount)
+    {
+        Console.WriteLine("Processing credit card payment");
+    }
+}
+
+class UpiPayment : Payment
+{
+    public override void Pay(decimal amount)
+    {
+        Console.WriteLine("Processing UPI payment");
+    }
+}
+
+Payment payment = new UpiPayment();
+
+payment.Pay(1000);
+
+it doesn't need to know the actual implementation.
+
+#### Abstract class:
+
+An `abstract class` is a class designed to be used as a base class.
+
+You **cannot directly instantiate** it:
+
+<pre class="overflow-visible! px-0!" data-start="4219" data-end="4270"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Payment</span><span></span><span class="ͼ11">payment</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Payment</span><span>(); </span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But you can create:
+
+<pre class="overflow-visible! px-0!" data-start="4293" data-end="4347"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Payment</span><span></span><span class="ͼ11">payment</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">UpiPayment</span><span>(); </span><span class="ͼt">// ✅</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+An abstract class can contain both:
+
+#### Abstract members:
+
+No implementation:
+
+#### Concrete members
+
+Have implementation:
+
+abstract class Payment
+{
+    public abstract void Pay(decimal amount);
+
+    public void PrintReceipt()
+    {
+        Console.WriteLine("Receipt generated");
+    }
+}
+
+Derived classes must implement the abstract member:
+
+<pre class="overflow-visible! px-0!" data-start="4862" data-end="5005"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">UpiPayment</span><span> : </span><span class="ͼ11">Payment</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"UPI payment"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Why use an abstract class?
+
+Use an abstract class when you have a genuine base concept and want to provide:
+
+Common state
++
+Common behavior
++
+Required behavior for derived classes
+
+#### abstraction and encapsulation
+
+Encapsulation
+→ "Protect my data/state."
+
+Abstraction
+→ "Hide how I work."
+
+### Abstract Class vs Interface
+
+**Abstract class = "what you are" + shared implementation**
+
+**Interface = "what you can do" / contract**
+
+#### Abstract:
+
+An abstract class is a **base class** that cannot be instantiated directly.
+
+<pre class="overflow-visible! px-0!" data-start="343" data-end="533"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">abstract</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Eat</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Eating..."</span><span>);
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">abstract</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>();
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+A derived class must implement the abstract member:
+
+<pre class="overflow-visible! px-0!" data-start="588" data-end="708"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">MakeSound</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Bark"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Usage:
+
+<pre class="overflow-visible! px-0!" data-start="718" data-end="841"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dog</span><span></span><span class="ͼ11">dog</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Dog</span><span>();
+
+</span><span class="ͼ11">dog</span><span>.</span><span class="ͼ11">Eat</span><span>();        </span><span class="ͼt">// inherited implementation</span><span>
+</span><span class="ͼ11">dog</span><span>.</span><span class="ͼ11">MakeSound</span><span>();  </span><span class="ͼt">// Dog's implementation</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here `Animal` provides:
+
+* **Data** → `Name`
+* **Common behavior** → `Eat()`
+* **Required behavior** → `MakeSound()`
+
+So an abstract class is useful when related classes have  **common state and common behavior** .
+
+#### Interface:
+
+An interface primarily defines a  **contract** .
+
+<pre class="overflow-visible! px-0!" data-start="1126" data-end="1189"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">interface</span><span></span><span class="ͼ11">IPayment</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">ProcessPayment</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Different classes can implement it:
+
+<pre class="overflow-visible! px-0!" data-start="1228" data-end="1501"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">CreditCardPayment</span><span> : </span><span class="ͼ11">IPayment</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">ProcessPayment</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Processing credit card"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">UpiPayment</span><span> : </span><span class="ͼ11">IPayment</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">ProcessPayment</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Processing UPI"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The important thing is:
+
+<pre class="overflow-visible! px-0!" data-start="1528" data-end="1603"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IPayment
+   |
+   +--- CreditCardPayment
+   |
+   +--- UpiPayment</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Both promise:
+
+> "I can process a payment."
+
+But they can implement it differently.
+
+#### Multiple Inheritance:
+
+Only interface supports multiple inheritance in C#.
+
+#### Abstract class can contain state:
+
+state is nothing but class fields. Interface traditionally doesn't represent shared instance state. it only defines contracts, methods.
+
+#### Abstract class can have constructors:
+
+<pre class="overflow-visible! px-0!" data-start="2670" data-end="2813"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">abstract</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">protected</span><span></span><span class="ͼ11">Employee</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+    {
+        </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">name</span><span>;
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Derived class:
+
+<pre class="overflow-visible! px-0!" data-start="2831" data-end="2942"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Developer</span><span> : </span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">Developer</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+        : </span><span class="ͼv">base</span><span>(</span><span class="ͼ11">name</span><span>)
+    {
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is useful when the base class needs to initialize common state.
+
+Interfaces don't have instance constructors because you don't instantiate an interface.
+
+#### Abstract class can contain implemented methods:
+
+Interfaces can also contain implementations in modern C#, which is an important modern-C# nuance.
+
+#### Access modifiers:
+
+Abstract class members can use normal access modifiers:
+
+<pre class="overflow-visible! px-0!" data-start="4082" data-end="4210"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">abstract</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>;
+    </span><span class="ͼv">protected</span><span></span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">salary</span><span>;
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Interface members are primarily public contract members.
+
+<pre class="overflow-visible! px-0!" data-start="4270" data-end="4324"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">interface</span><span></span><span class="ͼ11">IEmployee</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Work</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`Work()` is public as part of the interface contract
+
+#### Major difference:
+
+
+| Feature                    | Abstract Class             | Interface                                     |
+| ---------------------------- | ---------------------------- | ----------------------------------------------- |
+| Can instantiate directly?  | ❌                         | ❌                                            |
+| Can have fields/state?     | ✅                         | Not instance fields                           |
+| Can have constructors?     | ✅                         | ❌                                            |
+| Can have concrete methods? | ✅                         | ✅ Modern C# supports default implementations |
+| Can have abstract members? | ✅                         | Contract members can require implementation   |
+| Multiple inheritance?      | ❌ One base class          | ✅ Multiple interfaces                        |
+| Access modifiers           | Normal access modifiers    | Contract members are generally public         |
+| Main purpose               | Shared base behavior/state | Contract/capability                           |
+| Relationship               | "is-a"                     | "can-do"/capability                           |
+
+#### What's the difference between abstract class and interface?
+
+An abstract class is useful when related classes need to share common state or implementation while also enforcing some abstract behavior. An interface defines a contract or capability that different classes can implement, and a class can implement multiple interfaces but inherit from only one class. In modern C#, interfaces can also have default implementations, so the difference isn't simply that interfaces can't contain implementation.
+
+Shared identity + state + behavior
+        ↓
+Abstract class
+
+Contract/capability
+        ↓
+Interface
+
+### Composition vs Inheritance
+
+#### Composition:
+
+Composition means a class **contains another object and uses it** to provide functionality. Composition = "has-a" relationship.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="433" data-end="720"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Engine</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Engine started"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Car</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">Engine</span><span></span><span class="ͼ11">_engine</span><span>;
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">Car</span><span>()
+    {
+        </span><span class="ͼ11">_engine</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Engine</span><span>();
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>()
+    {
+        </span><span class="ͼ11">_engine</span><span>.</span><span class="ͼ11">Start</span><span>();
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+A `Car` **has an** `Engine`.
+
+<pre class="overflow-visible! px-0!" data-start="752" data-end="779"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Car
+ └── Engine</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So we don't write:
+
+<pre class="overflow-visible! px-0!" data-start="801" data-end="840"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Car</span><span> : </span><span class="ͼ11">Engine</span><span></span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+because:
+
+> A Car **is not** an Engine.
+
+#### vs Inheritance:
+
+Inheritance
+
+<pre class="overflow-visible! px-0!" data-start="1195" data-end="1227"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Dog</span><span> : </span><span class="ͼ11">Animal</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="1229" data-end="1254"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Dog
+ ↓
+Animal</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+**is-a**
+
+Composition
+
+<pre class="overflow-visible! px-0!" data-start="1283" data-end="1338"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Car</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼ11">Engine</span><span></span><span class="ͼ11">_engine</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="1340" data-end="1365"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Car
+ ↓
+Engine</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+**has-a**
+
+#### Why inheritance complex and Composition resolves:
+
+Suppose has Vehicle class.
+
+Now Car and bike inherits Vehicle.
+
+But now suppose you want:
+
+<pre class="overflow-visible! px-0!" data-start="1607" data-end="1676"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Car → Electric
+Car → Petrol
+Bike → Electric
+Bike → Petrol</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You might start creating:
+
+<pre class="overflow-visible! px-0!" data-start="1705" data-end="1762"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>ElectricCar
+PetrolCar
+ElectricBike
+PetrolBike</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+Instead of inheritance, we can separate the behavior and implement using composition.
+
+<pre class="overflow-visible! px-0!" data-start="1979" data-end="2032"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">interface</span><span></span><span class="ͼ11">IEngine</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>();
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Implementations:
+
+<pre class="overflow-visible! px-0!" data-start="2052" data-end="2312"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">PetrolEngine</span><span> : </span><span class="ͼ11">IEngine</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Petrol engine started"</span><span>);
+    }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">ElectricEngine</span><span> : </span><span class="ͼ11">IEngine</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Electric engine started"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="2321" data-end="2518"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Car</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">IEngine</span><span></span><span class="ͼ11">_engine</span><span>;
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">Car</span><span>(</span><span class="ͼ11">IEngine</span><span></span><span class="ͼ11">engine</span><span>)
+    {
+        </span><span class="ͼ11">_engine</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">engine</span><span>;
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Start</span><span>()
+    {
+        </span><span class="ͼ11">_engine</span><span>.</span><span class="ͼ11">Start</span><span>();
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="2526" data-end="2633"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">petrolCar</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Car</span><span>(</span><span class="ͼv">new</span><span></span><span class="ͼ11">PetrolEngine</span><span>());
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">electricCar</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Car</span><span>(</span><span class="ͼv">new</span><span></span><span class="ͼ11">ElectricEngine</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Same `Car` class. but Different behavior.
+
+#### Typical BackEnd Development:
+
+This pattern should look familiar:
+
+class OrderService
+{
+    private readonly IPaymentService _paymentService;
+
+    public OrderService(IPaymentService paymentService)
+    {
+        _paymentService = paymentService;
+    }
+}
+
+OrderService has a payment service.
+
+It doesn't inherit from it.
+
+OrderService
+     │
+     └── IPaymentService
+
+This is composition.
+
+And when ASP.NET Core's Dependency Injection container provides the implementation, you're combining:
+
+Composition
+    +
+Interface
+    +
+Dependency Injection
+    +
+Polymorphism
+
+This is one of the most common patterns you'll encounter in real .NET backend applications.
+
+
+|                    | Inheritance                      | Composition               |
+| -------------------- | ---------------------------------- | --------------------------- |
+| Relationship       | Is-a                             | Has-a                     |
+| Example            | `Dog : Animal`                   | `Car`has`Engine`          |
+| Coupling           | Usually tighter                  | Usually looser            |
+| Reuse              | Through inheritance              | Through contained objects |
+| Behavior change    | Often requires hierarchy changes | Can swap dependency       |
+| Flexibility        | Lower                            | Higher                    |
+| Multiple behaviors | Can become complicated           | Easier to combine         |
+
+#### Why "prefer composition over inheritance"?
+
+famous OOP design principle. When both approaches are possible, composition often gives better flexibility and lower coupling.
+
+Inheritance is perfectly appropriate when there is a genuine and stable **is-a** relationship.
+
+Is-a relationship?
+    ↓
+Consider inheritance
+
+Has-a / uses relationship?
+    ↓
+Consider composition
+
+```
+                    OOP
+                     │
+       ┌─────────────┼─────────────┐
+       ↓             ↓             ↓
+ Encapsulation   Inheritance   Polymorphism
+       │             │             │
+   protect       is-a          many forms
+   state             │             │
+                     ↓             ↓
+               Abstract class   override
+                     │
+                     ↓
+                 Interface
+                     │
+                     ↓
+                Composition
+                     │
+                     ↓
+              Dependency Injection
+```
+
+## SOLID
+
+OOP teaches you:
+
+> **How to structure objects and relationships.**
+
+SOLID teaches you:
+
+> **How to design those objects/classes so your application remains maintainable, flexible, and testable.**
+
+### Single Responsibility Principle (SRP):
+
+A class should have one responsibility and therefore one reason to change.
+
+Example:
+
+OrderService
+│
+├── Order management
+├── Email sending
+├── Invoice generation
+└── Logging
+
+this class has **multiple responsibilities** and multiple reasons for this class to change. This violates SRP.
+
+Better design:
+
+OrderService
+     ↓
+Order management
+
+EmailService
+     ↓
+Email
+
+InvoiceService
+     ↓
+Invoice
+
+OrderLogger
+     ↓
+Logging
+
+#### Why is SRP useful?
+
+Imagine your application currently uses:
+
+<pre class="overflow-visible! px-0!" data-start="2155" data-end="2177"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>SQL Server</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+and you decide to move to:
+
+<pre class="overflow-visible! px-0!" data-start="2207" data-end="2229"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>PostgreSQL</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If database code is mixed into every business class, you potentially need to modify many classes.
+
+With separation:
+
+<pre class="overflow-visible! px-0!" data-start="2348" data-end="2424"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderService
+      ↓
+IOrderRepository
+      ↓
+SqlOrderRepository</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+you can change the persistence implementation without changing the core order logic.
+
+This is where SRP starts working together with  **interfaces, composition and dependency injection** .
+
+#### I have a class with 20 methods. Does that mean it violates SRP?
+
+Not necessarily. SRP isn't about the number of methods. The key is whether the class has multiple responsibilities or multiple independent reasons to change. A class can have many methods while still having a single cohesive responsibility.
+
+And a class can have many methods. SRP isn't about counting methods. It's about  **responsibilities and reasons to change** .
+
+#### High Cohesion and Loose Coupling:
+
+High cohesion: How closely the methods belongs among them in a single class.
+
+If the methods group can be divided - it should be moved to another class to
+maintain SRP. Easy to maintain and resolve bugs
+
+Loose Coupling: Interdependencies between classes.
+
+Tight coupling within classes will be difficult to maintain and to change the
+methods. Low coupling is easier to test and reusable. Breaking
+the methods into too many different classes leads to tight coupling.
+
+#### What is Single Responsibility Principle?
+
+SRP states that a class should have a single responsibility and therefore a single reason to change. It helps keep classes cohesive and prevents unrelated business or technical concerns from being tightly coupled together. For example, an order service shouldn't also be responsible for email sending, invoice generation and logging.
+
+SRP
+ ↓
+One responsibility
+ ↓
+One reason to change
+ ↓
+High cohesion
+ ↓
+Easier maintenance/testing
+
+### Open/Closed Principle (OCP):
+
+Software entities should be open for extension, but closed for modification. Class should be able to add new behavior without repeatedly changing existing, stable code.
+
+Example:
+
+Imagine a payment system:
+
+<pre class="overflow-visible! px-0!" data-start="317" data-end="781"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">PaymentService</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">paymentType</span><span>, </span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼv">if</span><span> (</span><span class="ͼ11">paymentType</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"UPI"</span><span>)
+        {
+            </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Processing UPI payment"</span><span>);
+        }
+        </span><span class="ͼv">else</span><span></span><span class="ͼv">if</span><span> (</span><span class="ͼ11">paymentType</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"Card"</span><span>)
+        {
+            </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Processing Card payment"</span><span>);
+        }
+        </span><span class="ͼv">else</span><span></span><span class="ͼv">if</span><span> (</span><span class="ͼ11">paymentType</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"PayPal"</span><span>)
+        {
+            </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Processing PayPal payment"</span><span>);
+        }
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now the business says:
+
+> "We are adding Apple Pay."
+
+You must modify `PaymentService`:
+
+<pre class="overflow-visible! px-0!" data-start="872" data-end="936"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">else</span><span></span><span class="ͼv">if</span><span> (</span><span class="ͼ11">paymentType</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"ApplePay"</span><span>)
+{
+    </span><span class="ͼt">// ...</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And tomorrow:
+
+* Google Pay
+* Bank Transfer
+* Crypto
+* Wallet
+
+Every time, you keep modifying the same class.
+
+That's a sign of  **OCP violation** .
+
+#### use abstraction + polymorphism:
+
+Create a contract:
+
+<pre class="overflow-visible! px-0!" data-start="1167" data-end="1249"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then each payment type implements it:
+
+<pre class="overflow-visible! px-0!" data-start="1290" data-end="1461"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">UpiPaymentProcessor</span><span> : </span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">$</span><span class="ͼz">"UPI payment: {amount}"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="1463" data-end="1636"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">CardPaymentProcessor</span><span> : </span><span class="ͼ11">IPaymentProcessor</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>(</span><span class="ͼ11">decimal</span><span></span><span class="ͼ11">amount</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">$</span><span class="ͼz">"Card payment: {amount}"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+And etc. if any new payment arises, we can add new class. No modification required in payment caller.
+
+
+| Concept          | Role                                                            |
+| ------------------ | ----------------------------------------------------------------- |
+| **Interface**    | Defines the payment contract                                    |
+| **Polymorphism** | Different processors behave differently                         |
+| **Abstraction**  | `PaymentService`doesn't know implementation details             |
+| **Composition**  | `PaymentService`has an`IPaymentProcessor`                       |
+| **OCP**          | New payment types can be added without changing`PaymentService` |
+
+#### Never modify existing code?
+
+No. Design the code so that new variations can usually be introduced by extending the system rather than modifying well-tested existing logic.
+
+#### What is OCP?
+
+The Open/Closed Principle states that software entities should be open for extension but closed for modification. In practice, we should design components so that new behavior can be added with minimal changes to existing, stable code. For example, instead of using a large if-else or switch for different payment methods, we can use an interface and separate implementations. Adding a new payment method then requires adding a new implementation rather than modifying the existing payment service
+
+If adding **UPI, Card, PayPal and Apple Pay** causes a huge `switch` statement inside one service, **which SOLID principle is being violated?**
+
+**Answer: OCP.**
+
+### Liskov Substitution Principle (LSP):
+
+> **Objects of a derived class should be replaceable for objects of the base class without breaking the correctness of the program.**
+
+Simple version:
+
+> **If `B` is a subtype of `A`, you should be able to use `B` wherever `A` is expected, and the application should still behave correctly.**
+
+#### problem:
+
+<pre class="overflow-visible! px-0!" data-start="495" data-end="609"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Bird</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Fly</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Flying"</span><span>);
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="617" data-end="750"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Sparrow</span><span> : </span><span class="ͼ11">Bird</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Fly</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Sparrow flying"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is fine:
+
+<pre class="overflow-visible! px-0!" data-start="767" data-end="820"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Bird</span><span></span><span class="ͼ11">bird</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Sparrow</span><span>();
+
+</span><span class="ͼ11">bird</span><span>.</span><span class="ͼ11">Fly</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Because `Sparrow` can behave as a `Bird`
+
+<pre class="overflow-visible! px-0!" data-start="919" data-end="1050"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Penguin</span><span> : </span><span class="ͼ11">Bird</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Fly</span><span>()
+    {
+        </span><span class="ͼv">throw</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">NotSupportedException</span><span>();
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="1059" data-end="1112"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Bird</span><span></span><span class="ͼ11">bird</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Penguin</span><span>();
+
+</span><span class="ͼ11">bird</span><span>.</span><span class="ͼ11">Fly</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+💥 Exception!
+
+The problem is that code using `Bird` expects:
+
+<pre class="overflow-visible! px-0!" data-start="1177" data-end="1202"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">bird</span><span>.</span><span class="ͼ11">Fly</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+to work.
+
+But `Penguin` cannot fulfill the behavior promised by `Bird`.
+
+That's an  **LSP violation** .
+
+#### solution:
+
+<pre class="overflow-visible! px-0!" data-start="1577" data-end="1639"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IFlyingBird</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Fly</span><span>();
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Sparrow:
+
+<pre class="overflow-visible! px-0!" data-start="1651" data-end="1788"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Sparrow</span><span> : </span><span class="ͼ11">Bird</span><span>, </span><span class="ͼ11">IFlyingBird</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Fly</span><span>()
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Sparrow flying"</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Penguin:
+
+<pre class="overflow-visible! px-0!" data-start="1800" data-end="1845"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Penguin</span><span> : </span><span class="ͼ11">Bird</span><span>
+{
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now we don't force Penguin to implement something it cannot support.
+
+#### **inheritance + polymorphism** ?
+
+LSP is just combining the inheritance and polymorphism between classes.
+
+LSP essentially asks: **"Does the derived class genuinely behave like the base class?"**
+
+Not just: "Can I technically inherit from it?"
+
+#### Rectangle/Square Example:
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="2444" data-end="2640"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Rectangle</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Width</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">virtual</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Height</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">GetArea</span><span>()
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">Width</span><span></span><span class="ͼv">*</span><span></span><span class="ͼ11">Height</span><span>;
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="2649" data-end="3033"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Square</span><span> : </span><span class="ͼ11">Rectangle</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Width</span><span>
+    {
+        </span><span class="ͼv">get</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Width</span><span>;
+        </span><span class="ͼv">set</span><span>
+        {
+            </span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Width</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">value</span><span>;
+            </span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Height</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">value</span><span>;
+        }
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">override</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Height</span><span>
+    {
+        </span><span class="ͼv">get</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Height</span><span>;
+        </span><span class="ͼv">set</span><span>
+        {
+            </span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Height</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">value</span><span>;
+            </span><span class="ͼv">base</span><span>.</span><span class="ͼ11">Width</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">value</span><span>;
+        }
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+At first glance:
+
+<pre class="overflow-visible! px-0!" data-start="3053" data-end="3086"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Square IS-A Rectangle</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Mathematically, yes.
+
+But behaviorally, there's a problem.
+
+Consider code expecting a normal rectangle:
+
+<pre class="overflow-visible! px-0!" data-start="3193" data-end="3328"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Rectangle</span><span></span><span class="ͼ11">rectangle</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Square</span><span>();
+
+</span><span class="ͼ11">rectangle</span><span>.</span><span class="ͼ11">Width</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">10</span><span>;
+</span><span class="ͼ11">rectangle</span><span>.</span><span class="ͼ11">Height</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">5</span><span>;
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">rectangle</span><span>.</span><span class="ͼ11">GetArea</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+We expect:
+
+<pre class="overflow-visible! px-0!" data-start="3342" data-end="3356"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>50</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But because it's a `Square`, setting `Height = 5` also changes `Width` to `5`.
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="3447" data-end="3461"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>25</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The derived class changed behavior expected by the base abstraction.
+
+That's an  **LSP violation** .
+
+#### LSP mental model:
+
+Think of it like this:
+
+<pre class="overflow-visible! px-0!" data-start="3615" data-end="3771"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Base class = Promise/Contract
+                  ↓
+Derived class must honor that promise
+                  ↓
+Can safely substitute derived object</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If the derived class says:
+
+> "I can't do that."
+
+when the base class promised:
+
+> "I can do that."
+
+you probably have an LSP problem.
+
+#### Common signs of LSP violation:
+
+Watch for these in code:
+
+* Derived class throws `NotSupportedException` for inherited operations.
+* Derived class needs lots of special `if` checks.
+* Derived class changes expected behavior of the base class.
+* Derived class requires stronger conditions than the base class.
+* Code has to check the actual derived type:
+
+<pre class="overflow-visible! px-0!" data-start="4273" data-end="4337"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼ11">animal</span><span></span><span class="ͼv">is</span><span></span><span class="ͼ11">Penguin</span><span>)
+{
+    </span><span class="ͼt">// special handling</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+These can indicate that the inheritance hierarchy is poorly designed.
+
+#### What is Liskov Substitution Principle?
+
+Liskov Substitution Principle states that objects of a derived class should be replaceable for objects of the base class without breaking the expected behavior of the application. In other words, a derived class should honor the contract and behavior of its base class. For example, if a base `Bird` class has a `Fly()` method, making `Penguin` inherit from it and throw an exception from `Fly()` would violate LSP.
+
+LSP = "Child should be safely usable wherever Parent is expected."
+
+### Interface Segregation Principle (ISP):
+
+> **Clients should not be forced to depend on methods they do not use.**
+
+Simple version:
+
+> **Don't create one huge interface when you can create smaller, specific interfaces.**
+
+#### Example:
+
+Suppose you create:
+
+<pre class="overflow-visible! px-0!" data-start="1969" data-end="2202"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IUserService</span><span>
+{
+    </span><span class="ͼ11">User</span><span></span><span class="ͼ11">GetUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">CreateUser</span><span>(</span><span class="ͼ11">User</span><span></span><span class="ͼ11">user</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">UpdateUser</span><span>(</span><span class="ͼ11">User</span><span></span><span class="ͼ11">user</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">DeleteUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">ResetPassword</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">SendWelcomeEmail</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now imagine a component only needs:
+
+<pre class="overflow-visible! px-0!" data-start="2241" data-end="2264"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetUser</span><span>()</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+but it depends on the entire `IUserService`.
+
+That's unnecessary coupling.
+
+Instead, you might separate contracts:
+
+<pre class="overflow-visible! px-0!" data-start="2382" data-end="2454"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IUserReader</span><span>
+{
+    </span><span class="ͼ11">User</span><span></span><span class="ͼ11">GetUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="2456" data-end="2595"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IUserWriter</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">CreateUser</span><span>(</span><span class="ͼ11">User</span><span></span><span class="ͼ11">user</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">UpdateUser</span><span>(</span><span class="ͼ11">User</span><span></span><span class="ͼ11">user</span><span>);
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">DeleteUser</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="2597" data-end="2684"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IUserPasswordService</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">ResetPassword</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="2686" data-end="2780"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">interface</span><span></span><span class="ͼ11">IUserNotificationService</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">SendWelcomeEmail</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now consumers depend only on what they actually need.
+
+#### Another Simple Example:
+
+There is an interface called IWorker, it has Work(), Eat(), Sleep().
+
+It can be inherited to Human class, but nor Robot class. Robot cant have Eat(), Sleep() methods. So if it inherits, those two method should be maeked as NotImplemented(). The robot is  **forced to implement methods it doesn't need**. This created unnecesary coupling and ISP violation. Hence the interface can be separeted.
+
+#### ISP vs SRP:
+
+SRP
+
+Focuses primarily on  **classes/modules** :
+
+> "Does this class have multiple responsibilities/reasons to change?"
+
+ISP
+
+Focuses on  **interfaces/contracts** :
+
+> "Are consumers forced to depend on methods they don't need?"
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="3144" data-end="3213"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>SRP → Class responsibility
+ISP → Interface responsibility</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### What is ISP?
+
+The Interface Segregation Principle states that clients should not be forced to depend on methods they don't use. Instead of creating large, general-purpose interfaces, we should create smaller, focused interfaces based on the needs of their consumers. For example, instead of one interface containing read, write, password, and notification operations, we can separate them into smaller interfaces so each consumer depends only on the functionality it requires.
+
+ISP = "Don't force me to implement/use what I don't need."
+
+### Dependency Inversion Principle (DIP):
+
+> **High-level modules should not depend on low-level modules. Both should depend on abstractions.**
+
+And:
+
+> **Abstractions should not depend on details. Details should depend on abstractions.**
+
+#### Dependency [Composition]:
+
+<pre class="overflow-visible! px-0!" data-start="531" data-end="807"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">OrderService</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">EmailService</span><span></span><span class="ͼ11">_emailService</span><span>;
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">OrderService</span><span>()
+    {
+        </span><span class="ͼ11">_emailService</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">EmailService</span><span>();
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">PlaceOrder</span><span>()
+    {
+        </span><span class="ͼt">// Place order</span><span>
+
+        </span><span class="ͼ11">_emailService</span><span>.</span><span class="ͼ11">SendEmail</span><span>();
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here:
+
+<pre class="overflow-visible! px-0!" data-start="816" data-end="860"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderService
+     ↓
+EmailService</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`OrderService` directly depends on the concrete `EmailService`.
+
+If tomorrow you want to use:
+
+<pre class="overflow-visible! px-0!" data-start="957" data-end="987"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Email
+SMS
+WhatsApp</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`OrderService` becomes tightly coupled to the implementation.
+
+Apply DIP:
+
+<pre class="overflow-visible! px-0!" data-start="1603" data-end="1971"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">OrderService</span><span>
+{
+    </span><span class="ͼv">private</span><span></span><span class="ͼv">readonly</span><span></span><span class="ͼ11">INotificationService</span><span></span><span class="ͼ11">_notificationService</span><span>;
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">OrderService</span><span>(</span><span class="ͼ11">INotificationService</span><span></span><span class="ͼ11">notificationService</span><span>)
+    {
+        </span><span class="ͼ11">_notificationService</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">notificationService</span><span>;
+    }
+
+    </span><span class="ͼv">public</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">PlaceOrder</span><span>()
+    {
+        </span><span class="ͼt">// Place order</span><span>
+
+        </span><span class="ͼ11">_notificationService</span><span>.</span><span class="ͼ11">Send</span><span>(</span><span class="ͼz">"Order placed successfully"</span><span>);
+    }
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1979" data-end="2208"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>             INotificationService
+                    ↑
+              ┌─────┴─────┐
+              │           │
+        EmailService   SmsService
+
+                    ↑
+                    │
+              OrderService</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`OrderService` doesn't care whether notification is Email or SMS.
+
+#### Why is this called "Dependency Inversion"?
+
+Normally we might have:
+
+<pre class="overflow-visible! px-0!" data-start="2356" data-end="2421"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>High-level
+OrderService
+     ↓
+Low-level
+EmailService</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The high-level class directly depends on the low-level implementation.
+
+DIP changes the dependency direction:
+
+<pre class="overflow-visible! px-0!" data-start="2534" data-end="2679"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>             Abstraction
+                  ↑
+          ┌───────┴───────┐
+          │               │
+ OrderService       EmailService</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Both depend on the abstraction.
+
+That's the  **inversion** .
+
+#### DIP vs Dependency Injection:
+
+DIP is a  **SOLID design principle**. It says depend on abstractions rather than concrete implementations.
+
+Dependency Injection is a **technique/pattern** for supplying those dependencies from outside.
+
+<pre class="overflow-visible! px-0!" data-start="3100" data-end="3227"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">public</span><span></span><span class="ͼ11">OrderService</span><span>(</span><span class="ͼ11">INotificationService</span><span></span><span class="ͼ11">notificationService</span><span>)
+{
+    </span><span class="ͼ11">_notificationService</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">notificationService</span><span>;
+}</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+That's  **constructor injection** .
+
+ASP.NET Core's DI container can then provide the implementation:
+
+<pre class="overflow-visible! px-0!" data-start="3330" data-end="3409"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">builder</span><span>.</span><span class="ͼ11">Services</span><span>.</span><span class="ͼ11">AddScoped</span><span class="ͼv"><</span><span class="ͼ11">INotificationService</span><span>, </span><span class="ͼ11">EmailService</span><span class="ͼv">></span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="3416" data-end="3516"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>DIP
+ ↓
+Design principle
+
+Dependency Injection
+ ↓
+Technique used to implement that design</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+DIP = Interface + abstraction + composition + polymorphism + dependency injection
+
+#### What is Dependency Inversion Principle?
+
+The Dependency Inversion Principle states that high-level modules should not directly depend on low-level modules. Both should depend on abstractions. It also says abstractions should not depend on implementation details; the implementations should depend on the abstractions. In a .NET application, we commonly achieve this by defining interfaces and injecting their implementations through dependency injection.
+
+#### Is DIP the same as Dependency Injection?
+
+**No.**
+
+<pre class="overflow-visible! px-0!" data-start="5835" data-end="5878"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>DIP = Principle
+DI  = Technique</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+DI is one of the common ways we implement a design that follows DIP.
+
+#### DIP vs DI vs DI container:
+
+DIP
+│
+├── Principle
+│   "Depend on abstractions"
+│
+DI
+│
+├── Technique
+│   "Supply dependencies from outside"
+│
+DI Container
+│
+└── Framework/tool that automatically performs DI
+
+For example, this:
+
+<pre class="overflow-visible! px-0!" data-start="4390" data-end="4489"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼ11">OrderService</span><span>(</span><span class="ͼ11">INotification</span><span></span><span class="ͼ11">notification</span><span>)
+{
+    </span><span class="ͼ11">_notification</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">notification</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is  **DI** .
+
+This:
+
+<pre class="overflow-visible! px-0!" data-start="4510" data-end="4587"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">builder</span><span>.</span><span class="ͼ11">Services</span><span>.</span><span class="ͼ11">AddScoped</span><span class="ͼv"><</span><span class="ͼ11">INotification</span><span>, </span><span class="ͼ11">EmailNotification</span><span class="ͼv">></span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is  **DI container configuration** .
+
+And the design decision:
+
+<pre class="overflow-visible! px-0!" data-start="4651" data-end="4738"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderService → INotification
+                 ↑
+          EmailNotification</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+is related to  **DIP** .
+
+#### Can we achieve DIP without Dependency Injection?
+
+**Yes.** DIP is a principle; DI is one technique for implementing it. You can use manual composition, factories, abstract factories, etc. However, in modern ASP.NET Core applications, constructor injection with the built-in DI container is usually the cleanest/common approach.
+
+## Collections
+
+### List:
+
+List < T >  is a dynamically resizable collection that stores elements of the same type.
+
+Unlike an Array, it doesn;t need a fied length while initialization.
+
+List< int > newlist = new List< int >();
+newlist.Add(12);
+
+#### what is actually happening internally?
+
+A List< T > is internally backed by an array.
+
+Conceptually:
+
+List<int></int>
+   |
+   v
+Internal array
+
+[10][20][30][40][ ][ ][ ][ ]
+ ↑                 ↑
+ elements          unused capacity
+
+#### Count and Capacity:
+
+<pre class="overflow-visible! px-0!" data-start="3492" data-end="3542"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Count    = 3
+Capacity = something >= 3</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Count`
+
+Number of actual elements.
+
+<pre class="overflow-visible! px-0!" data-start="3585" data-end="3630"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>[10][20][30][ ][ ][ ]
+
+ Count = 3</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Capacity`
+
+How many elements the internal array can currently hold before it needs to resize.
+
+<pre class="overflow-visible! px-0!" data-start="3732" data-end="3790"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>[10][20][30][ ][ ][ ]
+<------ Capacity ------></span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+> **Count = how many items I have.**
+>
+> **Capacity = how much space I currently have.**
+
+Capacity can be accessible and configurable.
+
+List<int></int> numbers = new();
+
+numbers.Capacity = 1000;
+
+List<Order></order> orders = new(1000);
+
+#### What happens when capacity is full?
+
+Suppose internally:
+
+Capacity = 4
+
+[10][20][30][40]
+
+Then:
+
+numbers.Add(50);
+
+There isn't enough space.
+
+So List<T></t> roughly does:
+
+1. Create a larger array
+2. Copy existing elements
+3. Add the new element
+4. Replace the old internal array
+
+Conceptually:
+
+Old:
+
+[10][20][30][40]
+
+        ↓ resize
+
+New:
+
+[10][20][30][40][50][ ][ ][ ]
+
+The exact growth behavior is an implementation detail and can vary by .NET implementation/version, so don't memorize a fixed multiplier as a language guarantee.
+
+#### How is List<T></t> different from an array?
+
+An array has a fixed size, whereas List< T > is dynamically resizable. Internally, List<T></t> uses an array and resizes that array when its capacity is exceeded. List<T></t> also provides convenient methods like Add, Remove, and Insert.
+
+#### Operations & Time Complexity
+
+##### Access by index — O(1)
+
+int value = numbers[2];
+
+Why O(1)?
+
+Because List<T></t> is backed by an array.
+
+##### Add() — Generally O(1)
+
+numbers.Add(60);
+
+normally: **`Add()` = O(1) average/amortized. But if the capacity id full, it may be O(n). **
+
+List.Add is O(1) amortized, but resizing can make an individual Add O(n).
+
+##### Insert() — O(n)
+
+numbers.Insert(1, 15);
+
+the number 15 innserted at index 1, from index 1 to last will shift to next index.
+
+##### RemoveAt() — O(n)
+
+numbers.RemoveAt(1);
+
+the index 1 will be removed and other element will shift left.
+
+Removing the last element doesn;t require shift, hence its O(1)
+
+##### Contains() — O(n)
+
+bool exists = numbers.Contains(40);
+
+the runtime generally searches sequentially like a loop.
+
+##### Remove() — O(n)
+
+numbers.Remove(30);
+
+Same remove and shift, here the parameter is element value.
+
+##### Time Complexity Table:
+
+
+| Operation       | Typical complexity |
+| ----------------- | -------------------: |
+| Access by index |           **O(1)** |
+| Add             | **O(1) amortized** |
+| Insert          |           **O(n)** |
+| Remove          |           **O(n)** |
+| RemoveAt        |           **O(n)** |
+| Contains        |           **O(n)** |
+| Find            |           **O(n)** |
+| Clear           |           **O(n)** |
+
+##### Array vs List:
+
+
+|                 | Array               | `List<T>` |
+| ----------------- | --------------------- | ----------- |
+| Size            | Fixed               | Dynamic   |
+| Index access    | O(1)                | O(1)      |
+| Add             | Manual / fixed size | Easy      |
+| Remove          | Manual              | Built-in  |
+| Insert          | Manual              | Built-in  |
+| Resizing        | No                  | Yes       |
+| Backed by array | Yes                 | Yes       |
+
+##### If List is dynamic, does it use a linked list internally?
+
+No.
+
+List<T></t> is array-backed, not linked-list-backed.
+
+Don't confuse:
+
+List<T></t>       → dynamic array
+LinkedList<T></t> → linked list
+
+This distinction is important.
+
+### Dictionary:
+
+A `Dictionary<TKey, TValue>` stores data as  **key-value pairs** .
+
+Dictionary<int, string> users = new()
+{
+    { 101, "John" },
+    { 102, "David" },
+    { 103, "Alex" }
+};
+
+Dictionary is designed to avoid this kind of sequential search.
+
+#### Hashing
+
+<pre class="overflow-visible! px-0!" data-start="877" data-end="1003"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">101</span><span>, </span><span class="ͼz">"John"</span><span>);
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">102</span><span>, </span><span class="ͼz">"David"</span><span>);
+</span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Add</span><span>(</span><span class="ͼy">103</span><span>, </span><span class="ͼz">"Alex"</span><span>);</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+When you add a key, the dictionary needs to determine  **where to store it** .
+
+conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1184" data-end="1235"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>101
+ ↓
+GetHashCode()
+ ↓
+101
+ ↓
+Bucket 1</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Another key:
+
+<pre class="overflow-visible! px-0!" data-start="1251" data-end="1302"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>102
+ ↓
+GetHashCode()
+ ↓
+102
+ ↓
+Bucket 2</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The exact bucket calculation is implementation-specific, so don't assume the bucket number literally equals the hash code.
+
+> **The key's hash code helps the Dictionary quickly determine where to look.**
+
+#### What happens during lookup?
+
+When you do:
+
+<pre class="overflow-visible! px-0!" data-start="1586" data-end="1625"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">users</span><span>[</span><span class="ͼy">102</span><span>];</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1642" data-end="1873"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>           102
+            ↓
+      GetHashCode()
+            ↓
+       hash value
+            ↓
+     determine bucket
+            ↓
+     search that bucket
+            ↓
+       find key 102
+            ↓
+         "David"</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+It doesn't normally scan every key in the dictionary.
+
+That's why lookup is  **generally O(1)** .
+
+#### what is a bucket?
+
+Think of buckets as locations where dictionary entries can be placed.
+
+Simplified:
+
+<pre class="overflow-visible! px-0!" data-start="2097" data-end="2222"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Bucket 0 → [entry]
+Bucket 1 → [entry]
+Bucket 2 → [entry]
+Bucket 3 → [entry]
+Bucket 4 → [entry]
+Bucket 5 → [entry]</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+When a key arrives:
+
+<pre class="overflow-visible! px-0!" data-start="2245" data-end="2278"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>key
+ ↓
+hash
+ ↓
+bucket</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The dictionary uses the hash to determine which bucket to inspect.
+
+#### Hash Collisions
+
+Two different keys can produce the same bucket.
+
+For example:
+
+Key A → hash → Bucket 3
+Key B → hash → Bucket 3
+
+This is called a: Hash collision
+
+Conceptually:
+
+Bucket 3
+   ↓
+[Key A, Value A]
+[Key B, Value B]
+
+So how does Dictionary know which one you actually want?
+
+It doesn't rely only on the hash code.
+
+It also compares the keys for equality.
+
+This brings us directly back to what you learned earlier:
+
+GetHashCode()
+     +
+Equals()
+
+##### `GetHashCode()` + `Equals()`
+
+Requested key
+     102
+      ↓
+  hash code
+      ↓
+   bucket
+      ↓
+ candidate keys
+      ↓
+ Equals()
+      ↓
+  key == 102
+      ↓
+   "David"
+
+#### Why must `Equals()` and `GetHashCode()` agree?
+
+Suppose you create:
+
+<pre class="overflow-visible! px-0!" data-start="3611" data-end="3675"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+and use it as a dictionary key:
+
+<pre class="overflow-visible! px-0!" data-start="3710" data-end="3763"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">Employee</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span><span></span><span class="ͼ11">employees</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For a key type, the equality/hash-code contract is important.
+
+The fundamental rule is:
+
+> **If two objects are equal according to `Equals()`, they must return the same hash code.**
+
+In other words:
+
+<pre class="overflow-visible! px-0!" data-start="3965" data-end="4041"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>a.Equals(b) == true
+        ↓
+a.GetHashCode() == b.GetHashCode()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The reverse is **not** required:
+
+<pre class="overflow-visible! px-0!" data-start="4077" data-end="4131"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>same hash code
+    ≠
+objects must be equal</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+That's because collisions are allowed.
+
+#### Why is Dictionary lookup "generally" O(1), not always O(1)?
+
+Under normal conditions:
+
+<pre class="overflow-visible! px-0!" data-start="4310" data-end="4364"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Hash → bucket → small number of candidates</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So lookup is approximately:
+
+> **O(1)** average case.
+
+But if there are many collisions, more entries may need to be examined.
+
+In the extreme case:
+
+<pre class="overflow-visible! px-0!" data-start="4516" data-end="4563"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Bucket
+  ↓
+[A][B][C][D][E][F][G]...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+the search can approach:
+
+> **O(n)**
+
+So the correct interview statement is:
+
+> **Dictionary lookup is O(1) on average because hashing allows it to directly identify the relevant bucket, but poor hash distribution/collisions can make lookup slower, potentially O(n) in the worst case.**
+
+That's a much stronger answer than:
+
+❌ "`Dictionary` is always O(1)."
+
+#### Why not use Dictionary for everything?
+
+Because the data structure should match the requirement.
+
+If you need:
+
+Ordered sequence
+Index-based access
+
+then: List is often appropriate.
+
+If you need:
+
+<pre class="overflow-visible! px-0!" data-start="5727" data-end="5769"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Key → Value
+Fast lookup by key</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+then:
+
+<pre class="overflow-visible! px-0!" data-start="5778" data-end="5816"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">TKey</span><span>, </span><span class="ͼ11">TValue</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is appropriate.
+
+#### SortedDictionary:
+
+<pre class="overflow-visible! px-0!" data-start="6054" data-end="6091"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Dictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="6100" data-end="6143"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">SortedDictionary</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+A `Dictionary` is primarily about  **key-based lookup** , not sorted order. If you need sorted keys, there are other collection types designed for that.
+
+#### How does Dictionary work internally?
+
+"`Dictionary<TKey,TValue>` uses hashing to efficiently locate values by their keys. When a key is added or looked up, its hash code is used to determine the relevant bucket. The dictionary then checks candidate entries in that bucket and uses key equality to identify the exact key, handling collisions when necessary. Because hashing normally narrows the search to a small number of entries, lookup is O(1) on average, although collisions can make the worst case slower."
+
+```
+             Dictionary
+                 │
+                 ▼
+              Hashing
+                 │
+        ┌────────┴────────┐
+        ▼                 ▼
+ GetHashCode()         Equals()
+        │                 │
+        └────────┬────────┘
+                 ▼
+            Find the key
+```
+
+### HashSet:
+
+HashSet< T > is a collection that stores unique elements and is optimized for fast membership checks.
+
+HashSet<int></int> numbers = new();
+
+numbers.Add(10);
+numbers.Add(20);
+numbers.Add(10);
+
+Console.WriteLine(numbers.Count);
+
+Output:
+
+2
+
+Because the second 10 is a duplicate.
+
+{ 10, 20 }
+
+#### Why do we need HashSet over List?
+
+A List<T></t> generally searches sequentially:
+
+10 → 20 → 30 → 40 → found
+
+That's O(n).
+
+Hashing allows it to locate the relevant area directly.
+
+So:
+
+HashSet<T></t>.Contains() is generally O(1) average case.
+
+
+|              | `List<T>`        | `HashSet<T>`                          |
+| -------------- | ------------------ | --------------------------------------- |
+| Duplicates   | ✅ Allowed       | ❌ Not allowed                        |
+| Index access | ✅ Yes           | ❌ No                                 |
+| `Contains()` | O(n)             | O(1) average                          |
+| Ordering     | Sequence-based   | Not something you should rely on      |
+| Main purpose | Store a sequence | Store unique values / fast membership |
+
+#### What happens when you add a duplicate?
+
+HashSet<int></int> numbers = new();
+
+bool first = numbers.Add(10);
+bool second = numbers.Add(10);
+
+Console.WriteLine(first);
+Console.WriteLine(second);
+
+Output:
+
+True
+False
+
+Interesting point:
+
+HashSet.Add() returns true if the element was added and false if it already existed.
+
+#### How Hashset know its duplicate internally?
+
+HashSet
+   ↓
+GetHashCode()
+   ↓
+find relevant bucket
+   ↓
+Equals()
+   ↓
+is this actually the same element?
+
+The HashSet uses hashing to locate the relevant bucket and equality comparison to determine whether the element is already present.
+
+So just like `Dictionary`: **`GetHashCode()` helps locate candidates; `Equals()` determines equality.**
+
+#### Time Complexity:
+
+
+| Operation                    | `HashSet<T>` |
+| ------------------------------ | -------------: |
+| `Add()`                      | O(1) average |
+| `Contains()`                 | O(1) average |
+| `Remove()`                   | O(1) average |
+| Search                       | O(1) average |
+| Worst-case due to collisions |  Can degrade |
+
+             Hashing
+                │
+        ┌───────┴────────┐
+        ↓                ↓
+   Dictionary          HashSet
+        │                │
+     Key → Value       Unique values
+        │                │
+     Get by key       Check existence
+
+And both depend heavily on:
+
+GetHashCode()
+     +
+Equals()
+
+This is why these concepts connect so nicely.
+
+#### what and when to choose collection
+
+HashSet<T></t> is not the collection to choose when you need:
+
+numbers[5]
+
+There is no index-based access.
+
+If you need:
+
+Unique + fast membership
+
+→ HashSet<T></t>
+
+If you need:
+
+Sequence + index
+
+→ List<T></t>
+
+If you need:
+
+Key → Value
+
+→ Dictionary<TKey,TValue>
+
+### Queue< T > and Stack< T >:
+
+These are both  **linear collections** , but they differ in  **how elements are removed** .
+
+
+| Collection | Rule                            | Real-world example        |
+| ------------ | --------------------------------- | --------------------------- |
+| `Queue<T>` | **FIFO** — First In, First Out | People waiting in a queue |
+| `Stack<T>` | **LIFO** — Last In, First Out  | Stack of plates           |
+
+#### Queue< T >
+
+A Queue<T></t> processes elements in the order they were added.
+
+Queue<string></string> queue = new();
+
+queue.Enqueue("A");
+queue.Enqueue("B");
+queue.Enqueue("C");
+
+Console.WriteLine(queue.Dequeue()); // A
+Console.WriteLine(queue.Dequeue()); // B
+Console.WriteLine(queue.Dequeue()); // C
+
+Think:
+
+Add → A → B → C
+
+Remove → A → B → C
+          ↑
+       first out
+Important methods
+queue.Enqueue("A");   // Add
+queue.Dequeue();      // Remove and return first element
+queue.Peek();         // Look at first element without removing
+queue.Contains("A");  // Check existence
+
+
+| Operation    |     Complexity |
+| -------------- | ---------------: |
+| `Enqueue()`  | O(1) amortized |
+| `Dequeue()`  |           O(1) |
+| `Peek()`     |           O(1) |
+| `Contains()` |           O(n) |
+
+#### Stack< T >
+
+A Stack<T></t> follows LIFO.
+
+The last element added is the first one removed.
+
+Stack<string></string> stack = new();
+
+stack.Push("A");
+stack.Push("B");
+stack.Push("C");
+
+Console.WriteLine(stack.Pop()); // C
+Console.WriteLine(stack.Pop()); // B
+Console.WriteLine(stack.Pop()); // A
+
+Think:
+
+       ┌───┐
+       │ C │ ← Pop first
+       ├───┤
+       │ B │
+       ├───┤
+       │ A │
+       └───┘
+Important methods
+stack.Push("A");    // Add
+stack.Pop();        // Remove and return top element
+stack.Peek();       // Look at top without removing
+stack.Contains("A");
+
+
+| Operation    |     Complexity |
+| -------------- | ---------------: |
+| `Push()`     | O(1) amortized |
+| `Pop()`      |           O(1) |
+| `Peek()`     |           O(1) |
+| `Contains()` |           O(n) |
+
+#### Versus table
+
+
+| Feature           | `Queue<T>`             | `Stack<T>`     |
+| ------------------- | ------------------------ | ---------------- |
+| Ordering          | FIFO                   | LIFO           |
+| Add               | `Enqueue()`            | `Push()`       |
+| Remove            | `Dequeue()`            | `Pop()`        |
+| Look              | `Peek()`               | `Peek()`       |
+| Add complexity    | O(1) amortized         | O(1) amortized |
+| Remove complexity | O(1)                   | O(1)           |
+| Common use        | Job/request processing | Undo, DFS      |
+
+### IEnumerable<T></t>, ICollection<T></t>, IList<T></t>
+
+These are not concrete collection. but are  **interfaces that describe capabilities** .
+
+hierarchy is :
+
+IEnumerable<T></t>
+      ↓
+ICollection<T></t>
+      ↓
+IList
+<T></t>
+
+More accurately, inheritance goes:
+
+IList<T></t>
+   ↓ inherits
+ICollection<T></t>
+   ↓ inherits
+IEnumerable<T></t>
+
+So:
+
+IList<int></int> list = new List<int></int>();
+
+ICollection<int></int> collection = list;
+
+IEnumerable<int></int> enumerable = list;
+
+This works because an IList<T></t> is also an ICollection<T></t> and an IEnumerable<T></t>.
+
+#### IEnumerable< T >:<T></t>
+
+it basically means: **"You can iterate through this collection."**
+
+Its main capability is enumeration using foreach.
+
+IEnumerable<int></int> numbers = new List<int></int>
+{
+    10, 20, 30
+};
+
+foreach (int number in numbers)
+{
+    Console.WriteLine(number);
+}
+
+You can read/iterate:
+
+foreach (var number in numbers)
+{
+    // ...
+}
+
+But you don't get collection modification methods such as:
+
+numbers.Add(40);      // ❌
+numbers.Remove(20);   // ❌
+
+And you don't get index access:
+
+numbers[0];           // ❌
+Mental model
+IEnumerable<T></t>
+       ↓
+"I only need to iterate/read the sequence."
+
+#### ICollection< T >:
+
+ICollection<T></t> extends IEnumerable<T></t>.
+
+So it can iterate + perform basic collection operations.
+
+ICollection<int></int> numbers = new List<int></int>();
+
+numbers.Add(10);
+numbers.Add(20);
+numbers.Remove(10);
+
+Console.WriteLine(numbers.Count);
+
+It provides things like:
+
+Add()
+Remove()
+Clear()
+Contains()
+Count
+
+But it doesn't provide index-based access.
+
+numbers[0]; // ❌
+Mental model
+ICollection<T></t>
+       ↓
+"I need a collection that I can modify and inspect."
+
+#### IList<T></t>< T >:
+
+It adds index-based access.
+
+IList<int></int> numbers = new List<int></int>();
+
+numbers.Add(10);
+numbers.Add(20);
+numbers.Add(30);
+
+Console.WriteLine(numbers[0]); // 10
+
+numbers[1] = 200;
+
+Console.WriteLine(numbers[1]); // 200
+
+It also provides:
+
+Insert()
+RemoveAt()
+IndexOf()
+
+Example:
+
+numbers.Insert(1, 15);
+numbers.RemoveAt(0);
+Mental model
+IList<T></t>
+   ↓
+"I need collection operations + index-based access."
+
+#### Why use IEnumerable<T></t> instead of List<T></t>?
+
+Suppose:
+
+public List<User></user> GetUsers()
+{
+    return users;
+}
+
+The caller now knows that you're returning a List<User></user>.
+
+Instead:
+
+public IEnumerable<User></user> GetUsers()
+{
+    return users;
+}
+
+You're saying:
+
+"I don't care what concrete collection I use internally. I only promise that you can enumerate the users."
+
+This gives you abstraction and flexibility.
+
+For example, internally you could have:
+
+List<User></user>
+
+or:
+
+HashSet<User></user>
+
+or another enumerable source.
+
+The caller only depends on:
+
+IEnumerable
+
+#### Table comparison:
+
+
+| Feature      | `IEnumerable<T>` | `ICollection<T>` | `IList<T>` |
+| -------------- | -----------------: | -----------------: | -----------: |
+| `foreach`    |               ✅ |               ✅ |         ✅ |
+| `Count`      |      ❌ directly |               ✅ |         ✅ |
+| `Add()`      |               ❌ |               ✅ |         ✅ |
+| `Remove()`   |               ❌ |               ✅ |         ✅ |
+| `Clear()`    |               ❌ |               ✅ |         ✅ |
+| `Contains()` |   LINQ extension |               ✅ |         ✅ |
+| Index`[i]`   |               ❌ |               ❌ |         ✅ |
+| `Insert()`   |               ❌ |               ❌ |         ✅ |
+| `RemoveAt()` |               ❌ |               ❌ |         ✅ |
+
+IEnumerable → Iterate
+ICollection → Collection operations
+IList       → Index + collection operations
+
+#### Generic assignment:
+
+This:
+
+IEnumerable<int></int> numbers = new List<int></int>
+{
+    1, 2, 3
+};
+
+is one possibility.
+
+But this is also valid:
+
+IEnumerable<int></int> numbers =  Enumerable.Range(1, 3);
+
+And that's why IEnumerable<T></t> is more general. It represents a sequence that can be enumerated, not specifically a List<T></t>.
+
+#### What's the difference between IEnumerable, ICollection and IList?
+
+IEnumerable<T></t> provides the ability to enumerate a sequence, mainly using foreach. ICollection<T></t> extends it by providing collection operations such as Add, Remove, Clear, and Count. IList<T></t> extends ICollection<T></t> and additionally provides index-based access and operations such as Insert and RemoveAt. I choose the least-capable abstraction that meets the consumer's needs."
+
+That last sentence is particularly useful in interviews:
+
+"Expose the least capability the consumer needs."
+
+#### IEnumerable < T > vs IQueryable< T >:
+
+## Generics and Delegates:
+
+### Generics
+
+Generics allow us to write reusable, type-safe code that works with different data types.
+
+#### problem without generics
+
+Without generics, we might use `object`:
+
+<pre class="overflow-visible! px-0!" data-start="498" data-end="575"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼ11">object</span><span></span><span class="ͼ11">GetFirst</span><span>(</span><span class="ͼ11">object</span><span>[] </span><span class="ͼ11">items</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">items</span><span>[</span><span class="ͼy">0</span><span>];
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="584" data-end="695"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">object</span><span>[] </span><span class="ͼ11">numbers</span><span></span><span class="ͼv">=</span><span> { </span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>, </span><span class="ͼy">30</span><span> };
+
+</span><span class="ͼ11">object</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetFirst</span><span>(</span><span class="ͼ11">numbers</span><span>);
+
+</span><span class="ͼ11">int</span><span></span><span class="ͼ11">number</span><span></span><span class="ͼv">=</span><span> (</span><span class="ͼ11">int</span><span>)</span><span class="ͼ11">result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Problems:
+
+* We lose strong typing.
+* We may need casting.
+* Wrong casts can cause runtime errors.
+* Value types may involve boxing/unboxing.
+
+#### Solution
+
+We can write:
+
+public T GetFirst<T></t>(T[] items)
+{
+    return items[0];
+}
+
+Now the same method works with different types:
+
+int number = GetFirst(new[] { 10, 20, 30 });
+
+string name = GetFirst(new[] { "John", "Alex" });
+
+The compiler knows the type.
+
+GetFirst<int></int>()     → returns int
+GetFirst<string></string>()  → returns string
+
+That's the power of generics.
+
+#### Generic class
+
+You can also make an entire class generic.
+
+public class Box<T></t>
+{
+    public T Value { get; set; }
+}
+
+Now:
+
+Box<int></int> intBox = new();
+
+intBox.Value = 100;
+
+Or:
+
+Box<string></string> stringBox = new();
+
+stringBox.Value = "Hello";
+
+The T is a type parameter.
+
+Box<T></t>
+   ↑
+type parameter
+
+#### Why Generics?
+
+Type safety: The compiler prevents invalid types.
+
+Code reusability: One implementation can work with many types.
+
+Better performance: can avoid unnecessary boxing/unboxing for value types.
+
+This is one reason generic collections are preferred over old non-generic collections such as `ArrayList`.
+
+#### Generic constraints
+
+Sometimes we don't want T to be absolutely any type.
+
+For example:
+
+public void Print<T></t>(T value)
+{
+}
+
+T can be almost anything.
+
+But suppose we need T to be a class:
+
+public void Print<T></t>(T value) where T : class
+{
+}
+
+Now T must be a reference type.
+
+Some other constraints are:
+
+where T : class
+
+where T : struct
+
+where T : new()
+
+where T : SomeBaseClass
+
+where T : ISomething
+
+**where** T : **class**, **IEntity**, **new**()
+
+#### Why not just use `object` instead of generic?
+
+Generics like List< T>
+<int></int>
+
+→ compile-time type safety
+→ no explicit casting when retrieving
+→ avoids unnecessary boxing for value types
+
+Whereas:
+
+ArrayList stores objects:
+
+ArrayList list = new();
+
+list.Add(10);
+
+int number = (int)list[0];
+
+You need a cast, and value types may be boxed.
+
+#### What are Generics in C#?
+
+Generics allow us to define classes, methods, interfaces, and other types using a type parameter instead of a specific data type. This provides code reusability and compile-time type safety while avoiding unnecessary casting and, for value types, unnecessary boxing.
+
+`Generics provide type-safe and reusable code without relying on object and explicit casting. They also provide better performance for value types by avoiding unnecessary boxing and unboxing.`
+
+Generics = Reusable code + Type safety + Better performance
+
+### Delegates
+
+delegates are the foundation for:
+
+* `Action`
+* `Func`
+* `Predicate`
+* Lambda expressions
+* Events
+* LINQ
+* Callbacks
+
+#### What is a Delegate?
+
+A delegate is a type-safe reference to a method. Think of it as a  **variable that can hold a method** .
+
+example instead of calling a Add(a, b) method,
+
+With a delegate:
+
+<pre class="overflow-visible! px-0!" data-start="496" data-end="542"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Delegate
+   ↓
+points to
+   ↓
+Add()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Then we can invoke the delegate, which invokes the method.
+
+#### Creating a Delegate
+
+First define a delegate type:
+
+<pre class="overflow-visible! px-0!" data-start="666" data-end="736"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public </span><span></span><span class="ͼv">delegate </span><span></span><span class="ͼ11">int </span><span></span><span class="ͼ11">Operation </span><span>(</span><span class="ͼ11">int </span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int </span><span></span><span class="ͼ11">b</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This means: `Operation` can reference any method that takes two `int` parameters and returns an `int`.
+
+Now create a method:
+
+<pre class="overflow-visible! px-0!" data-start="867" data-end="950"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Assign the method to the delegate:
+
+<pre class="overflow-visible! px-0!" data-start="988" data-end="1040"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Operation </span><span></span><span class="ͼ11">operation </span><span></span><span class="ͼv">= </span><span></span><span class="ͼ11">Add</span><span>;</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+And invoke it:
+
+<pre class="overflow-visible! px-0!" data-start="1058" data-end="1149"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">operation</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>);
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">result</span><span>); </span><span class="ͼt">// 30</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1156" data-end="1220"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Operation
+    ↓
+   Add()
+    ↓
+  10 + 20
+    ↓
+   30</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Why do we need Delegates?
+
+The biggest reason is: **We can pass behavior as a parameter. Simply we can pass a method as a parameter.**
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1341" data-end="1474"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Calculate</span><span>(
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>,
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>,
+    </span><span class="ͼ11">Operation</span><span></span><span class="ͼ11">operation</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">operation</span><span>(</span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">b</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1482" data-end="1544"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Calculate</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>, </span><span class="ͼ11">Add</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The `Calculate()` method doesn't need to know exactly **which operation** it should perform.
+
+We can pass different methods:
+
+<pre class="overflow-visible! px-0!" data-start="1672" data-end="1760"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Multiply</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">*</span><span></span><span class="ͼ11">b</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="1769" data-end="1836"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Calculate</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>, </span><span class="ͼ11">Multiply</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1844" data-end="1926"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Calculate()
+    │
+    ├── Add       → 30
+    │
+    └── Multiply  → 200</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is extremely useful for  **callbacks and flexible behavior** .
+
+#### Delegate is Type-Safe
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="2038" data-end="2109"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">delegate</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Operation</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This method works:
+
+<pre class="overflow-visible! px-0!" data-start="2131" data-end="2207"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">static</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But this doesn't:
+
+<pre class="overflow-visible! px-0!" data-start="2228" data-end="2321"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">static</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">SayHello</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">$</span><span class="ͼz">"Hello {name}"</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You cannot do:
+
+<pre class="overflow-visible! px-0!" data-start="2339" data-end="2401"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Operation</span><span></span><span class="ͼ11">operation</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">SayHello</span><span>; </span><span class="ͼt">// ❌</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+because the method signature doesn't match.
+
+That's why we say delegates are  **type-safe** .
+
+#### Delegate Signature
+
+The delegate defines the required method signature.
+
+<pre class="overflow-visible! px-0!" data-start="2579" data-end="2649"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">delegate</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Operation</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Break it down:
+
+<pre class="overflow-visible! px-0!" data-start="2667" data-end="2752"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>int
+↑
+return type
+
+Operation
+↑
+delegate name
+
+(int a, int b)
+↑
+parameters</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Any compatible method must match that signature.
+
+#### Delegates with Instance Methods of a Class
+
+Delegates aren't limited to static methods.
+
+<pre class="overflow-visible! px-0!" data-start="2892" data-end="3012"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">class</span><span></span><span class="ͼ11">Calculator</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Add</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>)
+    {
+        </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="3021" data-end="3155"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Calculator</span><span></span><span class="ͼ11">calculator</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>();
+
+</span><span class="ͼ11">Operation</span><span></span><span class="ͼ11">operation</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">calculator</span><span>.</span><span class="ͼ11">Add</span><span>;
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">operation</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The delegate can reference an **instance method** too
+
+#### Multicast Delegates
+
+Delagate can be added/concatnated with many delegate methods. A delegate can reference multiple methods.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="3302" data-end="3378"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">delegate</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">Notification</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">message</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Methods:
+
+<pre class="overflow-visible! px-0!" data-start="3390" data-end="3584"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">static</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">SendEmail</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">message</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">$</span><span class="ͼz">"Email: {message}"</span><span>);
+}
+
+</span><span class="ͼv">static</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">SendSms</span><span>(</span><span class="ͼ11">string</span><span></span><span class="ͼ11">message</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">$</span><span class="ͼz">"SMS: {message}"</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="3593" data-end="3715"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Notification</span><span></span><span class="ͼ11">notification</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">SendEmail</span><span>;
+
+</span><span class="ͼ11">notification</span><span></span><span class="ͼv">+=</span><span></span><span class="ͼ11">SendSms</span><span>;
+
+</span><span class="ͼ11">notification</span><span>(</span><span class="ͼz">"Order created"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Both methods execute:
+
+<pre class="overflow-visible! px-0!" data-start="3740" data-end="3813"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>SendEmail("Order created")
+        ↓
+SendSms("Order created")</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is called a  **multicast delegate** .
+
+You can remove a method with:
+
+<pre class="overflow-visible! px-0!" data-start="3888" data-end="3938"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">notification</span><span></span><span class="ͼv">-=</span><span></span><span class="ͼ11">SendSms</span><span>;</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### RealTime Example - CallBack
+
+Imagine processing an order:
+
+public void ProcessOrder(Order order, Action<Order></order>< Order > callback)
+{
+    // Process order...
+
+    callback(order);
+}
+
+Caller can provide what should happen afterward:
+
+ProcessOrder(order, SendConfirmationEmail);
+
+The processing method doesn't need to know the implementation of the callback.
+
+This concept appears throughout .NET APIs.
+
+#### Delegates and OOP [Interface]
+
+Interface
+   ↓
+represents a contract for an object
+
+Delegate
+   ↓
+represents a contract for a method
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="4597" data-end="4668"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">interface</span><span></span><span class="ͼ11">IPaymentService</span><span>
+{
+    </span><span class="ͼv">void</span><span></span><span class="ͼ11">Pay</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+describes what an **object** can do.
+
+Whereas:
+
+<pre class="overflow-visible! px-0!" data-start="4718" data-end="4775"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">delegate</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">PaymentHandler</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+describes what a **method** must look like.
+
+#### What is a delegate in C#?
+
+A delegate is a type-safe reference to a method. It defines a method signature and allows methods matching that signature to be assigned, passed as parameters, and invoked indirectly. Delegates are commonly used for callbacks, events, and passing behavior.
+
+Delegate = method reference + type safety + passing behavior
+
+### Common generic delegates
+
+Writing custom delegates is perfectly valid:
+
+<pre class="overflow-visible! px-0!" data-start="5353" data-end="5416"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">delegate</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Operation</span><span>(</span><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But .NET already provides common generic delegate types:
+
+<pre class="overflow-visible! px-0!" data-start="5476" data-end="5523"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Action</span><span>
+</span><span class="ͼ11">Func</span><span>
+</span><span class="ͼ11">Predicate</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So instead of defining your own delegate for every situation, we can often use these built-in types.
+
+Action    → returns nothing
+Func      → returns something
+Predicate → returns bool
+
+#### Action
+
+`Action` represents a method that  **returns `void`** . No parameters
+
+<pre class="overflow-visible! px-0!" data-start="512" data-end="627"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Action</span><span></span><span class="ͼ11">action</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">SayHello</span><span>;
+
+</span><span class="ͼv">void</span><span></span><span class="ͼ11">SayHello</span><span>()
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Hello"</span><span>);
+}
+
+</span><span class="ͼ11">action</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is equivalent to writing:
+
+<pre class="overflow-visible! px-0!" data-start="661" data-end="714"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">delegate </span><span></span><span class="ͼv">void </span><span></span><span class="ͼ11">MyDelegate </span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+but `Action` is already provided by .NET.
+
+#### Action < T >
+
+You can also pass parameters.
+
+Action<string></string> print = message =>
+{
+    Console.WriteLine(message);
+};
+
+print("Hello");
+
+The generic parameters represent the input parameters.
+
+Action<string></string>
+       ↓
+input = string
+return = void
+
+Another example:
+
+Action<int, int> addAndPrint = (a, b) =>
+{
+    Console.WriteLine(a + b);
+};
+
+addAndPrint(10, 20);
+
+So:
+
+Action<int, int>
+
+int → input
+int → input
+void → return
+
+#### Func
+
+`Func` represents a method that  **returns a value** .
+
+This is where people often get confused.
+
+For:
+
+<pre class="overflow-visible! px-0!" data-start="1389" data-end="1422"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+the  **last type is always the return type** .
+
+<pre class="overflow-visible! px-0!" data-start="1470" data-end="1540"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Func<int, int, int>
+     ↑    ↑    ↑
+   input input return</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="1552" data-end="1697"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼv">add</span><span></span><span class="ͼv">=</span><span> (</span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">b</span><span>) </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+};
+
+</span><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">add</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>);
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">result</span><span>); </span><span class="ͼt">// 30</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Another example
+
+<pre class="overflow-visible! px-0!" data-start="1724" data-end="1867"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">string</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼ11">getLength</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">text</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">text</span><span>.</span><span class="ͼ11">Length</span><span>;
+
+</span><span class="ͼ11">int</span><span></span><span class="ͼ11">length</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">getLength</span><span>(</span><span class="ͼz">"Hello"</span><span>);
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">length</span><span>); </span><span class="ͼt">// 5</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here:
+
+<pre class="overflow-visible! px-0!" data-start="1876" data-end="1938"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Func<string, int>
+     ↓       ↓
+   input   return</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+> `Func<TInput, TOutput>`
+
+#### Predicate
+
+Predicate<T></t> represents a method that:
+
+accepts one parameter
+returns bool
+
+Example:
+
+Predicate<int></int>< int > isEven = number => number % 2 == 0;
+
+Console.WriteLine(isEven(10)); // True
+Console.WriteLine(isEven(7));  // False
+
+Think:
+
+Predicate<int></int>
+      ↓
+takes int
+      ↓
+returns bool
+
+It's essentially a specialized delegate for testing a condition.
+
+#### Table
+
+
+| Delegate           | Parameters | Return |
+| -------------------- | ------------ | -------- |
+| `Action`           | 0          | `void` |
+| `Action<T>`        | 1+         | `void` |
+| `Func<TResult>`    | 0          | value  |
+| `Func<T, TResult>` | 1+         | value  |
+| `Predicate<T>`     | exactly 1  | `bool` |
+
+Action    → DO something
+Func      → GET something
+Predicate → CHECK something
+
+Action    → void
+Func      → value
+Predicate → bool
+
+#### Connection to LINQ
+
+<pre class="overflow-visible! px-0!" data-start="3506" data-end="3585"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">var </span><span></span><span class="ͼ11">activeUsers </span><span></span><span class="ͼv">= </span><span></span><span class="ͼ11">users</span><span>.</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">user</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">IsActive</span><span>);</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+That:
+
+<pre class="overflow-visible! px-0!" data-start="3594" data-end="3629"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">user</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">IsActive</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is a  **lambda expression** .
+
+And `Where()` expects a function that essentially looks like:
+
+<pre class="overflow-visible! px-0!" data-start="3723" data-end="3765"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">User</span><span>, </span><span class="ͼ11">bool</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="3772" data-end="3831"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Lambda
+   ↓
+Func / Action / Predicate
+   ↓
+LINQ</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is why delegates are important before learning LINQ.
+
+#### What are Action, Func and Predicate?
+
+Action, Func, and Predicate are built-in generic delegate types in .NET. Action represents methods that return void, Func represents methods that return a value, with the last generic parameter being the return type, and Predicate<T></t> represents a method that accepts one T and returns a bool
+
+### Lambda Expressions
+
+A  **lambda expression is a short way of writing a method** , usually an anonymous method.
+
+The basic syntax is:
+
+<pre class="overflow-visible! px-0!" data-start="284" data-end="323"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>(</span><span class="ͼ11">parameter</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">expression</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="335" data-end="359"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼy">2</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This means:
+
+> Take `x` and return `x * 2`.
+
+The lambda is useful when the behavior is  **small and needed locally** .
+
+#### Lambda with `Func`
+
+<pre class="overflow-visible! px-0!" data-start="448" data-end="476"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+means:
+
+> Takes an `int` and returns an `int`.
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="531" data-end="623"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼ11">doubleNumber</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼy">2</span><span>;
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">doubleNumber</span><span>(</span><span class="ͼy">5</span><span>));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="634" data-end="648"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>10</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="665" data-end="754"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>x => x * 2
+     ↓
+method that takes int and returns int
+     ↓
+Func<int, int></span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Lambda with `Action`
+
+Action returns void.
+
+Action<string></string> print = message => Console.WriteLine(message);
+
+print("Hello");
+
+Here:
+
+message => Console.WriteLine(message)
+
+means:
+
+Take message and execute this code.
+
+#### Lambda with `Predicate`
+
+Predicate<T></t> returns bool.
+
+Predicate<int></int> isEven = x => x % 2 == 0;
+
+Console.WriteLine(isEven(10)); // True
+Console.WriteLine(isEven(7));  // False
+
+So:
+
+Action       → x => do something
+Func         → x => calculate/return something
+Predicate    → x => true/false
+
+#### Lambda with Multiple Parameters
+
+You can have multiple parameters with paranthesis:
+
+<pre class="overflow-visible! px-0!" data-start="1429" data-end="1518"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼv">add</span><span></span><span class="ͼv">=</span><span> (</span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">b</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span><span>;
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼv">add</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼy">20</span><span>));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="1529" data-end="1543"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>30</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Syntax:
+
+<pre class="overflow-visible! px-0!" data-start="1554" data-end="1583"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>(</span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">b</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For multiple parameters, parentheses are required.
+
+#### Lambda with No Parameters
+
+<pre class="overflow-visible! px-0!" data-start="1674" data-end="1752"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Action </span><span></span><span class="ͼ11">sayHello </span><span></span><span class="ͼv">=</span><span> () </span><span class="ͼv">=> </span><span></span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Hello"</span><span>);
+
+</span><span class="ͼ11">sayHello</span><span>();</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Syntax:
+
+<pre class="overflow-visible! px-0!" data-start="1763" data-end="1809"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>() </span><span class="ͼv">=></span><span></span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Hello"</span><span>)</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Expression Lambda vs Statement Lambda
+
+##### Expression lambda
+
+One expression:
+
+<pre class="overflow-visible! px-0!" data-start="1939" data-end="1963"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼy">2</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or:
+
+<pre class="overflow-visible! px-0!" data-start="1970" data-end="1999"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>(</span><span class="ͼ11">a</span><span>, </span><span class="ͼ11">b</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">+</span><span></span><span class="ͼ11">b</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The result is automatically returned.
+
+<pre class="overflow-visible! px-0!" data-start="2040" data-end="2089"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼ11">square</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼ11">x</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Statement lambda
+
+Uses `{ }` and can contain multiple statements and must return:
+
+<pre class="overflow-visible! px-0!" data-start="2162" data-end="2252"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼ11">square</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼ11">x</span><span>;
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">result</span><span>;
+};</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Notice that with `{ }`, you need an explicit `return` when the delegate returns a value.
+
+#### Lambda as a Method Argument
+
+This is where lambdas become really powerful.
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="2760" data-end="2877"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">static </span><span></span><span class="ͼv">void </span><span></span><span class="ͼ11">Process </span><span>(</span><span class="ͼ11">int </span><span></span><span class="ͼ11">number</span><span>, </span><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int </span><span class="ͼv">></span><span></span><span class="ͼ11">operation</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">operation</span><span>(</span><span class="ͼ11">number</span><span>));
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+We can pass behavior into the method:
+
+<pre class="overflow-visible! px-0!" data-start="2918" data-end="2956"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Process</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼy">2</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="2967" data-end="2981"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>20</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Or:
+
+<pre class="overflow-visible! px-0!" data-start="2988" data-end="3028"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Process</span><span>(</span><span class="ͼy">10</span><span>, </span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">+</span><span></span><span class="ͼy">100</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="3039" data-end="3054"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>110</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The method doesn't know what operation will be performed.
+
+It simply receives the behavior.
+
+This is closely related to **Dependency Inversion and composition** that we discussed earlier.
+
+#### Lambdas + LINQ
+
+Example:
+
+List<int></int> numbers = new() { 1, 2, 3, 4, 5, 6 };
+
+var evenNumbers = numbers.Where(x => x % 2 == 0);
+
+Here:
+
+x => x % 2 == 0
+
+means:
+
+For each number, check whether it is even.
+
+Another example:
+
+var result = numbers
+    .Where(x => x > 3)
+    .Select(x => x * 10);
+
+Think:
+
+numbers
+   ↓
+Where(x => x > 3)
+   ↓
+Select(x => x * 10)
+   ↓
+result
+
+We'll go much deeper into LINQ later.
+
+#### Lambda accessing local variable
+
+A lambda can access variables from its surrounding scope.
+
+<pre class="overflow-visible! px-0!" data-start="3895" data-end="4016"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int </span><span></span><span class="ͼ11">multiplier </span><span></span><span class="ͼv">= </span><span></span><span class="ͼy">10</span><span>;
+
+</span><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span class="ͼv">></span><span></span><span class="ͼ11"> multiply </span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">*</span><span></span><span class="ͼ11">multiplier</span><span>;
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">multiply</span><span>(</span><span class="ͼy">5</span><span>)); </span><span class="ͼt">// 50</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The lambda "captures" `multiplier`.
+
+This is called a  **closure** .
+
+Be aware of this because closures can sometimes cause unexpected behavior, especially inside loops or when captured state changes.
+
+#### Is a lambda expression a delegate?
+
+Not exactly. A lambda expression is a concise way to represent an anonymous function, and it can be converted to a compatible delegate such as `Func`, `Action`, or `Predicate`.
+
+A lambda expression is a concise syntax for defining an anonymous function. It uses the `=>` operator and is commonly assigned to delegates such as `Action`, `Func`, and `Predicate`, or passed directly as a method argument. Lambdas are heavily used with LINQ for filtering, projection, and other operations.
+
+## LINQ
+
+Language Integrated Query.
+
+It allows us to query data using C# syntax instead of writing different query mechanisms for different data sources.
+
+var result = numbers.Where(x => x > 20);
+
+### Why do we need LINQ?
+
+Imagine your backend application has:
+
+List<Employee></employee> employees;
+
+You might need to:
+
+find employees with salary > 50,000
+get only employee names
+sort employees by salary
+group employees by department
+find the highest salary
+check whether an employee exists
+join employees with departments
+
+Without LINQ, you'll repeatedly write loops.
+
+LINQ provides standard operators for these operations.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1994" data-end="2077"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">highSalaryEmployees</span><span></span><span class="ͼv">=</span><span>
+    </span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="2079" data-end="2147"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employeeNames</span><span></span><span class="ͼv">=</span><span>
+    </span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="2149" data-end="2222"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">sortedEmployees</span><span></span><span class="ͼv">=</span><span>
+    </span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This makes code:
+
+* shorter
+* readable
+* composable
+* easier to maintain
+
+### Operators:
+
+#### where()
+
+`Where()` is used for  **filtering** .
+
+Example:
+
+var numbers = new List<int></int>
+{
+    10, 15, 20, 25, 30
+};
+
+var result = numbers.Where(x => x > 20);
+
+The condition:
+
+x => x > 20
+
+is applied to every element.
+
+Conceptually:
+
+10 → false
+15 → false
+20 → false
+25 → true
+30 → true
+
+Therefore:
+
+25
+30
+
+##### What does `Where()` return?
+
+For LINQ-to-Objects, Where() returns: IEnumerable< T ><T></t>
+
+For example:
+
+IEnumerable<int></int> result =  numbers.Where(x => x > 20);
+
+This connects directly to your previous topic:
+
+IEnumerable<T></t> represents a sequence that can be iterated.
+
+##### `Where()` does NOT immediately execute
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="3856" data-end="3910"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">20</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+At this point, LINQ generally hasn't gone through all the numbers and produced a new list.
+
+Instead, the query is built.
+
+Execution happens when you enumerate it:
+
+<pre class="overflow-visible! px-0!" data-start="4076" data-end="4155"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">foreach</span><span> (</span><span class="ͼv">var</span><span></span><span class="ͼ11">number</span><span></span><span class="ͼv">in</span><span></span><span class="ͼ11">result</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">number</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or when you use an operation that materializes/consumes the sequence, such as:
+
+<pre class="overflow-visible! px-0!" data-start="4237" data-end="4278"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">list</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">result</span><span>.</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+This is called: **Deferred Execution**
+
+##### Multiple conditions in Where()
+
+You can combine conditions using normal C# operators like &&, ||
+
+<pre class="overflow-visible! px-0!" data-start="1459" data-end="1554"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span></span><span class="ͼv">&&</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Meaning:
+
+<pre class="overflow-visible! px-0!" data-start="1566" data-end="1620"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Department = IT
+        AND
+Salary > 50000</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Multiple `Where()` calls
+
+You can write:
+
+<pre class="overflow-visible! px-0!" data-start="1925" data-end="2034"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span>)
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is valid.
+
+It is logically equivalent to:
+
+<pre class="overflow-visible! px-0!" data-start="2084" data-end="2195"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span></span><span class="ͼv">&&</span><span>
+                </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But are they exactly the same internally? Not necessarily.
+
+The important thing for an interview is: Multiple LINQ operators can be chained together to progressively build a query.
+
+##### `Where()` with index
+
+There is another overload of Where() that gives you the element's index.
+
+var numbers = new List<int></int>
+{
+    10, 20, 30, 40
+};
+
+var result = numbers.Where((number, index) =>
+    number > 20 && index % 2 == 0);
+
+The lambda now receives:
+
+number
+index
+
+So conceptually: **Func<int, int, bool>**
+
+However, in normal application code, you'll use the simpler: **Where(x => condition)** much more often.
+
+#### Select()
+
+`Where()` answers:
+
+> **Which elements do I want?**
+
+`Select()` answers:
+
+> **What do I want from each element?**
+
+##### `Where`
+
+<pre class="overflow-visible! px-0!" data-start="4970" data-end="5023"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">55000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Filters  **employees** .
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="5058" data-end="5079"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>David
+Sam</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Select`
+
+<pre class="overflow-visible! px-0!" data-start="5095" data-end="5139"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Transforms each employee into a  **string** .
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="5195" data-end="5221"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John
+David
+Sam</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+Where  → Filter
+Select → Transform
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="5346" data-end="5429"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">55000</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Read it from left to right:
+
+> Find employees whose salary is greater than 55,000, then select their names.
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="5549" data-end="5570"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>David
+Sam</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This ability to **chain LINQ operators** is one of the biggest advantages of LINQ.
+
+<pre class="overflow-visible! px-0!" data-start="5731" data-end="5906"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Collection
+    ↓
+Where()      → filter
+    ↓
+Select()     → transform
+    ↓
+OrderBy()    → sort
+    ↓
+GroupBy()    → group
+    ↓
+ToList()     → execute/materialize</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Select()` can change the type
+
+This is very important.
+
+var numbers = new List<int></int>
+{
+    1, 2, 3
+};
+
+var result = numbers.Select(x => x.ToString());
+
+Now:
+
+Input  → int
+Output → string
+
+Conceptually: Select(Func<int, string>)
+
+So Select() is not simply "get some values." It means: For every input element, produce an output element.
+
+##### projection in Select()
+
+changing the object element into any other type.
+
+example: var names = employees.Select(e => e.Name);
+
+Its useful in DTO of APIs
+
+Suppose your `Employee` class contains:
+
+<pre class="overflow-visible! px-0!" data-start="1949" data-end="2016"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Id
+Name
+Salary
+Department
+Address
+Phone
+DateOfBirth
+...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But your API only needs:
+
+<pre class="overflow-visible! px-0!" data-start="2044" data-end="2071"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Name
+Department</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Instead of returning the entire object:
+
+<pre class="overflow-visible! px-0!" data-start="2114" data-end="2166"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">db</span><span>.</span><span class="ͼ11">Employees</span><span>.</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+you can project:
+
+<pre class="overflow-visible! px-0!" data-start="2186" data-end="2314"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">db</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>,
+        </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>
+    })
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2331" data-end="2417"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Database
+   ↓
+Employee
+   ↓
+Select()
+   ↓
+Only required fields
+   ↓
+Result</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+With Entity Framework, this can also allow the provider to generate SQL that selects only the required columns.
+
+##### Selecting multiple properties
+
+You can select multiple properties into an anonymous object:
+
+<pre class="overflow-visible! px-0!" data-start="1538" data-end="1621"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+{
+    </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>,
+    </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Each result contains:
+
+<pre class="overflow-visible! px-0!" data-start="1646" data-end="1669"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Name
+Salary</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1685" data-end="1735"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John   50000
+David  40000
+Sam    70000</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is extremely common in backend code.
+
+You might not need the entire `Employee` object, so you project only the fields you need.
+
+##### `Select()` does not filter
+
+This is a common mistake.
+
+Suppose:
+
+var numbers = new List<int></int>
+{
+    1, 2, 3, 4, 5
+};
+
+If you write:
+
+var result = numbers.Select(x => x > 3);
+
+You don't get:
+
+4
+5
+
+You get:
+
+false
+false
+false
+true
+true
+
+Because you're transforming each int into a bool.
+
+Conceptually:
+
+1 → false
+2 → false
+3 → false
+4 → true
+5 → true
+
+So:
+
+Where → filter
+Select → transform
+
+This distinction is critical.
+
+##### `Select()` with index
+
+ust like `Where()`, `Select()` has an overload that gives you the index.
+
+<pre class="overflow-visible! px-0!" data-start="3752" data-end="3839"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Select</span><span>((</span><span class="ͼ11">number</span><span>, </span><span class="ͼ11">index</span><span>) </span><span class="ͼv">=></span><span>
+    </span><span class="ͼ11">$</span><span class="ͼz">"{index}: {number}"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="3850" data-end="3886"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>0: 1
+1: 2
+2: 3
+3: 4
+4: 5</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The lambda is conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="3917" data-end="3953"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">int</span><span>, </span><span class="ͼ11">string</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+where:
+
+<pre class="overflow-visible! px-0!" data-start="3963" data-end="4044"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>first int  → element
+second int → index
+string     → projected result</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### `Select()` vs `SelectMany()`
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="4660" data-end="4875"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">departments</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>[]
+{
+    </span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼz">"IT"</span><span>,
+        </span><span class="ͼ11">Employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>[] { </span><span class="ͼz">"John"</span><span>, </span><span class="ͼz">"Sam"</span><span> }
+    },
+    </span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼz">"HR"</span><span>,
+        </span><span class="ͼ11">Employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span>[] { </span><span class="ͼz">"David"</span><span>, </span><span class="ͼz">"Mike"</span><span> }
+    }
+};</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If we use:
+
+<pre class="overflow-visible! px-0!" data-start="4889" data-end="4953"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">departments</span><span>.</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">d</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Employees</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+we get a collection of collections:
+
+<pre class="overflow-visible! px-0!" data-start="4992" data-end="5037"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>["John", "Sam"]
+["David", "Mike"]</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="5054" data-end="5135"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Department
+    ↓
+Employees collection
+    ↓
+Collection of collections</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But `SelectMany()` **flattens** those inner collections:
+
+<pre class="overflow-visible! px-0!" data-start="5195" data-end="5268"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">departments</span><span>
+    .</span><span class="ͼ11">SelectMany</span><span>(</span><span class="ͼ11">d</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Employees</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="5279" data-end="5310"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John
+Sam
+David
+Mike</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So remember:
+
+<pre class="overflow-visible! px-0!" data-start="5326" data-end="5475"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Select()
+    → one input produces one output
+
+SelectMany()
+    → one input can produce multiple outputs
+    → flattens nested collections</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`Select()` transforms. `SelectMany()` transforms + flattens.
+
+
+| `Select()`                             | `SelectMany()`                   |
+| ---------------------------------------- | ---------------------------------- |
+| Projects/transforms elements           | Projects/transforms and flattens |
+| One input → one output                | One input → multiple outputs    |
+| Can produce nested collections         | Removes one level of nesting     |
+| `IEnumerable<IEnumerable<T>>` possible | `IEnumerable<T>`                 |
+
+Select -> 1 to 1, SelectMany -> 1 to many
+
+##### Where vs Select
+
+###### `Where()` filters
+
+<pre class="overflow-visible! px-0!" data-start="3008" data-end="3079"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Input:
+
+<pre class="overflow-visible! px-0!" data-start="3089" data-end="3127"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employee
+Employee
+Employee</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="3138" data-end="3167"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employee
+Employee</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+It keeps only matching objects.
+
+###### `Select()` transforms
+
+<pre class="overflow-visible! px-0!" data-start="3234" data-end="3296"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Input:
+
+<pre class="overflow-visible! px-0!" data-start="3306" data-end="3344"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employee
+Employee
+Employee</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="3355" data-end="3387"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>string
+string
+string</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="3394" data-end="3469"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Where  → decides WHICH elements
+Select → decides WHAT to return</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Remember that distinction.
+
+##### Method syntax vs Query syntax
+
+LINQ has two syntaxes.
+
+###### Method syntax
+
+What we've been using:
+
+<pre class="overflow-visible! px-0!" data-start="3983" data-end="4079"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+###### Query syntax
+
+You can write:
+
+<pre class="overflow-visible! px-0!" data-start="4115" data-end="4211"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span>
+    </span><span class="ͼv">from</span><span></span><span class="ͼ11">e</span><span></span><span class="ͼv">in</span><span></span><span class="ͼ11">employees</span><span>
+    </span><span class="ͼ11">where</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>
+    </span><span class="ͼv">select</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Both represent LINQ queries.
+
+#### Deferred vs Immediate Execution
+
+##### Deferred Execution
+
+With deferred execution, the LINQ query is  **not executed when you create the query** .
+
+Example:
+
+var numbers = new List<int></int> { 10, 20, 30, 40 };
+
+var result = numbers.Where(x => x > 20);
+
+At this point:
+
+var result = ...
+
+doesn't mean the filtering has already happened.
+
+The query is essentially saying:
+
+"When you eventually ask me for the results, I'll filter the collection."
+
+Execution happens when you enumerate it:
+
+foreach (var number in result)
+{
+    Console.WriteLine(number);
+}
+
+Output:
+
+30
+40
+
+##### Why is this called "deferred"?
+
+Because execution is  **deferred until later** .
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="811" data-end="952"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Where() called
+     ↓
+Query is created
+     ↓
+Nothing necessarily executed yet
+     ↓
+foreach / enumeration
+     ↓
+Query executes</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is called  **Deferred Execution** .
+
+Common LINQ operators that are generally deferred include:
+
+<pre class="overflow-visible! px-0!" data-start="1054" data-end="1138"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Where()
+Select()
+SelectMany()
+OrderBy()
+ThenBy()
+GroupBy()
+Skip()
+Take()</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### What is deferred execution in LINQ?
+
+Deferred execution means the LINQ query is not executed when the query is defined. It is executed when the result is enumerated or otherwise consumed. Operators such as `Where()` and `Select()` generally use deferred execution. Calling methods such as `ToList()` or `ToArray()` forces immediate execution and materializes the results.
+
+##### Immediate Execution
+
+Some LINQ operations actually execute the query immediately.
+
+The most common ones you'll see are:
+
+<pre class="overflow-visible! px-0!" data-start="1939" data-end="2086"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">ToList</span><span>()
+</span><span class="ͼ11">ToArray</span><span>()
+</span><span class="ͼ11">ToDictionary</span><span>()
+</span><span class="ͼ11">Count</span><span>()
+</span><span class="ͼ11">Sum</span><span>()
+</span><span class="ͼ11">Average</span><span>()
+</span><span class="ͼ11">Min</span><span>()
+</span><span class="ͼ11">Max</span><span>()
+</span><span class="ͼ11">First</span><span>()
+</span><span class="ͼ11">FirstOrDefault</span><span>()
+</span><span class="ͼ11">Single</span><span>()
+</span><span class="ͼ11">SingleOrDefault</span><span>()
+</span><span class="ͼ11">Any</span><span>()
+</span><span class="ͼ11">All</span><span>()</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### IEnumerable<T></t> vs List
+
+IEnumerable<int></int> result =  numbers.Where(x => x > 15);
+
+This represents a query/sequence that can be enumerated.
+
+Whereas:
+
+List<int></int> result =  numbers.Where(x => x > 15).ToList();
+
+creates an actual List containing the results at that point in time.
+
+Think:
+
+IEnumerable<T></t>
+     ↓
+Query / sequence
+     ↓
+Usually deferred
+
+versus:
+
+ToList()
+     ↓
+Actual List
+     ↓
+Immediate execution + materialization
+
+##### Why do we use `ToList()`?
+
+Suppose you're querying a database:
+
+<pre class="overflow-visible! px-0!" data-start="3236" data-end="3332"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">db</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">IsActive</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You might intentionally keep this as a query and execute it later.
+
+But sometimes you want to execute it  **now** :
+
+<pre class="overflow-visible! px-0!" data-start="3449" data-end="3559"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">db</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">IsActive</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now the results are materialized into memory.
+
+This distinction becomes  **extremely important with Entity Framework** , because:
+
+<pre class="overflow-visible! px-0!" data-start="3690" data-end="3783"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IEnumerable
+    ↓
+LINQ to Objects
+
+IQueryable
+    ↓
+Potentially translated to SQL</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+We'll get to `IQueryable` later.
+
+#### OrderBy()
+
+Sorts in **ascending order** by default.
+
+var numbers = new List<int></int> { 50, 10, 30, 20 };
+
+var result = numbers.OrderBy(x => x);
+
+Same applicables for strings, it sorts in alphabetical order
+
+##### OrderByDescending()
+
+Sorts in  **descending order** .
+
+<pre class="overflow-visible! px-0!" data-start="487" data-end="562"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="487" data-end="562"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderByDescending</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>);</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Highest salary comes first:
+
+<pre class="overflow-visible! px-0!" data-start="593" data-end="660"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Sarah   90000
+John    75000
+David   60000
+Alex    45000</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### `OrderBy()` modify the original collection?
+
+No. The original collection remains same.
+
+##### Multiple OrderBy()
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="2108" data-end="2205"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Many beginners think this means:
+
+> Sort by Department, then Salary.
+
+**It doesn't.**
+
+The second `OrderBy()` starts a  **new primary ordering** .
+
+If you want secondary ordering:
+
+<pre class="overflow-visible! px-0!" data-start="2386" data-end="2482"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">ThenBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Remember:
+
+<pre class="overflow-visible! px-0!" data-start="2499" data-end="2599"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderBy → starts/replaces the primary ordering
+ThenBy  → continues the existing ordering</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### ThenBy()
+
+`ThenBy()` is used for  **secondary sorting** .
+
+Suppose employees have:
+
+<pre class="overflow-visible! px-0!" data-start="1253" data-end="1406"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Department    Salary
+--------------------
+IT            70000
+HR            50000
+IT            50000
+HR            70000
+IT            60000</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You want:
+
+> First sort by Department, then within each department sort by Salary.
+
+<pre class="overflow-visible! px-0!" data-start="1492" data-end="1602"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">ThenBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="1613" data-end="1684"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>HR    50000
+HR    70000
+IT    50000
+IT    60000
+IT    70000</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1691" data-end="1762"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderBy()  → Primary sorting
+ThenBy()   → Secondary sorting</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### ThenByDescending()
+
+You can mix ascending and descending:
+
+<pre class="overflow-visible! px-0!" data-start="1835" data-end="1955"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">ThenByDescending</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="1966" data-end="2037"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>HR    70000
+HR    50000
+IT    70000
+IT    60000
+IT    50000</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="151" data-end="251"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div></div></div></div></div></div></pre>
+
+#### GroupBy()
+
+`GroupBy()` is used when you want to  **group elements based on a common key** .
+
+Think  **"Put items having the same value into the same group."*
+
+Suppose we have:
+
+var numbers = new List<int></int>
+{
+    1, 2, 3, 4, 5, 6
+};
+
+Group them by even/odd:
+
+var result = numbers.GroupBy(x => x % 2);
+
+Conceptually:
+
+Group 1 → 1, 3, 5
+Group 0 → 2, 4, 6
+
+The expression:
+
+x => x % 2
+
+is the grouping key.
+
+##### Group employees by department
+
+<pre class="overflow-visible! px-0!" data-start="589" data-end="658"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>);</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Suppose employees are:
+
+<pre class="overflow-visible! px-0!" data-start="684" data-end="755"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John    IT
+David   IT
+Sarah   HR
+Mike    HR
+Alex    Finance</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+After grouping:
+
+<pre class="overflow-visible! px-0!" data-start="774" data-end="853"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT
+ ├── John
+ └── David
+
+HR
+ ├── Sarah
+ └── Mike
+
+Finance
+ └── Alex</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Each group has:
+
+<pre class="overflow-visible! px-0!" data-start="872" data-end="896"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Key
+Elements</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Accessing result:
+
+You can access them using:
+
+<pre class="overflow-visible! px-0!" data-start="926" data-end="1098"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">foreach</span><span> (</span><span class="ͼv">var</span><span></span><span class="ͼv">group</span><span></span><span class="ͼv">in</span><span></span><span class="ͼ11">result</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼv">group</span><span>.</span><span class="ͼ11">Key</span><span>);
+
+    </span><span class="ͼv">foreach</span><span> (</span><span class="ͼv">var</span><span></span><span class="ͼ11">employee</span><span></span><span class="ͼv">in</span><span></span><span class="ͼv">group</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">employee</span><span>.</span><span class="ͼ11">Name</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="1109" data-end="1163"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT
+John
+David
+
+HR
+Sarah
+Mike
+
+Finance
+Alex</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### What is the type of a group?
+
+A group is essentially:
+
+<pre class="overflow-visible! px-0!" data-start="1230" data-end="1269"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">IGrouping</span><span class="ͼv"><</span><span class="ͼ11">TKey</span><span>, </span><span class="ͼ11">TElement</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1285" data-end="1349"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1366" data-end="1420"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">IEnumerable</span><span class="ͼv"><</span><span class="ͼ11">IGrouping</span><span class="ͼv"><</span><span class="ͼ11">string</span><span>, </span><span class="ͼ11">Employee</span><span class="ͼv">>></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Where:
+
+<pre class="overflow-visible! px-0!" data-start="1430" data-end="1505"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>string   → Department key
+Employee → elements inside that group</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### `GroupBy()` + `Count()`
+
+<pre class="overflow-visible! px-0!" data-start="1681" data-end="1846"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">g</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Department</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span><span>,
+        </span><span class="ͼ11">EmployeeCount</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Count</span><span>()
+    });</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="1857" data-end="1907"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT       → 2
+HR       → 2
+Finance  → 1</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Notice something important:
+
+<pre class="overflow-visible! px-0!" data-start="1938" data-end="1957"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+gives the department.
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="1988" data-end="2011"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Count</span><span>()</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+gives the number of employees in that group.
+
+##### `GroupBy()` + `Sum()`
+
+Suppose we want the  **total salary per department** :
+
+<pre class="overflow-visible! px-0!" data-start="2146" data-end="2320"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">g</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Department</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span><span>,
+        </span><span class="ͼ11">TotalSalary</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Sum</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>)
+    });</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="2331" data-end="2395"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT       → 130000
+HR       → 120000
+Finance  → 50000</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Group by multiple properties
+
+You can group using an anonymous object.
+
+Suppose you want to group employees by:
+
+**Department + Designation**
+
+<pre class="overflow-visible! px-0!" data-start="2723" data-end="2839"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>,
+        </span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Designation</span><span>
+    });</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="2847" data-end="2913"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT + Developer
+IT + Tester
+HR + Developer
+HR + Manager</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Each unique combination becomes a group.
+
+<pre class="overflow-visible! px-0!" data-start="4345" data-end="4533"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">g</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Department</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span><span>,
+        </span><span class="ͼ11">Count</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Count</span><span>(),
+        </span><span class="ͼ11">TotalSalary</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Sum</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>)
+    });</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+It means:
+
+> **Group employees by department, then calculate information for each department.**
+
+And the key distinction:
+
+<pre class="overflow-visible! px-0!" data-start="4658" data-end="4818"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Where()    → filter individual elements
+Select()   → transform individual elements
+OrderBy()  → sort elements
+GroupBy()  → create groups of elements</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Join()
+
+`Join()` is used to  **combine data from two collections based on a matching key** .
+
+Joins can be used as a foreign key between two tables.
+
+Suppose we have:
+
+<pre class="overflow-visible! px-0!" data-start="431" data-end="665"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">class</span><span></span><span class="ͼ11">Employee</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">DepartmentId</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+}
+
+</span><span class="ͼv">class</span><span></span><span class="ͼ11">Department</span><span>
+{
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">int</span><span></span><span class="ͼ11">Id</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+    </span><span class="ͼv">public</span><span></span><span class="ͼ11">string</span><span></span><span class="ͼ11">Name</span><span> { </span><span class="ͼv">get</span><span>; </span><span class="ͼv">set</span><span>; }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Data:
+
+<pre class="overflow-visible! px-0!" data-start="674" data-end="847"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employees
+-------------------------
+1   John    10
+2   David   20
+3   Sarah   10
+4   Alex    30
+
+
+Departments
+-------------------------
+10  IT
+20  HR
+30  Finance</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+We want:
+
+<pre class="overflow-visible! px-0!" data-start="859" data-end="923"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John   → IT
+David  → HR
+Sarah  → IT
+Alex   → Finance</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+ Using `Join()`
+
+<pre class="overflow-visible! px-0!" data-start="951" data-end="1145"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Join</span><span>(
+    </span><span class="ͼ11">departments</span><span>,
+    </span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">DepartmentId</span><span>,
+    </span><span class="ͼ11">d</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Id</span><span>,
+    (</span><span class="ͼ11">e</span><span>, </span><span class="ͼ11">d</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">EmployeeName</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>,
+        </span><span class="ͼ11">DepartmentName</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Name</span><span>
+    });</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### `Join()` signature
+
+outer.Join(
+    inner,
+    outerKeySelector,
+    innerKeySelector,
+    resultSelector
+);
+
+Remember these four things:
+
+1. Outer collection
+2. Inner collection
+3. Outer key
+4. Inner key
+5. Result
+
+Technically there are four arguments after the collection:
+
+inner
+outerKeySelector
+innerKeySelector
+resultSelector
+
+##### What happens if there is no match?
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="2383" data-end="2483"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employee:
+
+John    DepartmentId = 10
+David   DepartmentId = 20
+Alex    DepartmentId = 99</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But department `99` doesn't exist.
+
+With `Join()`:
+
+<pre class="overflow-visible! px-0!" data-start="2537" data-end="2572"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>John   → IT
+David  → HR</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Alex is  **not included** .
+
+Why?
+
+Because LINQ `Join()` performs an  **inner join** .
+
+> Only elements having matching keys in both collections are returned.
+
+##### Example:
+
+you have:
+
+<pre class="overflow-visible! px-0!" data-start="3189" data-end="3301"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Orders
+-------------------
+OrderId
+CustomerId
+Amount
+
+
+Customers
+-------------------
+CustomerId
+Name</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You want to return:
+
+<pre class="overflow-visible! px-0!" data-start="3324" data-end="3363"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OrderId
+CustomerName
+Amount</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You could do:
+
+<pre class="overflow-visible! px-0!" data-start="3380" data-end="3598"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">orders</span><span>.</span><span class="ͼ11">Join</span><span>(
+    </span><span class="ͼ11">customers</span><span>,
+    </span><span class="ͼ11">o</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">o</span><span>.</span><span class="ͼ11">CustomerId</span><span>,
+    </span><span class="ͼ11">c</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">c</span><span>.</span><span class="ͼ11">CustomerId</span><span>,
+    (</span><span class="ͼ11">o</span><span>, </span><span class="ͼ11">c</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">OrderId</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">o</span><span>.</span><span class="ͼ11">OrderId</span><span>,
+        </span><span class="ͼ11">CustomerName</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">c</span><span>.</span><span class="ͼ11">Name</span><span>,
+        </span><span class="ͼ11">Amount</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">o</span><span>.</span><span class="ͼ11">Amount</span><span>
+    });</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is essentially the LINQ equivalent of:
+
+<pre class="overflow-visible! px-0!" data-start="3645" data-end="3775"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">SELECT</span><span>
+    o.OrderId,
+    c.Name,
+    o.Amount
+</span><span class="ͼv">FROM</span><span> Orders o
+</span><span class="ͼv">INNER</span><span></span><span class="ͼv">JOIN</span><span> Customers c
+    </span><span class="ͼv">ON</span><span> o.CustomerId </span><span class="ͼv">=</span><span> c.CustomerId;</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### `Join() with Where()`
+
+You can filter after joining:
+
+<pre class="overflow-visible! px-0!" data-start="3843" data-end="4131"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Join</span><span>(
+        </span><span class="ͼ11">departments</span><span>,
+        </span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">DepartmentId</span><span>,
+        </span><span class="ͼ11">d</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Id</span><span>,
+        (</span><span class="ͼ11">e</span><span>, </span><span class="ͼ11">d</span><span>) </span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+        {
+            </span><span class="ͼ11">Employee</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>,
+            </span><span class="ͼ11">Department</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">d</span><span>.</span><span class="ͼ11">Name</span><span>,
+            </span><span class="ͼ11">Salary</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span>
+        })
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Meaning:
+
+1. Join employees with departments
+2. Create the desired projection
+3. Keep employees whose salary > 50,000
+
+##### `Join()` vs `GroupJoin()`
+
+ `Join()`
+
+Each matching pair is returned individually.
+
+<pre class="overflow-visible! px-0!" data-start="4434" data-end="4504"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Employee → Department
+
+John   → IT
+Sarah  → IT
+David  → HR</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ `GroupJoin()`
+
+Groups the matching records together.
+
+<pre class="overflow-visible! px-0!" data-start="4564" data-end="4614"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IT
+ ├── John
+ └── Sarah
+
+HR
+ └── David</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="4621" data-end="4709"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Join       → matching records
+GroupJoin  → matching records grouped together</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Any()
+
+`Any()` checks whether a sequence contains  **at least one element** . it returns bool.
+
+var numbers = new List< int > { 10, 20, 30 };
+
+bool result = numbers.Any();
+
+Result: true
+
+var numbers = new List< int > ();
+
+bool result = numbers.Any();
+
+Result: false
+
+##### With condition
+
+> Does at least one number satisfy this condition?
+
+<pre class="overflow-visible! px-0!" data-start="734" data-end="787"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">bool</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Any</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">20</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For:
+
+<pre class="overflow-visible! px-0!" data-start="795" data-end="817"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>10, 20, 30</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+the result is:
+
+<pre class="overflow-visible! px-0!" data-start="835" data-end="851"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>true</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+because `30 > 20`.
+
+##### `Any()` - alias of where and count
+
+> Does the company have any employee in the IT department?
+
+<pre class="overflow-visible! px-0!" data-start="1050" data-end="1132"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">bool</span><span></span><span class="ͼ11">hasITEmployees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Any</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is often preferable to:
+
+<pre class="overflow-visible! px-0!" data-start="1164" data-end="1243"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span>)
+    .</span><span class="ͼ11">Count</span><span>() </span><span class="ͼv">></span><span></span><span class="ͼy">0</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Because your intent is simply:
+
+> **Does at least one exist?**
+
+##### `Any()` vs `Count() > 0`
+
+You may see:
+
+<pre class="overflow-visible! px-0!" data-start="3917" data-end="3957"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Count</span><span>() </span><span class="ͼv">></span><span></span><span class="ͼy">0</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But when your intention is simply checking existence:
+
+<pre class="overflow-visible! px-0!" data-start="4014" data-end="4048"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Any</span><span>())</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is clearer.
+
+And with database queries, `Any()` communicates the intent of an existence check very well and can be translated to an efficient SQL existence-style query by EF Core.
+
+#### All()
+
+All() checks whether every element satisfies a condition.
+
+var numbers = new List<int></int>
+{
+    10, 20, 30
+};
+
+bool result = numbers.All(x => x > 0);
+
+Result:
+
+true
+
+Because all numbers are greater than 0.
+
+##### `Any()` vs `All()`
+
+<pre class="overflow-visible! px-0!" data-start="1762" data-end="1812"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span>Any() → At least ONE
+All() → EVERY ONE</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="1824" data-end="1863"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Any</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">25</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+> Is there **at least one** number > 25?
+
+<pre class="overflow-visible! px-0!" data-start="1907" data-end="1946"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">All</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">25</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+> Are **all** numbers > 25?
+
+##### `All()` with an empty collection
+
+Consider:
+
+var numbers = new List<int></int>();
+
+bool result = numbers.All(x => x > 0);
+
+The result is: true
+
+This can surprise people. Why? Because there is no element that violates the condition.
+
+But:
+
+numbers.Any(x => x > 0);
+
+returns: false
+
+because there isn't even one element.
+
+For interviews, remember:
+
+Empty.Any(condition) → false
+Empty.All(condition) → true
+
+#### Contains()
+
+Contains() checks whether a sequence contains a specific value.
+
+var numbers = new List<int></int>
+{
+    10, 20, 30
+};
+
+bool result = numbers.Contains(20);
+
+Result:
+
+true
+
+But:
+
+bool result = numbers.Contains(50);
+
+Result:
+
+false
+Think of it as:
+Contains(20)
+     ↓
+"Does 20 exist?"
+
+#### First()
+
+`First()` returns the **first element** from a sequence.
+
+##### With Condition
+
+take a condition:
+
+<pre class="overflow-visible! px-0!" data-start="421" data-end="475"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">First</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">20</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output:
+
+<pre class="overflow-visible! px-0!" data-start="486" data-end="500"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>30</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+It returns the  **first element satisfying the condition** .
+
+##### What if nothing is found?
+
+var numbers = new List<int></int> { 10, 20, 30 };
+
+var result = numbers.First(x => x > 100);
+
+There is no matching element. So First() throws: InvalidOperationException
+
+Similarly:
+
+var numbers = new List<int></int>();
+
+var result = numbers.First();
+
+Also throws InvalidOperationException.
+
+Remember: First() expects an element to exist. If it doesn't, it throws an exception.
+
+#### FirstOrDefault()
+
+`FirstOrDefault()` also returns the first matching element.
+
+But if there is  **no matching element** , it returns the **default value** instead of throwing.
+
+For value types:
+
+<pre class="overflow-visible! px-0!" data-start="1425" data-end="1456"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">default</span><span>(</span><span class="ͼ11">int</span><span>) </span><span class="ͼv">==</span><span></span><span class="ͼy">0</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For reference types:
+
+<pre class="overflow-visible! px-0!" data-start="1480" data-end="1517"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">default</span><span>(</span><span class="ͼ11">string</span><span>) </span><span class="ͼv">==</span><span></span><span class="ͼy">null</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+ For `bool`:
+
+<pre class="overflow-visible! px-0!" data-start="3253" data-end="3289"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">default</span><span>(</span><span class="ͼ11">bool</span><span>) </span><span class="ͼt">// false</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+For `DateTime`:
+
+<pre class="overflow-visible! px-0!" data-start="3308" data-end="3362"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">default</span><span>(</span><span class="ͼ11">DateTime</span><span>) </span><span class="ͼt">// 01/01/0001 00:00:00</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Table
+
+
+|                       | `First()`          | `FirstOrDefault()`    |
+| ----------------------- | -------------------- | ----------------------- |
+| Returns first element | ✅                 | ✅                    |
+| Supports condition    | ✅                 | ✅                    |
+| No matching element   | Throws exception   | Returns default       |
+| Empty collection      | Throws exception   | Returns default       |
+| Common use            | Element must exist | Element may not exist |
+
+`First()` returns the first matching element and throws `InvalidOperationException` if no element exists. `FirstOrDefault()` returns the first matching element, but returns the default value when no element exists.
+
+##### `First()` vs `Single()`
+
+Suppose:
+
+var numbers = new List<int></int> { 10, 20, 20, 30 };
+First(x => x == 20)
+
+Returns:
+
+20
+
+It doesn't care that there are multiple 20s.
+
+Single(x => x == 20)
+
+Throws an exception because there are two matching elements.
+
+That's the fundamental difference:
+
+First()
+    → Give me the first match.
+
+Single()
+    → There must be exactly one match.
+
+#### Single()
+
+> **`Single()` expects exactly ONE matching element.**
+
+Suppose:
+
+var numbers = new List<int></int> { 10, 20, 30, 40 };
+
+var result = numbers.Single(x => x == 20);
+
+Console.WriteLine(result);
+
+Output:
+
+20
+
+There is exactly one 20, so everything is fine.
+
+But what if there are multiple matches?
+var numbers = new List<int></int> { 10, 20, 20, 30 };
+
+var result = numbers.Single(x => x == 20);
+
+Now there are two matching elements.
+
+Single() throws:
+
+InvalidOperationException
+
+So:
+
+Single()
+    ↓
+Exactly 1 match → return it
+0 matches       → exception
+2+ matches      → exception
+
+##### `Single()` doesn't mean "single item from collection"
+
+This:
+
+var numbers = new List<int></int> { 10, 20, 30 };
+
+numbers.Single();
+
+throws because the entire collection contains 3 elements.
+
+Single() means:
+
+The sequence must contain exactly one element.
+
+Similarly:
+
+numbers.Single(x => x > 15);
+
+There are two matching elements:
+
+20
+30
+
+So it throws.
+
+#### SingleOrDefault()
+
+`SingleOrDefault()` allows **zero or one** matching element.
+
+var numbers = new List<int></int> { 10, 20, 30 };
+
+var result = numbers.SingleOrDefault(x => x == 50);
+
+Console.WriteLine(result);
+
+There is no 50.
+
+So it returns the default value:
+
+0
+
+But if there are multiple matches:
+
+var numbers = new List<int></int> { 10, 20, 20, 30 };
+
+var result = numbers.SingleOrDefault(x => x == 20);
+
+It still throws:
+
+InvalidOperationException
+
+Because there are multiple matches.
+
+##### Comparison table
+
+
+| Situation        | `First()`        | `FirstOrDefault()` | `Single()`    | `SingleOrDefault()` |
+| ------------------ | ------------------ | -------------------- | --------------- | --------------------- |
+| 1 match          | ✅ Returns it    | ✅ Returns it      | ✅ Returns it | ✅ Returns it       |
+| 0 matches        | ❌ Exception     | ✅ Default         | ❌ Exception  | ✅ Default          |
+| Multiple matches | ✅ Returns first | ✅ Returns first   | ❌ Exception  | ❌ Exception        |
+
+First
+    → At least one?
+    → Give me the first.
+
+FirstOrDefault
+    → At least one?
+    → Give me the first.
+    → None? Give me default.
+
+Single
+    → Exactly one?
+    → Give me that one.
+    → 0 or 2+? Exception.
+
+SingleOrDefault
+    → 0 or exactly one?
+    → Give me it if present.
+    → None? Default.
+    → 2+? Exception.
+
+#### Count()
+
+Returns the number of elements.
+
+var numbers = new List<int></int> { 10, 20, 30, 40 };
+
+var count = numbers.Count();
+
+Console.WriteLine(count);
+
+Output: 4
+
+##### With Condition
+
+<pre class="overflow-visible! px-0!" data-start="695" data-end="748"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼv">var</span><span></span><span class="ͼ11">count</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Count</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">20</span><span>);</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Output: 2. Because `30` and `40` satisfy the condition.
+
+ Backend example
+
+<pre class="overflow-visible! px-0!" data-start="841" data-end="910"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">activeEmployees </span><span></span><span class="ͼv">= </span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Count</span><span>(</span><span class="ͼ11">e </span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">IsActive</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This gives the number of active employees.
+
+##### `Count()` vs `LongCount()`
+
+Normally:
+
+<pre class="overflow-visible! px-0!" data-start="3569" data-end="3613"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">count</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">Count</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+returns an `int`.
+
+There is also:
+
+<pre class="overflow-visible! px-0!" data-start="3650" data-end="3698"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">count</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>.</span><span class="ͼ11">LongCount</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+which returns a `long`.
+
+You generally use `LongCount()` when the sequence could contain more elements than an `int` can represent.
+
+
+| Operator    | Purpose            | Result                   |
+| ------------- | -------------------- | -------------------------- |
+| `Count()`   | Number of elements | `int`                    |
+| `Sum()`     | Total              | Numeric value            |
+| `Min()`     | Smallest           | Numeric/comparable value |
+| `Max()`     | Largest            | Numeric/comparable value |
+| `Average()` | Mean               | Numeric value            |
+
+#### Sum()
+
+returns the total.
+
+var numbers = new List<int></int> { 10, 20, 30 };
+
+var total = numbers.Sum();
+
+Console.WriteLine(total);
+
+Output: 60
+
+For objects, provide a selector:
+
+var totalSalary = employees.Sum(e => e.Salary);
+
+This calculates the total salary.
+
+#### Min()
+
+Returns the smallest value.
+
+var numbers = new List<int></int> { 50, 10, 30, 20 };
+
+var result = numbers.Min();
+
+Result: 10
+
+For objects:
+
+var minimumSalary = employees.Min(e => e.Salary);
+
+#### Max()
+
+Returns the largest value.
+
+var numbers = new List<int></int> { 50, 10, 30, 20 };
+
+var result = numbers.Max();
+
+Result: 50
+
+For objects:
+
+var maximumSalary = employees.Max(e => e.Salary);
+
+#### Average()
+
+Returns the average value.
+
+var numbers = new List<int></int> { 10, 20, 30 };
+
+var result = numbers.Average();
+
+Calculation:
+
+(10 + 20 + 30) / 3 = 20
+
+For employees:
+
+var averageSalary = employees.Average(e => e.Salary);\
+
+#### empty sequences
+
+var numbers = new List<int></int>();
+
+numbers.count(); //0
+numbers.sum(); //0
+numbers.Average(); //InvalidOperationException
+
+numbers.Min(); //InvalidOperationException
+
+numbers.Max(); //InvalidOPerationException
+
+
+| Operator    | Purpose            | Result                   |
+| ------------- | -------------------- | -------------------------- |
+| `Count()`   | Number of elements | `int`                    |
+| `Sum()`     | Total              | Numeric value            |
+| `Min()`     | Smallest           | Numeric/comparable value |
+| `Max()`     | Largest            | Numeric/comparable value |
+| `Average()` | Mean               | Numeric value            |
+
+#### Distinct():
+
+`Distinct()` is used to **remove duplicate values** from a sequence.
+
+var numbers = new List<int></int>
+{
+    10, 20, 20, 30, 30, 30, 40
+};
+
+var result = numbers.Distinct();
+
+foreach (var number in result)
+{
+    Console.WriteLine(number);
+}
+
+Output:
+
+10
+20
+30
+40
+
+So:
+
+Original:
+10 20 20 30 30 30 40
+
+Distinct():
+10 20 30 40
+
+It keeps one occurrence of each value. But it doesn't modify the original collection.
+
+##### `Distinct()` with objects
+
+var employees = new List<Employee></employee>
+{
+    new Employee { Id = 1, Name = "John" },
+    new Employee { Id = 1, Name = "John" }
+};
+
+var result = employees.Distinct();
+
+Will Distinct() necessarily remove the duplicate employees?
+
+No.
+
+For custom objects, Distinct() determines equality using the object's equality implementation/comparer.
+
+If Employee doesn't define appropriate value equality, two separately created objects can be considered different even if their properties contain the same values.
+
+For example:
+
+var e1 = new Employee { Id = 1, Name = "John" };
+var e2 = new Employee { Id = 1, Name = "John" };
+
+Console.WriteLine(e1 == e2);
+
+For an ordinary class, this is generally:
+
+false
+
+because they are two different object references.
+
+This connects directly to the Equals() / GetHashCode() topic you studied earlier.
+
+##### DistinctBy()
+
+Modern LINQ provides:
+
+var uniqueEmployees = employees
+    .DistinctBy(e => e.Id);
+
+For example:
+
+var employees = new List<Employee></employee>
+{
+    new Employee { Id = 1, Name = "John" },
+    new Employee { Id = 1, Name = "John Updated" },
+    new Employee { Id = 2, Name = "David" }
+};
+
+var result = employees
+    .DistinctBy(e => e.Id)
+    .ToList();
+
+Result contains one employee for each unique Id.
+
+Conceptually:
+
+Id = 1 → first employee
+Id = 2 → David
+
+DistinctBy() is therefore useful when you want uniqueness based on a specific property.
+
+
+| Operator                | Uniqueness based on     |
+| ------------------------- | ------------------------- |
+| `Distinct()`            | Entire element/equality |
+| `DistinctBy(x => x.Id)` | Selected key/property   |
+
+##### `Distinct()` and `GroupBy()`
+
+You could technically find unique departments using:
+
+<pre class="overflow-visible! px-0!" data-start="3794" data-end="3892"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">departments</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">g</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But if you only need the unique department names:
+
+<pre class="overflow-visible! px-0!" data-start="3945" data-end="4034"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">departments</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Distinct</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is much simpler.
+
+Mental model:
+
+<pre class="overflow-visible! px-0!" data-start="4069" data-end="4178"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Need unique values?
+    → Distinct()
+
+Need groups + information about each group?
+    → GroupBy()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="4194" data-end="4338"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">GroupBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">g</span><span></span><span class="ͼv">=></span><span></span><span class="ͼv">new</span><span>
+    {
+        </span><span class="ͼ11">Department</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Key</span><span>,
+        </span><span class="ͼ11">Count</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">g</span><span>.</span><span class="ͼ11">Count</span><span>()
+    });</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here `GroupBy()` makes sense because we need the count for each group.
+
+##### Is `Distinct()` deferred?
+
+Yes. For LINQ-to-Objects, `Distinct()` uses  **deferred execution**
+
+<pre class="overflow-visible! px-0!" data-start="4513" data-end="4559"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Distinct</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The query isn't fully evaluated just because you created `result`.
+
+Enumeration causes the values to be produced.
+
+You can force materialization:
+
+<pre class="overflow-visible! px-0!" data-start="4708" data-end="4773"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>
+    .</span><span class="ͼ11">Distinct</span><span>()
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Skip()
+
+`Skip(n)`  **ignores the first `n` elements** .
+
+var numbers = new List<int></int> { 10, 20, 30, 40, 50 };
+
+var result = numbers.Skip(2);
+
+Result:
+
+30
+40
+50
+
+Think: Skip(2) → ignore first 2
+
+##### `Skip()` exceeds the count
+
+<pre class="overflow-visible! px-0!" data-start="2057" data-end="2089"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Skip</span><span>(</span><span class="ͼy">100</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="2100" data-end="2126"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Empty sequence</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+No exception.
+
+#### Take()
+
+`Take(n)`  **returns the first `n` elements** .
+
+<pre class="overflow-visible! px-0!" data-start="399" data-end="442"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Take</span><span>(</span><span class="ͼy">2</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="453" data-end="470"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>10
+20</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Think: **Take(2) → give me first 2**
+
+##### `Take()` exceeds the count
+
+<pre class="overflow-visible! px-0!" data-start="2175" data-end="2207"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">numbers</span><span>.</span><span class="ͼ11">Take</span><span>(</span><span class="ͼy">100</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If there are only 5 elements, you simply get all 5.
+
+No exception.ToList()
+
+#### Pagination: Combining `Skip()` + `Take()`
+
+This is very common for  **pagination** .
+
+Suppose we have:
+
+<pre class="overflow-visible! px-0!" data-start="614" data-end="655"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>1  2  3  4  5  6  7  8  9  10</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If we want the second page with  **3 records per page** :
+
+<pre class="overflow-visible! px-0!" data-start="714" data-end="773"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">page</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>
+    .</span><span class="ͼ11">Skip</span><span>(</span><span class="ͼy">3</span><span>)
+    .</span><span class="ͼ11">Take</span><span>(</span><span class="ͼy">3</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+<pre class="overflow-visible! px-0!" data-start="784" data-end="801"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>4
+5
+6</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Pagination Formula
+
+For API pagination, the standard formula is:
+
+<pre class="overflow-visible! px-0!" data-start="955" data-end="1018"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Skip</span><span>((</span><span class="ͼ11">pageNumber</span><span></span><span class="ͼv">-</span><span></span><span class="ͼy">1</span><span>) </span><span class="ͼv">*</span><span></span><span class="ͼ11">pageSize</span><span>)
+.</span><span class="ͼ11">Take</span><span>(</span><span class="ͼ11">pageSize</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="1030" data-end="1180"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">pageNumber</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">3</span><span>;
+</span><span class="ͼ11">int</span><span></span><span class="ͼ11">pageSize</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">10</span><span>;
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Skip</span><span>((</span><span class="ͼ11">pageNumber</span><span></span><span class="ͼv">-</span><span></span><span class="ͼy">1</span><span>) </span><span class="ͼv">*</span><span></span><span class="ͼ11">pageSize</span><span>)
+    .</span><span class="ͼ11">Take</span><span>(</span><span class="ͼ11">pageSize</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Calculation:
+
+<pre class="overflow-visible! px-0!" data-start="1196" data-end="1225"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>(3 - 1) * 10
+= 20</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="1232" data-end="1265"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>.</span><span class="ͼ11">Skip</span><span>(</span><span class="ͼy">20</span><span>)
+.</span><span class="ͼ11">Take</span><span>(</span><span class="ͼy">10</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+That means:
+
+> Skip the first 20 records and return the next 10 → **records 21–30**
+
+##### Pages
+
+
+| Page | Skip | Take | Records |
+| ------ | ------ | ------ | --------- |
+| 1    | 0    | 10   | 1–10   |
+| 2    | 10   | 10   | 11–20  |
+| 3    | 20   | 10   | 21–30  |
+| 4    | 30   | 10   | 31–40  |
+
+##### Use `OrderBy()` before pagination
+
+In backend/database queries, it's good practice to have a **deterministic order** before using `Skip()` and `Take()`.
+
+<pre class="overflow-visible! px-0!" data-start="1687" data-end="1819"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">page</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">OrderBy</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Id</span><span>)
+    .</span><span class="ͼ11">Skip</span><span>((</span><span class="ͼ11">pageNumber</span><span></span><span class="ͼv">-</span><span></span><span class="ͼy">1</span><span>) </span><span class="ͼv">*</span><span></span><span class="ͼ11">pageSize</span><span>)
+    .</span><span class="ͼ11">Take</span><span>(</span><span class="ͼ11">pageSize</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Why?
+
+Because pagination without a stable ordering can result in inconsistent records between pages, particularly when querying a database.
+
+#### ToList()
+
+Converts the LINQ result into a List<T></t>.
+
+var numbers = new List<int></int> { 10, 20, 30, 40, 50 };
+
+var result = numbers
+    .Where(x => x > 20)
+    .ToList();
+
+Now result is actually a:
+
+List<int></int>
+
+Containing:
+
+30
+40
+50
+
+##### Why use it?
+
+When you need to:
+
+Store the results
+Access the list multiple times
+Add/remove items
+Force LINQ execution immediately
+
+Example:
+
+var result = numbers
+    .Where(x => x > 20)
+    .ToList();
+
+result.Add(60);
+
+#### `ToArray()`
+
+Converts the result into an array.
+
+<pre class="overflow-visible! px-0!" data-start="773" data-end="847"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">numbers</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">x</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">x</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">20</span><span>)
+    .</span><span class="ͼ11">ToArray</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Type:
+
+<pre class="overflow-visible! px-0!" data-start="856" data-end="875"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span>[]</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Result:
+
+##### ToList() vs ToArray()
+
+
+| `ToList()`                           | `ToArray()`                      |
+| -------------------------------------- | ---------------------------------- |
+| Returns`List<T>`                     | Returns`T[]`                     |
+| Can add/remove elements              | Fixed-size                       |
+| Common when working with collections | Useful when an array is required |
+
+For example:
+
+List<int></int> list = numbers.Where(x => x > 20).ToList();
+
+int[] array = numbers.Where(x => x > 20).ToArray();
+
+#### ToDictionary()
+
+Converts a sequence into a Dictionary<TKey, TValue>.
+
+Suppose:
+
+class Employee
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+
+And:
+
+var employees = new List<Employee></employee>
+{
+    new Employee { Id = 1, Name = "John" },
+    new Employee { Id = 2, Name = "David" },
+    new Employee { Id = 3, Name = "Mike" }
+};
+
+We can create a dictionary:
+
+var employeeDictionary = employees
+    .ToDictionary(e => e.Id);
+
+Now:
+
+Key → Value
+
+1 → John
+2 → David
+3 → Mike
+
+Access:
+
+var employee = employeeDictionary[2];
+
+Console.WriteLine(employee.Name);
+
+Output: David
+
+##### Custom key and value
+
+You can specify both the key and value:
+
+<pre class="overflow-visible! px-0!" data-start="2025" data-end="2138"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employeeDictionary</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">ToDictionary</span><span>(
+        </span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Id</span><span>,
+        </span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>
+    );</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="2146" data-end="2185"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>1 → John
+2 → David
+3 → Mike</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="2192" data-end="2242"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">string</span><span></span><span class="ͼ11">name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employeeDictionary</span><span>[</span><span class="ͼy">2</span><span>];</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+gives:
+
+<pre class="overflow-visible! px-0!" data-start="2252" data-end="2269"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>David</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Dictionary keys  **must be unique** .
+
+Suppose:
+
+var employees = new List<Employee></employee>
+{
+    new Employee { Id = 1, Name = "John" },
+    new Employee { Id = 1, Name = "David" }
+};
+
+Then:
+
+var dictionary = employees.ToDictionary(e => e.Id);
+
+throws:
+
+ArgumentException
+
+because both employees have the same key 1.
+
+
+| Method           | Result                    | Main purpose         |
+| ------------------ | --------------------------- | ---------------------- |
+| `ToList()`       | `List<T>`                 | Materialize as list  |
+| `ToArray()`      | `T[]`                     | Materialize as array |
+| `ToDictionary()` | `Dictionary<TKey,TValue>` | Key-based lookup     |
+
+### IEnumerable< T >
+
+IEnumerable< T > is generally used when the data is already in memory.
+
+Example:
+
+List<Employee></employee> employees = GetEmployees();
+
+var result = employees
+    .Where(e => e.Salary > 50000)
+    .ToList();
+
+Here, employees is already a List< Employee >  in memory.
+
+So LINQ runs using LINQ-to-Objects.
+
+Think:
+
+List< T >
+   ↓
+IEnumerable< T >
+   ↓
+LINQ executes in application memory
+
+### IQueryable< T ><T></t>
+
+IQueryable<T></t> is used when the query can be translated and executed by an external data source, most commonly a database.
+
+Example with EF Core:
+
+IQueryable<Employee></employee> query = dbContext.Employees;
+
+var result = query
+    .Where(e => e.Salary > 50000)
+    .ToList();
+
+The important point is that EF Core can translate the LINQ expression into SQL.
+
+Conceptually:
+
+IQueryable<Employee></employee>< T >
+        ↓
+LINQ expression
+        ↓
+SQL
+        ↓
+Database
+        ↓
+Results
+
+For example, the query may become conceptually similar to:
+
+SELECT *
+FROM Employees
+WHERE Salary > 50000;
+
+### IEnumerable<T></t> vs IQueryable<T></t>
+
+ The BIG difference: Consider 1 million employees in the database.
+
+ `IQueryable`
+
+<pre class="overflow-visible! px-0!" data-start="1341" data-end="1439"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The filtering can happen in the  **database** .
+
+<pre class="overflow-visible! px-0!" data-start="1488" data-end="1610"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Database
+1,000,000 employees
+       ↓
+WHERE Salary > 50000
+       ↓
+Only matching records
+       ↓
+Application</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ `IEnumerable`
+
+If you first materialize everything:
+
+<pre class="overflow-visible! px-0!" data-start="1669" data-end="1801"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>.</span><span class="ͼ11">ToList</span><span>();
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="1810" data-end="1942"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Database
+1,000,000 employees
+       ↓
+Transfer all to application
+       ↓
+Application memory
+       ↓
+Where() filtering</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This can be much less efficient.
+
+#### Why does this happen?
+
+The key difference is:
+
+ `IEnumerable`
+
+Works with a  **delegate** .
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2094" data-end="2128"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">Employee</span><span>, </span><span class="ͼ11">bool</span><span class="ͼv">></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The C# code executes against objects already in memory.
+
+ `IQueryable`
+
+Works with an  **expression tree** .
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2256" data-end="2302"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Expression</span><span class="ͼv"><</span><span class="ͼ11">Func</span><span class="ͼv"><</span><span class="ͼ11">Employee</span><span>, </span><span class="ͼ11">bool</span><span class="ͼv">>></span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The provider, such as EF Core, can inspect the expression and translate it into another query language such as SQL.
+
+
+| `IEnumerable<T>`                    | `IQueryable<T>`                      |
+| ------------------------------------- | -------------------------------------- |
+| Usually works with in-memory data   | Usually used for remote data sources |
+| LINQ-to-Objects                     | LINQ provider such as EF Core        |
+| Uses delegates                      | Uses expression trees                |
+| Filtering happens in application    | Filtering can happen at database     |
+| Doesn't generally translate to SQL  | Can translate expressions to SQL     |
+| Good for collections already loaded | Good for building database queries   |
+
+#### AsEnumerable()
+
+Look at this:
+
+<pre class="overflow-visible! px-0!" data-start="3450" data-end="3568"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">AsEnumerable</span><span>()
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`AsEnumerable()` changes the rest of the query to LINQ-to-Objects.
+
+So the filtering happens  **after the data crosses into application-side enumeration** , rather than being part of the database query.
+
+Compare:
+
+<pre class="overflow-visible! px-0!" data-start="3782" data-end="3864"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+with:
+
+<pre class="overflow-visible! px-0!" data-start="3873" data-end="3975"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">AsEnumerable</span><span>()
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The first allows EF Core to translate the `Where` into SQL.
+
+The second makes `Where` an `IEnumerable` operation.
+
+#### ToList() makes in-memory operation
+
+var employees = dbContext.Employees.ToList();
+
+var result = employees
+    .Where(e => e.Salary > 50000)
+    .ToList();
+
+After the first ToList():
+
+IQueryable
+    ↓
+ToList()
+    ↓
+List<Employee></employee>
+    ↓
+IEnumerable
+
+You've already loaded the employees into memory.
+
+Therefore the second Where() is an in-memory operation.
+
+#### Mental model
+
+IEnumerable
+    ↓
+"I already have the data"
+    ↓
+C# processes objects
+IQueryable
+    ↓
+"I am building a query for the data source"
+    ↓
+Provider can translate it
+Interview-ready answer
+
+"IEnumerable<T></t> is generally used for in-memory collections and LINQ operations execute against objects in memory. IQueryable<T></t> represents a query that can be translated by a query provider, such as EF Core, into a data-source-specific query like SQL. With IQueryable, filtering and projection can therefore be performed by the database instead of loading all data into application memory."
+
+**Why should you avoid calling `ToList()` too early in an EF Core query?**
+
+Because it  **executes/materializes the query immediately** , and subsequent LINQ operations generally run **in memory** rather than being translated into SQL.
+
+### LINQ-to-Objects vs LINQ-to-Entities
+
+**LINQ working on C# objects and LINQ working with a database through Entity Framework Core** .
+
+#### LINQ-to-Objects
+
+When you use LINQ on an in-memory collection such as:
+
+List<Employee></employee> employees = GetEmployees();
+
+var result = employees
+    .Where(e => e.Salary > 50000)
+    .Select(e => e.Name)
+    .ToList();
+
+This is LINQ-to-Objects.
+
+The data is already in memory:
+
+List<Employee></employee>
+      ↓
+LINQ
+      ↓
+C# objects
+
+The Where() and Select() are executed by your application.
+
+Common sources
+List<T></t>
+Array
+HashSet<T></t>
+Dictionary<TKey,TValue>
+
+These commonly expose IEnumerable<T></t>.
+
+#### LINQ-to-Entities
+
+When you use LINQ with Entity Framework Core against a database:
+
+var result = dbContext.Employees
+    .Where(e => e.Salary > 50000)
+    .Select(e => e.Name)
+    .ToList();
+
+This is commonly referred to as LINQ-to-Entities.
+
+The query is represented as IQueryable<T></t> and EF Core translates supported expressions into SQL.
+
+Conceptually:
+
+C# LINQ
+   ↓
+IQueryable
+   ↓
+EF Core
+   ↓
+SQL
+   ↓
+Database
+   ↓
+Results
+
+For example, conceptually:
+
+SELECT Name
+FROM Employees
+WHERE Salary > 50000;
+
+#### Why `IQueryable` matters
+
+Consider a database with 1 million employees.
+
+You write:
+
+<pre class="overflow-visible! px-0!" data-start="1984" data-end="2145"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">employees</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Department</span><span></span><span class="ͼv">==</span><span></span><span class="ͼz">"IT"</span><span>)
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">Select</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>)
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+EF Core can combine these operations into a database query.
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2223" data-end="2306"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">SELECT</span><span> Name
+</span><span class="ͼv">FROM</span><span> Employees
+</span><span class="ͼv">WHERE</span><span> Department </span><span class="ͼv">=</span><span></span><span class="ͼz">'IT'</span><span>
+  </span><span class="ͼv">AND</span><span> Salary </span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+So the database does the filtering and projection.
+
+That's generally much better than loading all 1 million employees into your application first.
+
+#### What happens after `AsEnumerable()`?
+
+This is a common interview trap.
+
+<pre class="overflow-visible! px-0!" data-start="2538" data-end="2693"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Salary</span><span></span><span class="ͼv">></span><span></span><span class="ͼy">50000</span><span>)
+    .</span><span class="ͼ11">AsEnumerable</span><span>()
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>.</span><span class="ͼ11">StartsWith</span><span>(</span><span class="ͼz">"A"</span><span>))
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Before `AsEnumerable()`:
+
+<pre class="overflow-visible! px-0!" data-start="2721" data-end="2779"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IQueryable
+   ↓
+EF Core can translate
+   ↓
+SQL</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+After `AsEnumerable()`:
+
+<pre class="overflow-visible! px-0!" data-start="2806" data-end="2875"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>IEnumerable
+   ↓
+LINQ-to-Objects
+   ↓
+C# executes Where()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2895" data-end="3027"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Database
+   ↓
+Salary > 50000     ← database filtering
+   ↓
+Application
+   ↓
+Name.StartsWith("A") ← application filtering</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This distinction can be important for performance.
+
+#### What happens after ToList()?
+
+Same idea:
+
+var result = dbContext.Employees
+    .Where(e => e.Salary > 50000)
+    .ToList()
+    .Where(e => e.Name.StartsWith("A"));
+
+The first ToList() executes the database query.
+
+After that:
+
+ToList()
+   ↓
+List<Employee></employee>
+   ↓
+IEnumerable
+   ↓
+Where() runs in memory
+
+So remember:
+
+AsEnumerable() switches to LINQ-to-Objects. ToList() executes and materializes the query, after which further LINQ operations work on the materialized collection.
+
+#### Not every C# method can become SQL
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="3703" data-end="3804"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>
+    .</span><span class="ͼ11">Where</span><span>(</span><span class="ͼ11">e</span><span></span><span class="ͼv">=></span><span></span><span class="ͼ11">MyCustomMethod</span><span>(</span><span class="ͼ11">e</span><span>.</span><span class="ͼ11">Name</span><span>))
+    .</span><span class="ͼ11">ToList</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+EF Core may not be able to translate an arbitrary custom C# method into SQL.
+
+With modern EF Core versions, unsupported expressions in places that must execute on the server generally result in a translation exception rather than silently evaluating the whole filter client-side.
+
+So you need to understand:
+
+<pre class="overflow-visible! px-0!" data-start="4115" data-end="4234"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>LINQ expression
+      ↓
+Can EF Core translate it?
+      ↓
+Yes → SQL
+No  → potentially translation exception</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is one reason LINQ-to-Entities is not simply "C# code running on the database."
+
+#### Comparison
+
+
+|                   | LINQ-to-Objects        | LINQ-to-Entities                |
+| ------------------- | ------------------------ | --------------------------------- |
+| Data              | In memory              | Database                        |
+| Common interface  | `IEnumerable<T>`       | `IQueryable<T>`                 |
+| Provider          | .NET LINQ              | EF Core                         |
+| Execution         | C# application         | Database for translatable parts |
+| Query translation | No                     | Yes, to SQL                     |
+| Example source    | `List<Employee>`       | `DbSet<Employee>`               |
+| Main concern      | Application processing | SQL/query performance           |
+
+### LINQ Mental Map
+
+Where       → Filter
+Select      → Transform
+SelectMany  → Flatten
+OrderBy     → Sort
+ThenBy      → Secondary sort
+GroupBy     → Group
+Join        → Combine sequences
+Any         → At least one?
+All         → Every one?
+Contains    → Does value exist?
+First       → First match
+Single      → Exactly one
+Count       → Number of elements
+Sum         → Total
+Min / Max   → Smallest / largest
+Average     → Mean
+Distinct    → Remove duplicates
+Skip        → Ignore first N
+Take        → Get first N
+ToList      → Materialize as List
+ToArray     → Materialize as Array
+ToDictionary→ Materialize as Dictionary
+
+## Async Programming in C#
+
+order:
+
+Synchronous vs Asynchronous programming
+async and await
+Task and Task< T >
+How async/await actually works
+Task.Run()
+I/O-bound vs CPU-bound operations
+Task.WhenAll() vs Task.WhenAny()
+Exception handling in async code
+async void and why to avoid it
+CancellationToken
+Common async/await interview traps
+Practical backend/Web API scenarios
+
+### Synchronous vs Asynchronous
+
+#### Synchronous
+
+Code executes **one operation at a time** and waits for it to finish.
+
+<pre class="overflow-visible! px-0!" data-start="994" data-end="1071"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataFromDatabase</span><span>();
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">result</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If `GetDataFromDatabase()` takes 5 seconds:
+
+<pre class="overflow-visible! px-0!" data-start="1118" data-end="1182"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Start
+  ↓
+Wait 5 seconds
+  ↓
+Get result
+  ↓
+Continue</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The calling thread is blocked while waiting.
+
+#### Asynchronous
+
+With asynchronous programming, we can start an operation and  **not block the thread while waiting for an I/O operation to complete** .
+
+<pre class="overflow-visible! px-0!" data-start="1388" data-end="1476"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">result </span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await </span><span></span><span class="ͼ11">GetDataFromDatabaseAsync</span><span>();
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">result</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1493" data-end="1637"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Start DB operation
+      ↓
+   Waiting...
+      ↓
+Thread can do other work
+      ↓
+DB operation completes
+      ↓
+Continue from await</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is particularly useful for:
+
+* Database calls
+* HTTP API calls
+* File operations
+* Network operations
+
+### What is `async`?
+
+`async` tells C# that a method contains asynchronous operations and can use `await`.
+
+Example: But remember:
+
+> **`async` by itself does not make a method asynchronous.**
+
+The actual asynchronous operation generally comes from something being awaited.
+
+#### One important point
+
+Don't think:
+
+> `async` = creates a new thread.
+
+That's  **not necessarily true** .
+
+For example, when you're doing:
+
+<pre class="overflow-visible! px-0!" data-start="3776" data-end="3821"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+the HTTP request is I/O-bound. `await` allows the thread to be released while the I/O operation is in progress.
+
+This is one of the most important concepts for .NET backend interviews.
+
+#### Types
+
+There are three common return types for async methods:
+
+async Task
+async Task< T>
+async void
+
+### What is await?
+
+await tells the program:
+
+"Wait for this asynchronous operation to complete, but don't block the thread while waiting."
+
+Example:
+
+public async Task<string></string> GetUserNameAsync()
+{
+    string name = await GetUserNameFromDatabaseAsync();
+
+    return name;
+}
+
+The important distinction is:
+
+#### Blocking
+
+var result = task.Result; -> The thread waits/block.
+
+var result = await task; -> Asynchronous waiting
+
+The method is suspended until the task completes, without synchronously blocking the thread.
+
+### What is Task?
+
+Task represents an asynchronous operation.
+
+Think of it as:
+
+"An operation that may finish sometime in the future."
+
+Example:
+
+Task task = DoSomethingAsync();
+
+For an operation that returns a value:
+
+Task< int > task = GetNumberAsync();
+
+After awaiting:
+
+int number = await GetNumberAsync();
+
+So:
+
+
+| Type      | Meaning                              |
+| ----------- | -------------------------------------- |
+| `Task`    | Async operation with no return value |
+| `Task<T>` | Async operation that returns`T`      |
+
+Example:
+
+public async Task SaveUserAsync()
+{
+    // save user
+}
+
+and:
+
+public async Task< user> GetUserAsync()
+{
+    // return user
+}
+
+#### Comparison:
+
+
+| Type            | Meaning                        | Example                           |
+| ----------------- | -------------------------------- | ----------------------------------- |
+| `Task`          | Async operation without result | Save data                         |
+| `Task<T>`       | Async operation with result    | Get user                          |
+| `await Task`    | Wait for operation             | `await SaveAsync()`               |
+| `await Task<T>` | Get result                     | `var user = await GetUserAsync()` |
+
+#### Is a `Task` a Thread?
+
+NO. Task is an abstraction representing work/operation and its eventual completion. A thread is an actual execution resource.
+
+#### `Task.Run()`?
+
+<pre class="overflow-visible! px-0!" data-start="1859" data-end="1911"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">DoSomeWork</span><span>();
+});</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`Task.Run()` is commonly used to schedule  **CPU-bound work on a ThreadPool thread** .
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="2013" data-end="2079"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">CalculateSomething</span><span>();
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2096" data-end="2203"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Current thread
+      ↓
+Task.Run()
+      ↓
+ThreadPool
+      ↓
+Worker thread executes calculation</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But don't conclude:
+
+> "Whenever I use async, I should use Task.Run()."
+
+That's  **wrong** .
+
+#### Common mistake
+
+Don't do this unnecessarily:
+
+<pre class="overflow-visible! px-0!" data-start="2946" data-end="3035"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(</span><span class="ͼv">async</span><span> () </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If `HttpClient.GetAsync()` is already asynchronous I/O, wrapping it in `Task.Run()` generally adds unnecessary ThreadPool scheduling.
+
+Prefer:
+
+<pre class="overflow-visible! px-0!" data-start="3181" data-end="3241"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">response</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Does every `Task` use a ThreadPool thread?
+
+**No.** A `Task` doesn't necessarily represent work executing on a ThreadPool thread.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="3426" data-end="3471"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+is an asynchronous I/O operation.
+
+The HTTP operation doesn't require a ThreadPool thread to sit there blocked waiting for the network response.
+
+Whereas:
+
+<pre class="overflow-visible! px-0!" data-start="3629" data-end="3677"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span></span><span class="ͼ11">Calculate</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+specifically schedules the CPU-bound delegate to the ThreadPool.
+
+### I/O-bound vs CPU-bound
+
+#### I/O-bound
+
+Examples:
+
+* Database query
+* HTTP request
+* File I/O
+* Network request
+
+Usually:
+
+<pre class="overflow-visible! px-0!" data-start="2471" data-end="2529"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">user</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetUserFromDatabaseAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You generally **don't need `Task.Run()`** for this.
+
+#### CPU-bound
+
+Examples:
+
+* Large calculations
+* Image processing
+* Complex data processing
+* CPU-intensive algorithms
+
+You might use:
+
+<pre class="overflow-visible! px-0!" data-start="2725" data-end="2782"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span></span><span class="ͼ11">PerformCalculation</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+when appropriate, particularly in applications where you want to move CPU work off the current thread.
+
+### async and await example:
+
+Let's understand it with a simple example.
+
+public async Task<string></string> GetDataAsync()
+{
+    Console.WriteLine("1. Start");
+
+    string result = await GetDataFromApiAsync();
+
+    Console.WriteLine("2. After await");
+
+    return result;
+}
+
+Suppose GetDataFromApiAsync() takes 3 seconds.
+
+What happens?
+GetDataAsync()
+      │
+      ▼
+"1. Start"
+      │
+      ▼
+GetDataFromApiAsync()
+      │
+      ▼
+await
+      │
+      ├── API is still working
+      │
+      └── GetDataAsync() pauses
+                │
+                │  Thread is NOT blocked
+                ▼
+         API completes
+                │
+                ▼
+       Continue after await
+                │
+                ▼
+        "2. After await"
+                │
+                ▼
+             return
+
+The important part is this:
+
+await GetDataFromApiAsync();
+
+await doesn't mean:
+
+"Block this thread until the API finishes."
+
+Instead, it essentially means:
+
+"When this operation finishes, continue executing this method from here."
+
+### `await` doesn't necessarily pause
+
+Suppose the task is already completed:
+
+Task<int></int> task = Task.FromResult(10);
+
+int result = await task;
+
+Since the task has already completed, execution can continue immediately.
+
+So technically:
+
+await asynchronously waits when necessary; if the awaited operation is already complete, execution can continue synchronously.
+
+This is a good interview-level detail.
+
+### useful in Web APIs
+
+Imagine your API receives 100 requests.
+
+Each request needs to query SQL Server.
+
+Synchronous approach
+public User GetUser(int id)
+{
+    return database.GetUser(id);
+}
+
+While waiting for the database:
+
+Thread 1 → waiting for DB
+Thread 2 → waiting for DB
+Thread 3 → waiting for DB
+...
+
+Threads can become tied up waiting for I/O.
+
+Asynchronous approach
+public async Task<User></user> GetUserAsync(int id)
+{
+    return await database.GetUserAsync(id);
+}
+
+While SQL Server is processing the query, the thread doesn't need to sit blocked waiting.
+
+This allows the server to use its thread resources more efficiently under concurrent I/O-heavy workloads.
+
+### async + await + Task together
+
+You should understand these three as a group:
+
+public async Task<User></user> GetUserAsync()
+{
+    User user = await GetUserFromDatabaseAsync();
+
+    return user;
+}
+
+async -> Allows the method to use await.
+
+await -> Asynchronously waits for the operation.
+
+Task -> Represents the eventual result of the asynchronous operation.
+
+Think:
+
+async
+  ↓
+method can await
+  ↓
+await Task<User></user>
+  ↓
+eventual User result
+
+### Does `await` create a new thread?
+
+No. `await` does not inherently create a new thread. For I/O-bound operations such as database or HTTP calls, it allows the current thread to be released while the operation is in progress, and the method continues when the operation completes.
+
+### Thread.Sleep vs Task.Delay
+
+Don't confuse:
+
+<pre class="overflow-visible! px-0!" data-start="3837" data-end="3874"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await </span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Delay</span><span>(</span><span class="ͼy">5000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+with:
+
+<pre class="overflow-visible! px-0!" data-start="3883" data-end="3916"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Thread</span><span>.</span><span class="ͼ11">Sleep</span><span>(</span><span class="ͼy">5000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Thread.Sleep -> The thread is  **blocked for 5 seconds** .
+
+Task.Delay -> The asynchronous method waits without synchronously blocking the thread.
+
+So:
+
+<pre class="overflow-visible! px-0!" data-start="4151" data-end="4245"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread.Sleep
+→ Thread blocked
+
+await Task.Delay
+→ Thread not synchronously blocked</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+### `Task.WhenAll()` vs `Task.WhenAny()`
+
+#### Task.WhenAll()
+
+`Task.WhenAll()` waits for  **all tasks to complete** .
+
+Imagine your API needs data from three independent services:
+
+<pre class="overflow-visible! px-0!" data-start="286" data-end="464"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">usersTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetUsersAsync</span><span>();
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">productsTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetProductsAsync</span><span>();
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">ordersTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetOrdersAsync</span><span>();
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(</span><span class="ͼ11">usersTask</span><span>, </span><span class="ͼ11">productsTask</span><span>, </span><span class="ͼ11">ordersTask</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The three operations can be started without waiting for each one sequentially.
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="561" data-end="803"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>                ┌── GetUsersAsync() ────┐
+                │                       │
+Start ──────────┼── GetProductsAsync() ─┼──→ WhenAll completes
+                │                       │
+                └── GetOrdersAsync() ───┘</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Only after **all three** finish does:
+
+<pre class="overflow-visible! px-0!" data-start="844" data-end="882"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(...);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+complete.
+
+ Why is this useful?
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="930" data-end="1022"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Users API      → 2 seconds
+Products API   → 3 seconds
+Orders API     → 4 seconds</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If they're independent and started concurrently, the overall waiting time is roughly the longest operation:
+
+<pre class="overflow-visible! px-0!" data-start="1133" data-end="1156"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>≈ 4 seconds</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Instead of:
+
+<pre class="overflow-visible! px-0!" data-start="1171" data-end="1204"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>2 + 3 + 4 = 9 seconds</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Don't accidentally make them sequential
+
+❌ This is sequential:
+
+<pre class="overflow-visible! px-0!" data-start="1291" data-end="1419"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetUsersAsync</span><span>();
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">products</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetProductsAsync</span><span>();
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">orders</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetOrdersAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Execution:
+
+<pre class="overflow-visible! px-0!" data-start="1433" data-end="1472"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Users
+ ↓
+Products
+ ↓
+Orders</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If they take 2 + 3 + 4 seconds, you're waiting roughly 9 seconds.
+
+##### Better when operations are independent
+
+<pre class="overflow-visible! px-0!" data-start="1590" data-end="1864"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">usersTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetUsersAsync</span><span>();
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">productsTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetProductsAsync</span><span>();
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">ordersTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetOrdersAsync</span><span>();
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(</span><span class="ͼ11">usersTask</span><span>, </span><span class="ͼ11">productsTask</span><span>, </span><span class="ͼ11">ordersTask</span><span>);
+
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">users</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">usersTask</span><span>;
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">products</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">productsTask</span><span>;
+</span><span class="ͼv">var </span><span></span><span class="ͼ11">orders</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">ordersTask</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Execution:
+
+<pre class="overflow-visible! px-0!" data-start="1878" data-end="1966"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Users     ────────┐
+Products  ────────┼──→ All completed
+Orders    ────────┘</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+##### Task.WhenAll() with results
+
+There's an even cleaner approach.
+
+Suppose:
+
+Task<List<User></user>> usersTask = GetUsersAsync();
+Task<List<Product></product>> productsTask = GetProductsAsync();
+
+You can do:
+
+var results = await Task.WhenAll(usersTask, productsTask);
+
+But because these have different result types, it's often clearer to await the individual tasks after WhenAll.
+
+Another common pattern when all tasks have the same result type:
+
+var task1 = GetUserAsync(1);
+var task2 = GetUserAsync(2);
+var task3 = GetUserAsync(3);
+
+User[] users = await Task.WhenAll(task1, task2, task3);
+
+WhenAll returns a task containing an array of all results.
+
+##### `Does WhenAll() create multiple threads?`
+
+**No.** It coordinates multiple tasks. Whether those tasks use threads depends on what operations the tasks represent.
+
+##### Only use WhenAll() if operations are independant
+
+Don't blindly use `WhenAll()`.
+
+If operation B **depends on** operation A:
+
+<pre class="overflow-visible! px-0!" data-start="4983" data-end="5074"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">user</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetUserAsync</span><span>();
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">orders</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetOrdersAsync</span><span>(</span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">Id</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+They cannot meaningfully be started together because you need the user's ID first.
+
+So `WhenAll()` is appropriate when operations are  **independent** .
+
+#### Task.WhenAny()
+
+`Task.WhenAny()` is different.
+
+It completes when  **the first task finishes** .
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="2780" data-end="2973"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">task1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataFromServer1Async</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataFromServer2Async</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task3</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataFromServer3Async</span><span>();
+
+</span><span class="ͼ11">Task</span><span></span><span class="ͼ11">completedTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAny</span><span>(</span><span class="ͼ11">task1</span><span>, </span><span class="ͼ11">task2</span><span>, </span><span class="ͼ11">task3</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="2990" data-end="3093"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Server 1 ──────────────── 5 sec
+Server 2 ───── 2 sec ────→ FIRST
+Server 3 ─────────── 4 sec</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+`WhenAny()` returns as soon as Server 2's task completes.
+
+##### `WhenAll` vs `WhenAny`
+
+
+| `Task.WhenAll()`                 | `Task.WhenAny()`                           |
+| ---------------------------------- | -------------------------------------------- |
+| Waits for**all**tasks            | Waits for**first**task                     |
+| Used when all results are needed | Used when first completed result is useful |
+| Completes after the slowest task | Completes after the fastest task           |
+| Common for independent API calls | Useful for racing/fallback scenarios       |
+
+##### Practical example: `WhenAny`
+
+Imagine you have two services that provide the same information:
+
+<pre class="overflow-visible! px-0!" data-start="3630" data-end="3685"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Service A → 5 seconds
+Service B → 2 seconds</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You could start both:
+
+<pre class="overflow-visible! px-0!" data-start="3710" data-end="3887"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">serviceATask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetFromServiceAAsync</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">serviceBTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetFromServiceBAsync</span><span>();
+
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">completedTask</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAny</span><span>(
+    </span><span class="ͼ11">serviceATask</span><span>,
+    </span><span class="ͼ11">serviceBTask</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then retrieve the result from the completed task:
+
+<pre class="overflow-visible! px-0!" data-start="3940" data-end="3987"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">completedTask</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The faster service can provide the result first.
+
+**Note:** `WhenAny()` does not automatically cancel the other tasks. If you don't need the remaining operations, cancellation should be handled separately, commonly with `CancellationToken`.
+
+### Exception Handling in Async Code
+
+#### `try/catch` works with `await`
+
+You can handle exceptions from an asynchronous operation using normal `try/catch`.
+
+<pre class="overflow-visible! px-0!" data-start="355" data-end="593"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">GetUserAsync</span><span>()
+{
+    </span><span class="ͼv">try</span><span>
+    {
+        </span><span class="ͼv">var</span><span></span><span class="ͼ11">user</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetUserFromDatabaseAsync</span><span>();
+
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">Name</span><span>);
+    }
+    </span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+    {
+        </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">ex</span><span>.</span><span class="ͼ11">Message</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If `GetUserFromDatabaseAsync()` throws an exception, execution jumps to:
+
+<pre class="overflow-visible! px-0!" data-start="669" data-end="688"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+just like normal synchronous code. The exception can be caught naturally around the `await`.
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1316" data-end="1361"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span></span><span class="ͼ11">task</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">DoSomethingAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+At this point, you're just holding the `Task`.
+
+If the operation later fails, you haven't necessarily observed that exception yet.
+
+#### `await` vs `.Wait()` vs `.Result`
+
+ Recommended
+
+<pre class="overflow-visible! px-0!" data-start="1786" data-end="1834"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetDataAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+ Synchronous blocking
+
+<pre class="overflow-visible! px-0!" data-start="1862" data-end="1911"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or:
+
+<pre class="overflow-visible! px-0!" data-start="1918" data-end="1954"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Wait</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+These synchronously block the calling thread.
+
+In application code, especially server/UI environments, blocking async operations can cause:
+
+* Thread starvation
+* Poor scalability
+* Deadlocks in some synchronization-context environments
+
+Therefore: Prefer `await` all the way through asynchronous code instead of blocking with `.Result` or `.Wait()`.
+
+Also with .Wait() and .Result - the weception handling behavior differs, blocking the Apis can surface exceprion wrapped in AggregateException.
+
+#### Multiple tasks and exceptions
+
+Now consider:
+
+<pre class="overflow-visible! px-0!" data-start="2931" data-end="3142"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">task1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Method1Async</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Method2Async</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task3</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Method3Async</span><span>();
+
+</span><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(</span><span class="ͼ11">task1</span><span>, </span><span class="ͼ11">task2</span><span>, </span><span class="ͼ11">task3</span><span>);
+}
+</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">ex</span><span>.</span><span class="ͼ11">Message</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If one or more tasks fail, `WhenAll` produces a faulted task, and awaiting it throws an exception.
+
+But there's an important detail:
+
+> `Task.WhenAll()` waits for all supplied tasks to complete; it doesn't stop the other tasks merely because one task fails.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="3417" data-end="3647"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Task 1 ─────────────── Success
+Task 2 ─────── X       Failed
+Task 3 ───────────────────── Success
+                         ↓
+                    WhenAll completes
+                         ↓
+                       catch</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If you need to inspect individual failures, you can inspect the tasks or the `WhenAll` task's exception information.
+
+#### MindMap
+
+<pre class="overflow-visible! px-0!" data-start="5004" data-end="5147"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span>async/await
+    ↓
+Exception occurs in async operation
+    ↓
+Task becomes Faulted
+    ↓
+await observes it
+    ↓
+try/catch handles it</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="5155" data-end="5243"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>.Result / .Wait()
+       ↓
+Synchronous blocking
+       ↓
+Avoid in async code</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+### async void - should be avoided
+
+The major reason is that this is not a Task, so it can't be awaited.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="757" data-end="841"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼv">void</span><span></span><span class="ͼ11">SaveUserAsync</span><span>()
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">SaveToDatabaseAsync</span><span>();
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The caller  **cannot await it** :
+
+<pre class="overflow-visible! px-0!" data-start="876" data-end="906"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">SaveUserAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+There is no `Task` for the caller to observe.
+
+That's the major problem.
+
+#### Why is `async void` problematic?
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1034" data-end="1136"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼ11">SaveUserAsync</span><span>();
+}
+</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">ex</span><span>.</span><span class="ͼ11">Message</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You might expect the `catch` to handle an exception thrown by `SaveUserAsync()`.
+
+But it generally  **cannot handle exceptions that occur asynchronously after the method has returned** .
+
+Why?
+
+Because:
+
+<pre class="overflow-visible! px-0!" data-start="1340" data-end="1514"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>SaveUserAsync()
+      ↓
+starts async operation
+      ↓
+returns immediately
+      ↓
+caller continues
+      ↓
+try block finishes
+      ↓
+async operation later fails</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The caller doesn't have a `Task` to await and observe.
+
+ Compare with `async Task`
+
+<pre class="overflow-visible! px-0!" data-start="1606" data-end="1714"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">SaveUserAsync</span><span>();
+}
+</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼ11">ex</span><span>.</span><span class="ͼ11">Message</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Now:
+
+<pre class="overflow-visible! px-0!" data-start="1722" data-end="1802"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>await
+ ↓
+operation
+ ↓
+exception
+ ↓
+await observes exception
+ ↓
+catch</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Much safer and easier to compose.
+
+#### When is `async void` actually appropriate?
+
+There is one important exception: **Event handlers**
+
+For example, in UI applications:
+
+private async void Button_Click(object sender, EventArgs e)
+{
+    await SaveDataAsync();
+}
+
+Event-handler signatures often require void, so async void is appropriate there.
+
+This is the classic rule:
+
+Use async void only for event handlers.
+
+For normal application/service methods, prefer: async Task or async Task< T >
+
+#### MindMap
+
+Normal async method
+        ↓
+     async Task
+        ↓
+    caller can await
+
+Async method with result
+        ↓
+    async Task<T></t>
+        ↓
+    caller gets T
+
+Event handler
+        ↓
+     async void
+
+### `CancellationToken`
+
+`CancellationToken` is used to  **request cancellation of an asynchronous operation** .
+
+#### Why do we need cancellation?
+
+Imagine your API starts a long-running operation:
+
+<pre class="overflow-visible! px-0!" data-start="291" data-end="348"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">result </span><span></span><span class="ͼv">=</span><span></span><span class="ͼv"> await </span><span></span><span class="ͼ11">ProcessLargeFileAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+But the client closes the browser or cancels the request.
+
+Without cancellation, the server might continue doing unnecessary work.
+
+With `CancellationToken`, the operation can be told: "Please stop if cancellation has been requested."
+
+#### CancellationTokenSource
+
+A `CancellationTokenSource` is responsible for  **requesting cancellation** .
+
+<pre class="overflow-visible! px-0!" data-start="703" data-end="795"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var </span><span></span><span class="ͼ11">cts </span><span></span><span class="ͼv">=</span><span></span><span class="ͼv"> new </span><span></span><span class="ͼ11">CancellationTokenSource</span><span>();
+
+</span><span class="ͼ11">CancellationToken </span><span></span><span class="ͼ11">token </span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11"> cts</span><span>.</span><span class="ͼ11">Token</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Then:
+
+<pre class="overflow-visible! px-0!" data-start="804" data-end="831"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">cts</span><span>.</span><span class="ͼ11">Cancel</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+requests cancellation.
+
+Think:
+
+<pre class="overflow-visible! px-0!" data-start="865" data-end="1010"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>CancellationTokenSource
+        │
+        ├── creates token
+        │
+        ▼
+CancellationToken
+        │
+        ▼
+Async operation</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### CancellationToken doesn't forcibly kill a task
+
+Calling:
+
+<pre class="overflow-visible! px-0!" data-start="1575" data-end="1602"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">cts</span><span>.</span><span class="ͼ11">Cancel</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+does **not** forcibly terminate the running method.
+
+It simply signals:
+
+> "Cancellation has been requested."
+
+The operation must **cooperate** with cancellation.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1782" data-end="1833"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">token</span><span>.</span><span class="ͼ11">ThrowIfCancellationRequested</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+checks the request.
+
+Or an API may accept the token:
+
+<pre class="overflow-visible! px-0!" data-start="1889" data-end="1933"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Delay</span><span>(</span><span class="ͼy">5000</span><span>, </span><span class="ͼ11">token</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+and respond to cancellation.
+
+#### IsCancellationRequested
+
+You can manually check the token:
+
+<pre class="overflow-visible! px-0!" data-start="2037" data-end="2101"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">if</span><span> (</span><span class="ͼ11">token</span><span>.</span><span class="ͼ11">IsCancellationRequested</span><span>)
+{
+    </span><span class="ͼv">return</span><span>;
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="2113" data-end="2331"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">ProcessAsync</span><span>(</span><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">token</span><span>)
+{
+    </span><span class="ͼv">for</span><span> (</span><span class="ͼ11">int</span><span></span><span class="ͼ11">i</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>; </span><span class="ͼ11">i</span><span></span><span class="ͼv"><</span><span></span><span class="ͼy">100</span><span>; </span><span class="ͼ11">i</span><span class="ͼv">++</span><span>)
+    {
+        </span><span class="ͼv">if</span><span> (</span><span class="ͼ11">token</span><span>.</span><span class="ͼ11">IsCancellationRequested</span><span>)
+            </span><span class="ͼv">return</span><span>;
+
+        </span><span class="ͼv">await</span><span></span><span class="ͼ11">ProcessItemAsync</span><span>(</span><span class="ͼ11">i</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### ThrowIfCancellationRequested()
+
+Another common approach:
+
+<pre class="overflow-visible! px-0!" data-start="2403" data-end="2454"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">token</span><span>.</span><span class="ͼ11">ThrowIfCancellationRequested</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If cancellation was requested, it throws:
+
+<pre class="overflow-visible! px-0!" data-start="2499" data-end="2537"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>OperationCanceledException</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="2549" data-end="2750"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">ProcessAsync</span><span>(</span><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">token</span><span>)
+{
+    </span><span class="ͼv">for</span><span> (</span><span class="ͼ11">int</span><span></span><span class="ͼ11">i</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>; </span><span class="ͼ11">i</span><span></span><span class="ͼv"><</span><span></span><span class="ͼy">100</span><span>; </span><span class="ͼ11">i</span><span class="ͼv">++</span><span>)
+    {
+        </span><span class="ͼ11">token</span><span>.</span><span class="ͼ11">ThrowIfCancellationRequested</span><span>();
+
+        </span><span class="ͼv">await</span><span></span><span class="ͼ11">ProcessItemAsync</span><span>(</span><span class="ͼ11">i</span><span>);
+    }
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You can handle it:
+
+<pre class="overflow-visible! px-0!" data-start="2772" data-end="2910"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">ProcessAsync</span><span>(</span><span class="ͼ11">token</span><span>);
+}
+</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">OperationCanceledException</span><span>)
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Operation cancelled."</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### `CancellationToken` in ASP.NET Core
+
+An ASP.NET Core controller/action can accept a CancellationToken:
+
+[HttpGet]
+public async Task<IActionResult></iactionresult> GetUsers(
+    CancellationToken cancellationToken)
+{
+    var users = await userService.GetUsersAsync(cancellationToken);
+
+    return Ok(users);
+}
+
+The token can then be passed down:
+
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+Database/API
+
+Example:
+
+public async Task<List<User></user>> GetUsersAsync(
+    CancellationToken cancellationToken)
+{
+    return await dbContext.Users
+        .ToListAsync(cancellationToken);
+}
+
+This allows cancellation to propagate through the application.
+
+#### Timeout using `CancellationTokenSource`
+
+You can also create a token that automatically cancels after a timeout.
+
+<pre class="overflow-visible! px-0!" data-start="3777" data-end="3897"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">using</span><span></span><span class="ͼv">var</span><span></span><span class="ͼ11">cts</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">CancellationTokenSource</span><span>(
+    </span><span class="ͼ11">TimeSpan</span><span>.</span><span class="ͼ11">FromSeconds</span><span>(</span><span class="ͼy">5</span><span>));
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">ProcessAsync</span><span>(</span><span class="ͼ11">cts</span><span>.</span><span class="ͼ11">Token</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+If the operation doesn't finish within 5 seconds, cancellation is requested.
+
+Another common API:
+
+<pre class="overflow-visible! px-0!" data-start="3998" data-end="4133"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">using</span><span></span><span class="ͼv">var</span><span></span><span class="ͼ11">cts</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">CancellationTokenSource</span><span>();
+
+</span><span class="ͼ11">cts</span><span>.</span><span class="ͼ11">CancelAfter</span><span>(</span><span class="ͼ11">TimeSpan</span><span>.</span><span class="ͼ11">FromSeconds</span><span>(</span><span class="ͼy">5</span><span>));
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">ProcessAsync</span><span>(</span><span class="ͼ11">cts</span><span>.</span><span class="ͼ11">Token</span><span>);</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Cancellation vs Exception
+
+A cancellation normally results in:
+
+<pre class="overflow-visible! px-0!" data-start="4209" data-end="4249"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">OperationCanceledException</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is different from an unexpected failure such as:
+
+<pre class="overflow-visible! px-0!" data-start="4306" data-end="4345"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">InvalidOperationException</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="4362" data-end="4463"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Normal failure
+     ↓
+Exception
+
+Requested cancellation
+     ↓
+OperationCanceledException</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Questions:
+
+##### What is `CancellationToken`?
+
+> `CancellationToken` provides a mechanism for communicating a cancellation request to an asynchronous operation.
+
+##### Does CancellationToken forcibly stop a method?
+
+> No. Cancellation is cooperative. The operation must observe the token and respond appropriately.
+
+##### What is `CancellationTokenSource`?
+
+> It creates and manages cancellation tokens and provides methods such as `Cancel()` and `CancelAfter()` to request cancellation.
+
+##### How do you check for cancellation?
+
+Two common ways:
+
+<pre class="overflow-visible! px-0!" data-start="5037" data-end="5080"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">token</span><span>.</span><span class="ͼ11">IsCancellationRequested</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or:
+
+<pre class="overflow-visible! px-0!" data-start="5087" data-end="5138"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">token</span><span>.</span><span class="ͼ11">ThrowIfCancellationRequested</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+##### Why is cancellation useful in ASP.NET Core?
+
+> It allows request-related asynchronous work to stop when cancellation is requested, helping avoid unnecessary processing and resource usage.
+
+CancellationTokenSource
+          ↓
+      Token created
+          ↓
+Token passed to async operation
+          ↓
+Cancellation requested
+          ↓
+Operation detects cancellation
+          ↓
+Operation stops gracefully
+
+### Async/Await — Common Interview Traps
+
+#### Does an `async` method execute asynchronously immediately?
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="209" data-end="344"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">DoWorkAsync</span><span>()
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"A"</span><span>);
+
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Delay</span><span>(</span><span class="ͼy">1000</span><span>);
+
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"B"</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="352" data-end="430"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"1"</span><span>);
+
+</span><span class="ͼ11">DoWorkAsync</span><span>();
+
+</span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"2"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The output is typically:
+
+<pre class="overflow-visible! px-0!" data-start="458" data-end="477"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>1
+A
+2
+B</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ Why? Calling an `async` method **starts executing synchronously** until it reaches an `await` whose operation has not completed. So:
+
+<pre class="overflow-visible! px-0!" data-start="619" data-end="774"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>DoWorkAsync()
+     ↓
+"A"
+     ↓
+await Task.Delay(...)
+     ↓
+method yields
+     ↓
+caller continues
+     ↓
+"2"
+     ↓
+Delay completes
+     ↓
+"B"</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is a very useful interview concept.
+
+#### `async` does NOT automatically mean "run on another thread"
+
+This is worth repeating because it's a common misconception.
+
+<pre class="overflow-visible! px-0!" data-start="951" data-end="1037"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">GetDataAsync</span><span>()
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This does **not** mean:
+
+<pre class="overflow-visible! px-0!" data-start="1064" data-end="1142"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1
+   ↓
+creates Thread 2
+   ↓
+Thread 2 performs HTTP request</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For asynchronous I/O, the operation can proceed without a thread sitting blocked waiting for the response.
+
+#### The `.Result` / `.Wait()` trap
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1305" data-end="1354"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This blocks the current thread.
+
+In some environments, particularly those with a synchronization context, this can lead to a  **deadlock** .
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1511" data-end="1668"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Main thread
+    ↓
+.Result
+    ↓
+waiting for async method
+    ↓
+async method wants to resume
+    ↓
+needs the blocked context/thread
+    ↓
+DEADLOCK</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Therefore:
+
+❌ Avoid:
+
+<pre class="overflow-visible! px-0!" data-start="1692" data-end="1741"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+❌ Avoid:
+
+<pre class="overflow-visible! px-0!" data-start="1753" data-end="1789"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Wait</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+✅ Prefer:
+
+<pre class="overflow-visible! px-0!" data-start="1802" data-end="1850"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetDataAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### What is `ConfigureAwait(false)`?
+
+You'll often hear this in .NET interviews:
+
+<pre class="overflow-visible! px-0!" data-start="1940" data-end="2008"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">SomeOperationAsync</span><span>()
+    .</span><span class="ͼ11">ConfigureAwait</span><span>(</span><span class="ͼy">false</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Normally, in environments with a synchronization context, an `await` can capture the current context and attempt to resume there.
+
+`ConfigureAwait(false)` tells the awaiter:
+
+> "I don't need to resume on the captured context."
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="2248" data-end="2417"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span></span><span class="ͼ11">ProcessAsync</span><span>()
+{
+    </span><span class="ͼv">await</span><span></span><span class="ͼ11">SomeOperationAsync</span><span>()
+        .</span><span class="ͼ11">ConfigureAwait</span><span>(</span><span class="ͼy">false</span><span>);
+
+    </span><span class="ͼt">// Continue without requiring the captured context</span><span>
+}</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Is `ConfigureAwait(false)` required in ASP.NET Core?
+
+This is where interview answers can become outdated.
+
+**ASP.NET Core generally doesn't have the classic ASP.NET/UI `SynchronizationContext` behavior.**
+
+Therefore, `ConfigureAwait(false)` usually isn't required merely to prevent the classic synchronization-context deadlock in normal ASP.NET Core application code.
+
+You may still see it in reusable libraries where the library doesn't want to depend on a caller's context.
+
+### Interview answer
+
+> `ConfigureAwait(false)` prevents an await from capturing and requiring the current synchronization context for its continuation. It's particularly relevant to libraries and environments with a synchronization context; it is generally less important in ASP.NET Core because ASP.NET Core doesn't use the classic request `SynchronizationContext`.
+
+#### What is a SynchronizationContext?
+
+A `SynchronizationContext` provides a mechanism for scheduling continuations back to a particular execution context.
+
+This matters especially in environments such as:
+
+* UI applications
+* Older ASP.NET
+
+For example, a UI application generally wants UI-related code to resume on the UI thread.
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="3630" data-end="3732"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>UI Thread
+   ↓
+await
+   ↓
+I/O operation
+   ↓
+operation completes
+   ↓
+resume on UI context</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is one reason `.Result`/`.Wait()` can be dangerous in such environments.
+
+#### Does ASP.NET Core have SynchronizationContext?
+
+Normally,  **no custom request `SynchronizationContext` is installed by ASP.NET Core** .
+
+This means the classic:
+
+<pre class="overflow-visible! px-0!" data-start="3984" data-end="4019"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+deadlock scenario associated with older ASP.NET/UI synchronization contexts is less applicable to ordinary ASP.NET Core code.
+
+However, `.Result` and `.Wait()` are still undesirable because they **block threads** and can hurt scalability.
+
+So the best practice remains:
+
+<pre class="overflow-visible! px-0!" data-start="4292" data-end="4327"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">GetDataAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Async all the way
+
+A very important principle:
+
+If an operation is asynchronous, keep the call chain asynchronous.
+
+For example:
+
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+Database
+
+Prefer:
+
+public async Task<User></user> GetUserAsync()
+{
+    return await repository.GetUserAsync();
+}
+
+rather than:
+
+public User GetUser()
+{
+    return repository.GetUserAsync().Result;
+}
+
+The second approach introduces synchronous blocking into an asynchronous call chain.
+
+#### MindMap:
+
+<pre class="overflow-visible! px-0!" data-start="5759" data-end="6089"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>async method starts
+       ↓
+executes normally
+       ↓
+      await
+       ↓
+Is operation complete?
+    ↙          ↘
+  Yes           No
+   ↓             ↓
+continue      yield control
+                 ↓
+          operation completes
+                 ↓
+             continuation
+                 ↓
+              continue</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+### Async/Await in ASP.NET Core
+
+A typical .NET Web API flow looks like:
+
+HTTP Request
+     ↓
+Controller
+     ↓
+Service
+     ↓
+Repository
+     ↓
+Database
+
+We'll see how async, await, Task<T></t>, and CancellationToken flow through all these layers.
+
+#### 1. Controller
+
+Suppose we have an API to get a user.
+
+[HttpGet("{id}")]
+public async Task< IActionResult > GetUser(
+    int id,
+    CancellationToken cancellationToken)
+{
+    var user = await userService.GetUserAsync(
+        id,
+        cancellationToken);
+
+    return Ok(user);
+}
+
+Notice:
+
+async Task< IActionResult ><IActionResult></iactionresult>
+
+The controller action is asynchronous.
+
+And:
+
+await userService.GetUserAsync(...)
+
+asynchronously waits for the service.
+
+#### 2. Service layer
+
+The service can also be asynchronous:
+
+public async Task< **User**> GetUserAsync(
+    int id,
+    CancellationToken cancellationToken)
+{
+    return await userRepository.GetUserAsync(
+        id,
+        cancellationToken);
+}
+
+Here:
+
+Controller
+    ↓ await
+Service
+    ↓ await
+Repository
+
+The asynchronous nature flows through the call chain.
+
+#### 3. Repository
+
+The repository might use Entity Framework Core:
+
+public async Task<User?> GetUserAsync(
+    int id,
+    CancellationToken cancellationToken)
+{
+    return await dbContext.Users
+        .FirstOrDefaultAsync(
+            u => u.Id == id,
+            cancellationToken);
+}
+
+The database operation is I/O-bound, so asynchronous database APIs are appropriate.
+
+Putting everything together:
+
+<pre class="overflow-visible! px-0!" data-start="1670" data-end="1914"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>HTTP Request
+     ↓
+Controller
+     │
+     │ await
+     ↓
+Service
+     │
+     │ await
+     ↓
+Repository
+     │
+     │ await
+     ↓
+Database
+     │
+     │ result
+     ↓
+Repository
+     ↓
+Service
+     ↓
+Controller
+     ↓
+HTTP Response</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+#### Why async matters here
+
+Suppose the database takes 500 ms to respond.
+
+With synchronous blocking:
+
+<pre class="overflow-visible! px-0!" data-start="2025" data-end="2091"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request
+  ↓
+Thread
+  ↓
+DB query
+  ↓
+Thread waits 500ms</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+With asynchronous I/O:
+
+<pre class="overflow-visible! px-0!" data-start="2117" data-end="2236"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request
+  ↓
+DB query
+  ↓
+await
+  ↓
+thread doesn't synchronously block
+  ↓
+DB completes
+  ↓
+method continues</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is especially useful when your application handles many concurrent I/O operations.
+
+#### Why `CancellationToken` should flow through the layers
+
+Notice that we passed:
+
+<pre class="overflow-visible! px-0!" data-start="2417" data-end="2466"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">cancellationToken</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+from the controller all the way to the database.
+
+<pre class="overflow-visible! px-0!" data-start="2518" data-end="2676"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Controller
+    │
+    │ CancellationToken
+    ↓
+Service
+    │
+    │ CancellationToken
+    ↓
+Repository
+    │
+    │ CancellationToken
+    ↓
+Database</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is called  **cancellation propagation** .
+
+If cancellation is requested, the lower-level operation can stop when the underlying API supports cancellation.
+
+#### A common mistake
+
+You might see code like:
+
+public User GetUser(int id)
+{
+    return userService
+        .GetUserAsync(id)
+        .Result;
+}
+
+This defeats much of the benefit of asynchronous programming.
+
+You're taking an async operation: Task< User ><User></user>
+
+and synchronously blocking on it: .Result
+
+Instead:
+
+public async Task<User></user> GetUserAsync(int id)
+{
+    return await userService.GetUserAsync(id);
+}
+
+And propagate async/await through the call chain.
+
+##### Another common mistake
+
+Don't unnecessarily use `Task.Run()` for database calls.
+
+❌ Usually unnecessary:
+
+<pre class="overflow-visible! px-0!" data-start="3478" data-end="3548"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+    </span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Users</span><span>.</span><span class="ͼ11">ToListAsync</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Instead:
+
+<pre class="overflow-visible! px-0!" data-start="3560" data-end="3610"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Users</span><span>.</span><span class="ͼ11">ToListAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Entity Framework's async APIs already provide asynchronous database I/O.
+
+`Task.Run()` is mainly useful when you actually need to offload  **CPU-bound work** .
+
+#### Do we always need `async` when returning a Task?
+
+Interesting interview question. Not neccessary, but it provide extra control.
+
+Suppose your service only forwards the repository call:
+
+<pre class="overflow-visible! px-0!" data-start="3921" data-end="4071"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span class="ͼv"><</span><span class="ͼ11">User</span><span class="ͼv">?></span><span></span><span class="ͼ11">GetUserAsync</span><span>(
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>,
+    </span><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">token</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">repository</span><span>.</span><span class="ͼ11">GetUserAsync</span><span>(</span><span class="ͼ11">id</span><span>, </span><span class="ͼ11">token</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You could also write:
+
+<pre class="overflow-visible! px-0!" data-start="4096" data-end="4234"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼ11">Task</span><span class="ͼv"><</span><span class="ͼ11">User</span><span class="ͼv">?></span><span></span><span class="ͼ11">GetUserAsync</span><span>(
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>,
+    </span><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">token</span><span>)
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">repository</span><span>.</span><span class="ͼ11">GetUserAsync</span><span>(</span><span class="ͼ11">id</span><span>, </span><span class="ͼ11">token</span><span>);
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The second version doesn't need `async`/`await` because it's simply returning the existing `Task`.
+
+However, `async`/`await` becomes useful when you need to:
+
+* Process the result
+* Handle exceptions locally
+* Perform additional async operations
+* Transform the result
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="4520" data-end="4805"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">public</span><span></span><span class="ͼv">async</span><span></span><span class="ͼ11">Task</span><span class="ͼv"><</span><span class="ͼ11">UserDto</span><span class="ͼv">?></span><span></span><span class="ͼ11">GetUserAsync</span><span>(
+    </span><span class="ͼ11">int</span><span></span><span class="ͼ11">id</span><span>,
+    </span><span class="ͼ11">CancellationToken</span><span></span><span class="ͼ11">token</span><span>)
+{
+    </span><span class="ͼv">var</span><span></span><span class="ͼ11">user</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">repository</span><span>.</span><span class="ͼ11">GetUserAsync</span><span>(</span><span class="ͼ11">id</span><span>, </span><span class="ͼ11">token</span><span>);
+
+    </span><span class="ͼv">if</span><span> (</span><span class="ͼ11">user</span><span></span><span class="ͼv">==</span><span></span><span class="ͼy">null</span><span>)
+        </span><span class="ͼv">return</span><span></span><span class="ͼy">null</span><span>;
+
+    </span><span class="ͼv">return</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">UserDto</span><span>
+    {
+        </span><span class="ͼ11">Id</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">Id</span><span>,
+        </span><span class="ͼ11">Name</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">user</span><span>.</span><span class="ͼ11">Name</span><span>
+    };
+}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here `await` is useful because we're doing additional work with the result.
+
+#### Mindmap:
+
+			   ASYNC PROGRAMMING
+                       				│
+        ┌──────────────┴──────────────┐
+        ↓                                                                            ↓
+     Task / Task<T></t>              						async / await
+        │                             						      │
+        └──────────────┬──────────────┘
+                       			        ↓
+                  		I/O operations
+                       			    │
+          ┌────────────┼────────────┐
+          ↓            		    ↓           		      ↓
+       Database       		HTTP         		   Files
+                              		   │
+                       			   ↓
+                		CancellationToken
+                       			   │
+                       			   ↓
+                		   Cancellation
+
+### Async vs Multithreading vs Parallel Programming
+
+#### Asynchronous Programming
+
+Async programming is mainly about:
+
+Not blocking while waiting for an operation to complete.
+
+Example:
+
+public async Task<User></user> GetUserAsync()
+{
+    return await httpClient.GetFromJsonAsync<User></user>(
+        "https://example.com/user");
+}
+
+The HTTP call is I/O-bound.
+
+While waiting for the response, the thread doesn't need to remain blocked.
+
+Typical use cases
+HTTP calls
+Database queries
+File I/O
+Network operations
+
+Think:
+
+Start I/O
+   ↓
+await
+   ↓
+Don't block waiting
+   ↓
+I/O completes
+   ↓
+Continue
+
+#### Multithreading
+
+Multithreading means:
+
+> **Multiple threads can execute work independently/concurrently.**
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="882" data-end="948"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Thread </span><span></span><span class="ͼ11">thread </span><span></span><span class="ͼv">=</span><span></span><span class="ͼv"> new</span><span></span><span class="ͼ11"> Thread </span><span>(</span><span class="ͼ11">DoWork</span><span>);
+
+</span><span class="ͼ11">thread</span><span>.</span><span class="ͼ11">Start</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+You have explicitly created a thread.
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1004" data-end="1052"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1 → Work A
+
+Thread 2 → Work B</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Threads are actual execution resources managed by the operating system/runtime.
+
+#### Parallel Programming
+
+Parallel programming means:
+
+> **Splitting work so multiple pieces can execute at the same time, usually across multiple CPU cores.**
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="1312" data-end="1377"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">100</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">ProcessItem</span><span>(</span><span class="ͼ11">i</span><span>);
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1394" data-end="1485"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>CPU Core 1 → Item 1
+CPU Core 2 → Item 2
+CPU Core 3 → Item 3
+CPU Core 4 → Item 4</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Parallelism is particularly useful for  **CPU-bound work** .
+
+
+| Async                                   | Multithreading               | Parallelism                            |
+| ----------------------------------------- | ------------------------------ | ---------------------------------------- |
+| Avoids blocking while waiting           | Uses multiple threads        | Executes work concurrently/in parallel |
+| Often used for I/O                      | Multiple execution threads   | Often CPU-bound                        |
+| HTTP/DB/file operations                 | Independent thread execution | CPU-intensive calculations             |
+| Doesn't necessarily create a new thread | Involves threads             | Often uses multiple threads/cores      |
+
+#### I/O bound example
+
+Suppose you need to download three files.
+
+This is an **I/O-bound** problem.
+
+You can use:
+
+<pre class="overflow-visible! px-0!" data-start="2110" data-end="2267"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">task1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">DownloadAsync</span><span>(</span><span class="ͼ11">file1</span><span>);
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">DownloadAsync</span><span>(</span><span class="ͼ11">file2</span><span>);
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task3</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">DownloadAsync</span><span>(</span><span class="ͼ11">file3</span><span>);
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(</span><span class="ͼ11">task1</span><span>, </span><span class="ͼ11">task2</span><span>, </span><span class="ͼ11">task3</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is asynchronous concurrency.
+
+You don't need:
+
+<pre class="overflow-visible! px-0!" data-start="2321" data-end="2370"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span></span><span class="ͼ11">DownloadAsync</span><span>(...));</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+for each request.
+
+#### CPU - bound example:
+
+Suppose you need to calculate something expensive:
+
+<pre class="overflow-visible! px-0!" data-start="2472" data-end="2515"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">CalculateMillionsOfNumbers</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This is CPU-bound.
+
+You may use parallelism:
+
+<pre class="overflow-visible! px-0!" data-start="2563" data-end="2627"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Parallel</span><span>.</span><span class="ͼ11">For</span><span>(</span><span class="ͼy">0</span><span>, </span><span class="ͼy">1000</span><span>, </span><span class="ͼ11">i</span><span></span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">Calculate</span><span>(</span><span class="ͼ11">i</span><span>);
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Or potentially offload CPU work:
+
+<pre class="overflow-visible! px-0!" data-start="2663" data-end="2737"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">CalculateMillionsOfNumbers</span><span>();
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+The exact choice depends on the application and workload.
+
+#### Concurrency vs Parallelism
+
+##### Concurrency
+
+Means:
+
+> Multiple operations are **in progress** during the same period.
+
+They don't necessarily execute at exactly the same instant.
+
+Example:
+
+<pre class="overflow-visible! px-0!" data-start="3028" data-end="3085"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Time →
+Task A: ███────███
+Task B: ──███────██</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### Parallelism
+
+Means:
+
+> Multiple pieces of work are  **executing at the same time** .
+
+<pre class="overflow-visible! px-0!" data-start="3175" data-end="3240"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Core 1: █████████
+Core 2: █████████
+Core 3: █████████</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So: **Concurrency is about dealing with multiple operations; parallelism is about executing multiple operations simultaneously.**
+
+##### Where does `Task.WhenAll()` fit?
+
+Suppose:
+
+<pre class="overflow-visible! px-0!" data-start="3430" data-end="3575"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">task1</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetUserAsync</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task2</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetOrdersAsync</span><span>();
+</span><span class="ͼv">var</span><span></span><span class="ͼ11">task3</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetProductsAsync</span><span>();
+
+</span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">WhenAll</span><span>(</span><span class="ͼ11">task1</span><span>, </span><span class="ͼ11">task2</span><span>, </span><span class="ͼ11">task3</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This gives you  **concurrent asynchronous operations** .
+
+It doesn't necessarily mean:
+
+<pre class="overflow-visible! px-0!" data-start="3663" data-end="3728"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1 → Task 1
+Thread 2 → Task 2
+Thread 3 → Task 3</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+That's an important distinction.
+
+##### Where does `Task.Run()` fit?
+
+`Task.Run()` is commonly used to schedule CPU-bound work on the ThreadPool.
+
+<pre class="overflow-visible! px-0!" data-start="3881" data-end="3938"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span></span><span class="ͼ11">CalculateSomething</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="3955" data-end="4070"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Current execution
+       ↓
+Task.Run
+       ↓
+ThreadPool
+       ↓
+Worker thread
+       ↓
+CPU calculation</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+But:
+
+<pre class="overflow-visible! px-0!" data-start="4078" data-end="4123"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">httpClient</span><span>.</span><span class="ͼ11">GetAsync</span><span>(</span><span class="ͼ11">url</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+doesn't require wrapping the HTTP call in `Task.Run()`.
+
+<pre class="overflow-visible! px-0!" data-start="5061" data-end="5226"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0 PDq2pG_selectionAnchorContainer"><code><span>I/O-bound
+   ↓
+async / await
+   ↓
+Don't block while waiting
+
+
+CPU-bound
+   ↓
+Parallelism / Task.Run (when appropriate)
+   ↓
+Use CPU resources efficiently</span></code><span aria-hidden="true" class="PDq2pG_selectionAnchor"></span></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+And:
+
+<pre class="overflow-visible! px-0!" data-start="5234" data-end="5294"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Async ≠ Thread
+Async ≠ Parallelism
+Task ≠ Thread</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+
+ IAsyncEnumerable< T > and await foreach
+
+ IEnumerable< T ><T></t>
+
+With IEnumerable<T></t>, you iterate synchronously:
+
+IEnumerable<int></int>< int > numbers = GetNumbers();
+
+foreach (var number in numbers)
+{
+    Console.WriteLine(number);
+}
+
+The next item is obtained synchronously.
+
+#### IAsyncEnumerable< T ><T></t>
+
+IAsyncEnumerable<T></t> represents a sequence whose elements can be produced asynchronously over time.
+
+Example:
+
+public async IAsyncEnumerable< int > GetNumbersAsync()
+{
+    for (int i = 1; i <= 5; i++)
+    {
+        await Task.Delay(1000);
+
+        yield return i;
+    }
+}
+
+Each number arrives asynchronously.
+
+To consume it:
+
+await foreach (var number in GetNumbersAsync())
+{
+    Console.WriteLine(number);
+}
+
+##### What happens here?
+
+Suppose each number takes 1 second to produce.
+
+<pre class="overflow-visible! px-0!" data-start="1159" data-end="1228"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Time →
+
+1 sec → 1
+2 sec → 2
+3 sec → 3
+4 sec → 4
+5 sec → 5</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The consumer doesn't need to wait for all five numbers before processing the first one.
+
+`yield return` with `IAsyncEnumerable` produces values  **one at a time asynchronously** .
+
+Instead:
+
+<pre class="overflow-visible! px-0!" data-start="1329" data-end="1428"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Generate 1
+   ↓
+Process 1
+   ↓
+Generate 2
+   ↓
+Process 2
+   ↓
+Generate 3
+   ↓
+Process 3</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is called an  **asynchronous stream** .
+
+
+| `IEnumerable<T>`                           | `IAsyncEnumerable<T>`                   |
+| -------------------------------------------- | ----------------------------------------- |
+| Synchronous iteration                      | Asynchronous iteration                  |
+| `foreach`                                  | `await foreach`                         |
+| `MoveNext()`                               | `MoveNextAsync()`                       |
+| `IEnumerable<T>`                           | `IAsyncEnumerable<T>`                   |
+| Doesn't use`await` for iteration           | Supports asynchronous iteration         |
+| Useful for in-memory/synchronous sequences | Useful for data arriving asynchronously |
+
+##### Why is this useful?
+
+Imagine an external service gives you  **10,000 records** .
+
+A traditional approach might be:
+
+<pre class="overflow-visible! px-0!" data-start="2033" data-end="2125"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request all 10,000
+        ↓
+Wait
+        ↓
+Receive everything
+        ↓
+Process</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+An asynchronous stream can conceptually work like:
+
+<pre class="overflow-visible! px-0!" data-start="2179" data-end="2322"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Receive record 1
+      ↓
+Process record 1
+
+Receive record 2
+      ↓
+Process record 2
+
+Receive record 3
+      ↓
+Process record 3
+...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+You don't necessarily need the entire sequence in memory before processing it.
+
+IEnumerable<T></t>
+      ↓
+foreach
+      ↓
+Synchronous sequence
+
+vs.
+
+IAsyncEnumerable<T></t>
+      ↓
+await foreach
+      ↓
+Asynchronous sequence
+
+And:
+
+Task<List<T></t>>
+      ↓
+Wait for entire collection
+
+IAsyncEnumerable<T></t>
+      ↓
+Consume items progressively
+
+### ThreadPool and Task.Run()
+
+This is an important interview topic because interviewers often ask:
+
+> **“If `Task` is not a thread, then where does the code actually run?”**
+
+The answer leads us to the  **ThreadPool** .
+
+#### What is ThreadPool?
+
+The **ThreadPool** is a collection of threads managed by .NET that can execute short-running work without you having to manually create threads.
+
+Think of it like a  **pool of reusable workers** :
+
+<pre class="overflow-visible! px-0!" data-start="458" data-end="790"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>             .NET ThreadPool
+        ┌─────────────────────┐
+        │ Worker Thread 1     │
+        │ Worker Thread 2     │
+        │ Worker Thread 3     │
+        │ Worker Thread 4     │
+        │       ...           │
+        └─────────────────────┘
+                 ↑
+                 │
+        Tasks are queued here</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Instead of creating a new thread every time:
+
+<pre class="overflow-visible! px-0!" data-start="838" data-end="897"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request → Create Thread → Work → Destroy Thread</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+.NET can reuse existing ThreadPool threads:
+
+<pre class="overflow-visible! px-0!" data-start="944" data-end="1028"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request → Queue Work → ThreadPool Worker → Work → Thread returns to pool</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is more efficient because creating and destroying threads has overhead.
+
+#### What does `Task.Run()` actually do?
+
+Consider:
+
+<pre class="overflow-visible! px-0!" data-start="1166" data-end="1226"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">CalculateSomething</span><span>();
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+`Task.Run()` essentially says:
+
+> "Run this work asynchronously using the ThreadPool."
+
+Conceptually:
+
+<pre class="overflow-visible! px-0!" data-start="1331" data-end="1452"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Task.Run()
+   ↓
+Queue work to ThreadPool
+   ↓
+ThreadPool worker picks it up
+   ↓
+Execute CalculateSomething()</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ Important
+
+`Task.Run()`  **does not necessarily create a new thread** .
+
+It uses an existing ThreadPool thread when one is available.
+
+#### Is a Task a Thread?
+
+No.
+
+This is one of the most important interview points.
+
+<pre class="overflow-visible! px-0!" data-start="1680" data-end="1757"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Task
+ ↓
+Represents an operation
+
+Thread
+ ↓
+Actually executes code</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="1773" data-end="1851"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span></span><span class="ͼ11">task</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">Console</span><span>.</span><span class="ͼ11">WriteLine</span><span>(</span><span class="ͼz">"Hello"</span><span>);
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Here:
+
+<pre class="overflow-visible! px-0!" data-start="1860" data-end="1945"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Task
+ │
+ │ represents
+ ↓
+Work item
+ │
+ │ executed by
+ ↓
+ThreadPool Thread</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+So: **Task ≠ Thread**
+
+#### Task.Run() and CPU-bound work
+
+Task.Run() is primarily useful for CPU-bound work.
+
+Example:
+
+public async Task<int></int> CalculateAsync()
+{
+    return await Task.Run(() =>
+    {
+        return CalculateLargeValue();
+    });
+}
+
+Suppose:
+
+CalculateLargeValue()
+
+takes a lot of CPU time.
+
+Task.Run() moves that CPU-intensive work onto a ThreadPool thread.
+
+Main/request thread
+       │
+       │ Task.Run()
+       ↓
+   ThreadPool
+       │
+       ↓
+CPU-intensive calculation
+
+#### Should we use `Task.Run()` for database calls?
+
+Usually  **NO** .
+
+Bad approach:
+
+<pre class="overflow-visible! px-0!" data-start="2589" data-end="2683"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼv">return</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>.</span><span class="ͼ11">ToList</span><span>();
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Why?
+
+Because the database operation is  **I/O-bound** , not CPU-bound.
+
+You're basically taking a ThreadPool thread and making it wait for the database.
+
+Better:
+
+<pre class="overflow-visible! px-0!" data-start="2847" data-end="2914"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">dbContext</span><span>.</span><span class="ͼ11">Employees</span><span>.</span><span class="ͼ11">ToListAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Flow:
+
+<pre class="overflow-visible! px-0!" data-start="2923" data-end="3184"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>ASP.NET Core Thread
+       │
+       │ Start DB async operation
+       ↓
+   Database
+       │
+       │ waiting...
+       │
+       └──────────────→ Thread is free
+                             
+Database completes
+       │
+       ↓
+Continuation executes</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The ThreadPool thread isn't sitting there doing nothing while the database responds.
+
+
+| Work                    | Usually use                    |
+| ------------------------- | -------------------------------- |
+| Database                | `await`/ async API             |
+| HTTP                    | `await`/ async API             |
+| File I/O                | `await`/ async API             |
+| `Task.Delay`            | `await`                        |
+| Heavy calculation       | `Task.Run()`may be appropriate |
+| Image processing        | `Task.Run()`may be appropriate |
+| CPU-intensive algorithm | `Task.Run()`may be appropriate |
+
+#### `new Thread()` vs `Task.Run()`
+
+You can manually create a thread:
+
+<pre class="overflow-visible! px-0!" data-start="3948" data-end="4031"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Thread</span><span></span><span class="ͼ11">thread</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Thread</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">DoWork</span><span>();
+});
+
+</span><span class="ͼ11">thread</span><span>.</span><span class="ͼ11">Start</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Or:
+
+<pre class="overflow-visible! px-0!" data-start="4038" data-end="4086"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span>
+{
+    </span><span class="ͼ11">DoWork</span><span>();
+});</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+What's the difference?
+
+##### `new Thread()`
+
+You directly create and manage a thread.
+
+<pre class="overflow-visible! px-0!" data-start="4174" data-end="4268"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Your application
+      ↓
+Create Thread
+      ↓
+Thread executes
+      ↓
+Thread ends</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Task.Run()`
+
+.NET manages the thread for you.
+
+<pre class="overflow-visible! px-0!" data-start="4322" data-end="4433"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Your application
+      ↓
+Task.Run()
+      ↓
+ThreadPool
+      ↓
+Available worker thread
+      ↓
+Work</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+For normal application development,  **Task-based programming is preferred** .
+
+#### Why don't we create threads manually?
+
+Threads are relatively expensive resources.
+
+If you have:
+
+<pre class="overflow-visible! px-0!" data-start="4621" data-end="4645"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>100 requests</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+and create:
+
+<pre class="overflow-visible! px-0!" data-start="4660" data-end="4683"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>100 threads</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+you can create significant overhead.
+
+ThreadPool allows .NET to manage a reusable collection of threads.
+
+<pre class="overflow-visible! px-0!" data-start="4791" data-end="5069"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>             ThreadPool
+        ┌─────────────────┐
+        │ Thread 1        │
+        │ Thread 2        │
+        │ Thread 3        │
+        │ Thread 4        │
+        │ Thread 5        │
+        └─────────────────┘
+          ↑    ↑    ↑
+        Task  Task  Task</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Threads are reused instead of constantly being created and destroyed.
+
+#### What is ThreadPool starvation?
+
+This is a  **very important ASP.NET Core interview topic** .
+
+Imagine the ThreadPool has workers:
+
+<pre class="overflow-visible! px-0!" data-start="5281" data-end="5372"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread 1 → blocked
+Thread 2 → blocked
+Thread 3 → blocked
+Thread 4 → blocked
+...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Now new work arrives:
+
+<pre class="overflow-visible! px-0!" data-start="5397" data-end="5525"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>New Request
+     ↓
+Needs ThreadPool thread
+     ↓
+No available workers
+     ↓
+Request waits
+     ↓
+Latency increases</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+This is called  **ThreadPool starvation** .
+
+#### How can we accidentally cause ThreadPool starvation?
+
+One common mistake is blocking asynchronous operations.
+
+For example:
+
+<pre class="overflow-visible! px-0!" data-start="5706" data-end="5755"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Result</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+or:
+
+<pre class="overflow-visible! px-0!" data-start="5762" data-end="5798"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">GetDataAsync</span><span>().</span><span class="ͼ11">Wait</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+Instead of:
+
+<pre class="overflow-visible! px-0!" data-start="5813" data-end="5861"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">var</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼv">await</span><span></span><span class="ͼ11">GetDataAsync</span><span>();</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+With `.Result`:
+
+<pre class="overflow-visible! px-0!" data-start="5880" data-end="6020"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>ThreadPool Thread
+      │
+      │ calls async operation
+      ↓
+    .Result
+      │
+      │ BLOCKED
+      ↓
+ waits for operation</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+If many requests do this:
+
+<pre class="overflow-visible! px-0!" data-start="6049" data-end="6172"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Request 1 → Thread blocked
+Request 2 → Thread blocked
+Request 3 → Thread blocked
+Request 4 → Thread blocked
+...</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+Eventually available ThreadPool workers can become scarce.
+
+#### Task.Delay() is a great example
+
+Consider:
+
+await Task.Delay(5000);
+
+Does a ThreadPool thread sit there for 5 seconds?
+
+No.
+
+The async operation represents the delay.
+
+Conceptually:
+
+ThreadPool Thread
+      │
+      ↓
+Task.Delay(5 sec)
+      │
+      ↓
+Thread is released
+      │
+      │ 5 seconds pass
+      ↓
+Continuation runs
+
+This is why:
+
+await Task.Delay(5000);
+
+is very different from:
+
+Thread.Sleep(5000);
+
+Thread.Sleep() blocks the current thread.
+
+#### `Thread.Sleep()` vs `Task.Delay()`
+
+##### `Thread.Sleep`
+
+<pre class="overflow-visible! px-0!" data-start="7345" data-end="7378"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Thread</span><span>.</span><span class="ͼ11">Sleep</span><span>(</span><span class="ͼy">5000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="7380" data-end="7430"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Thread
+  ↓
+SLEEP
+  ↓
+BLOCKED for 5 sec</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+##### `Task.Delay`
+
+<pre class="overflow-visible! px-0!" data-start="7450" data-end="7487"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">await</span><span></span><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Delay</span><span>(</span><span class="ͼy">5000</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+<pre class="overflow-visible! px-0!" data-start="7489" data-end="7575"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Async operation
+      ↓
+Thread released
+      ↓
+5 seconds
+      ↓
+Continue</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+ Interview answer: **`Thread.Sleep()` blocks the current thread, whereas `Task.Delay()` creates an asynchronous delay without blocking a ThreadPool thread while waiting.**
+
+#### `Task.Run()` does NOT make CPU work faster
+
+Suppose you have:
+
+<pre class="overflow-visible! px-0!" data-start="8239" data-end="8292"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">Task</span><span>.</span><span class="ͼ11">Run</span><span>(() </span><span class="ͼv">=></span><span></span><span class="ͼ11">VeryHeavyCalculation</span><span>());</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+
+This doesn't magically make the calculation faster.
+
+It mainly changes  **where the work executes** .
+
+<pre class="overflow-visible! px-0!" data-start="8395" data-end="8578"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Without Task.Run:
+
+Current Thread
+     ↓
+Heavy calculation
+     ↓
+Done
+
+
+With Task.Run:
+
+Current Thread
+     ↓
+Queue work
+     ↓
+ThreadPool Thread
+     ↓
+Heavy calculation</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+
+The CPU still has to perform the same computation.
+
+The benefit may be that the calling thread isn't the one performing the CPU-bound operation.
+
+```
+                    ASYNC PROGRAMMING
+                           │
+          ┌────────────────┴────────────────┐
+          ↓                                 ↓
+      I/O-bound                         CPU-bound
+          │                                 │
+   DB / HTTP / Files                 Heavy calculations
+          │                                 │
+       async/await                    Task.Run()
+          │                                 │
+   Don't block thread                ThreadPool
+          │                                 │
+          └──────────────┬──────────────────┘
+                         ↓
+                    ThreadPool
+                         │
+               ┌─────────┴─────────┐
+               ↓                   ↓
+          Worker Threads      Async I/O waiting
+               │                   │
+          execute work       no thread blocked
+```
+
+
+#### Remember these 5 points
+
+1. **Task ≠ Thread**
+2. **ThreadPool provides reusable worker threads**
+3. **`Task.Run()` queues work to the ThreadPool**
+4. **Use `Task.Run()` mainly for CPU-bound work**
+5. **Don't use `Task.Run()` to wrap naturally async I/O**
+
+
+ThreadPool vs Async/Await
+
+1. The .NET ThreadPool: Reusing Threads
+   Creating an OS thread is expensive. It takes time to spin up and consumes about 1 MB of memory just for its stack. If you create a new thread for every short task, your application will quickly run out of memory and bog down the CPU with context switching.
+   The ThreadPool solves this by maintaining a pool of pre-allocated worker threads.
+   • How it works: When you use Task.Run(), .NET doesn't create a new thread. It places your code into a global queue. A waiting ThreadPool thread grabs the code, executes it, and then returns to the pool instead of dying.
+   • The Benefit: It eliminates the overhead of creating and destroying threads, keeping memory low and the CPU focused on actual work.
+2. Async/Await: Eliminating "Wasted" Threads
+   While the ThreadPool optimizes CPU-bound work (like heavy math or data processing), async/await is designed to optimize I/O-bound work (like fetching data from a database, calling a web API, or reading a file).
+   When a thread performs a synchronous I/O operation, it sits there doing absolutely nothing while waiting for the hard drive or network to respond. This is called blocking a thread.
+   Async/await introduces "Threadless" waiting:
+   csharp
+   public async Task<string></string> DownloadDataAsync()
+   {
+   using var client = new HttpClient();
+   // The thread hands this request to the network card and walks away!
+   string result = await client.GetStringAsync("https://example.com");
+   return result;
+   }
+   Use code with caution.
+   What happens behind the scenes?
+3. The Hand-off: When the execution hits await client.GetStringAsync(), the ThreadPool thread hands the request off to the operating system and network hardware.
+4. The Thread is Freed: Instead of sitting around waiting for the internet response, that ThreadPool thread returns to the pool immediately to do other work.
+5. The Notification: While the download is happening, zero threads are allocated to your task. Once the network card finishes downloading the data, it triggers a hardware interrupt.
+6. The Resume: The OS notifies .NET, and .NET rents a thread from the ThreadPool to pick up right where your method left off and process the result.
+   Summary: ThreadPool vs. Async/Await
+   Feature	Task.Run() (ThreadPool)	async / await
+   Best Used For	CPU-bound tasks (Heavy calculations, image processing)	I/O-bound tasks (Web requests, database queries, file reading)
+   Thread Usage	Uses a ThreadPool thread to do active background work.	Frees up the thread while waiting for an external response.
+   CPU Impact	Keeps the CPU busy with intensive processing.	Keeps the CPU efficient by preventing idle threads from wasting slots.
+
+
+## Parallel Programming:
