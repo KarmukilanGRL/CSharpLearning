@@ -8,14 +8,18 @@ An **exception** is an unexpected runtime event that interrupts the normal flow 
 
 For example:
 
-<pre class="overflow-visible! px-0!" data-start="572" data-end="629"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼ11">int</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">10</span><span>;
-</span><span class="ͼ11">int</span><span></span><span class="ͼ11">b</span><span></span><span class="ͼv">=</span><span></span><span class="ͼy">0</span><span>;
+```
+inta=10;
+intb=0;
 
-</span><span class="ͼ11">int</span><span></span><span class="ͼ11">result</span><span></span><span class="ͼv">=</span><span></span><span class="ͼ11">a</span><span></span><span class="ͼv">/</span><span></span><span class="ͼ11">b</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+intresult=a/b;
+```
 
 This causes:
 
-<pre class="overflow-visible! px-0!" data-start="645" data-end="685"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>System.DivideByZeroException</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+```
+System.DivideByZeroException
+```
 
 Instead of allowing the application to crash, we can handle the exception using  **exception handling** .
 
@@ -23,15 +27,15 @@ Instead of allowing the application to crash, we can handle the exception using 
 
 In a backend application, many things can go wrong:
 
-* Database connection failure
-* Invalid user input
-* File not found
-* Network/API failure
-* Null reference
-* Invalid conversion
-* Timeout
-* Unauthorized access
-* Unexpected application errors
+- Database connection failure
+- Invalid user input
+- File not found
+- Network/API failure
+- Null reference
+- Invalid conversion
+- Timeout
+- Unauthorized access
+- Unexpected application errors
 
 Exception handling allows us to:
 
@@ -42,7 +46,7 @@ Exception handling allows us to:
 5. Perform cleanup
 6. Maintain application stability
 
-Interview answer: **Exception handling is a mechanism in C# used to handle runtime errors gracefully without terminating the normal execution of the application. It uses constructs such as `try`, `catch`, `finally`, and `throw`.**
+Interview answer: **Exception handling is a mechanism in C# used to handle runtime errors gracefully without terminating the normal execution of the application. It uses constructs such as** `try`**,** `catch`**,** `finally`**, and** `throw`**.**
 
 #### `try`, `catch`, `finally`
 
@@ -62,22 +66,25 @@ Contains cleanup code that should generally execute regardless of whether an exc
 
 Basic structure:
 
-<pre class="overflow-visible! px-0!" data-start="1821" data-end="1936"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼt">// Risky code</span><span>
+    // Risky code
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+catch (Exceptionex)
 {
-    </span><span class="ͼt">// Handle exception</span><span>
+    // Handle exception
 }
-</span><span class="ͼv">finally</span><span>
+finally
 {
-    </span><span class="ͼt">// Cleanup</span><span>
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    // Cleanup
+}
+```
 
 Conceptually:
 
-<pre class="overflow-visible! px-0!" data-start="1953" data-end="2259"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>          try
+```
+          try
            │
            ▼
     Exception occurs?
@@ -92,28 +99,31 @@ Conceptually:
           finally
              │
              ▼
-         Continue</span></code></pre></div></div></div></div></div></div></div></div></div></div></div></div></div></pre>
+         Continue
+```
 
 #### Multiple `catch` blocks
 
 You can have multiple catch blocks for different exception types.
 
-<pre class="overflow-visible! px-0!" data-start="2363" data-end="2576"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼt">// code</span><span>
+    // code
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">DivideByZeroException</span><span></span><span class="ͼ11">ex</span><span>)
+catch (DivideByZeroExceptionex)
 {
-    </span><span class="ͼt">// handle division error</span><span>
+    // handle division error
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">FormatException</span><span></span><span class="ͼ11">ex</span><span>)
+catch (FormatExceptionex)
 {
-    </span><span class="ͼt">// handle format error</span><span>
+    // handle format error
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+catch (Exceptionex)
 {
-    </span><span class="ͼt">// handle other exceptions</span><span>
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    // handle other exceptions
+}
+```
 
 Important interview point
 
@@ -121,21 +131,25 @@ The  **most specific exception should come first** , and the more general except
 
 Correct:
 
-<pre class="overflow-visible! px-0!" data-start="2721" data-end="2796"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span> (</span><span class="ͼ11">DivideByZeroException</span><span></span><span class="ͼ11">ex</span><span>)
+```
+catch (DivideByZeroExceptionex)
 {
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+catch (Exceptionex)
 {
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+}
+```
 
 Incorrect:
 
-<pre class="overflow-visible! px-0!" data-start="2810" data-end="2885"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+```
+catch (Exceptionex)
 {
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">DivideByZeroException</span><span></span><span class="ͼ11">ex</span><span>)
+catch (DivideByZeroExceptionex)
 {
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+}
+```
 
 Why? Because `Exception` can catch `DivideByZeroException` already, making the later catch unreachable.
 
@@ -145,35 +159,43 @@ This is important for interviews.
 
 Most exceptions ultimately derive from:
 
-<pre class="overflow-visible! px-0!" data-start="3100" data-end="3202"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>System.Object
+```
+System.Object
     ↓
 System.Exception
     ↓
 System.SystemException
     ↓
-Specific Exception</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+Specific Exception
+```
 
 For example:
 
-<pre class="overflow-visible! px-0!" data-start="3218" data-end="3312"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Exception
+```
+Exception
    ↓
 SystemException
    ↓
 ArithmeticException
    ↓
-DivideByZeroException</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+DivideByZeroException
+```
 
 Another example:
 
-<pre class="overflow-visible! px-0!" data-start="3332" data-end="3402"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute end-1.5 top-1 z-2 md:end-2 md:top-1"></div><div class="relative"><div class="pe-11 pt-3"><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span>Exception
+```
+Exception
    ↓
 SystemException
    ↓
-NullReferenceException</span></code></pre></div></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></pre>
+NullReferenceException
+```
 
 Therefore:
 
-<pre class="overflow-visible! px-0!" data-start="3416" data-end="3450"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+catch (Exceptionex)
+```
 
 can catch many different exception types.
 
@@ -181,41 +203,51 @@ can catch many different exception types.
 
 `throw` is used to explicitly throw an exception.
 
-<pre class="overflow-visible! px-0!" data-start="3573" data-end="3631"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">throw</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">Exception</span><span>(</span><span class="ͼz">"Something went wrong"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+thrownewException("Something went wrong");
+```
 
 More commonly, you should throw a meaningful specific exception:
 
-<pre class="overflow-visible! px-0!" data-start="3699" data-end="3764"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">throw</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">ArgumentException</span><span>(</span><span class="ͼz">"Invalid customer ID"</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+thrownewArgumentException("Invalid customer ID");
+```
 
 or:
 
-<pre class="overflow-visible! px-0!" data-start="3771" data-end="3854"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">throw</span><span></span><span class="ͼv">new</span><span></span><span class="ͼ11">InvalidOperationException</span><span>(</span><span class="ͼz">"Customer cannot be processed."</span><span>);</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+thrownewInvalidOperationException("Customer cannot be processed.");
+```
 
 Interview question
 
-**What is the difference between `throw` and `throw ex`?**
+**What is the difference between** `throw` **and** `throw ex`**?**
 
 This is a  **very important interview question** .
 
 Suppose:
 
-<pre class="overflow-visible! px-0!" data-start="4000" data-end="4069"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼt">// code</span><span>
+    // code
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+catch (Exceptionex)
 {
-    </span><span class="ͼv">throw</span><span>;
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    throw;
+}
+```
 
 `throw;`  **preserves the original stack trace** .
 
 But:
 
-<pre class="overflow-visible! px-0!" data-start="4127" data-end="4179"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+```
+catch (Exceptionex)
 {
-    </span><span class="ͼv">throw</span><span></span><span class="ͼ11">ex</span><span>;
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    throwex;
+}
+```
 
 resets the stack-trace information from the point where it is rethrown, making debugging harder.
 
@@ -229,32 +261,38 @@ Interview answer
 
 For example:
 
-<pre class="overflow-visible! px-0!" data-start="4547" data-end="4671"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼt">// Database/file operation</span><span>
+    // Database/file operation
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span></span><span class="ͼ11">ex</span><span>)
+catch (Exceptionex)
 {
-    </span><span class="ͼt">// Handle error</span><span>
+    // Handle error
 }
-</span><span class="ͼv">finally</span><span>
+finally
 {
-    </span><span class="ͼt">// Cleanup</span><span>
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    // Cleanup
+}
+```
 
 Typical cleanup includes:
 
-* Closing resources
-* Releasing unmanaged resources
-* Cleaning temporary state
+- Closing resources
+- Releasing unmanaged resources
+- Cleaning temporary state
 
 However, in modern C#, resources are often better handled using:
 
-<pre class="overflow-visible! px-0!" data-start="4846" data-end="4865"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">using</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+using
+```
 
 or:
 
-<pre class="overflow-visible! px-0!" data-start="4872" data-end="4911"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">using</span><span></span><span class="ͼv">var</span><span></span><span class="ͼ11">resource</span><span></span><span class="ͼv">=</span><span> ...;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+usingvarresource= ...;
+```
 
 which we'll cover later when we reach  **IDisposable / resource management** .
 
@@ -264,14 +302,16 @@ which we'll cover later when we reach  **IDisposable / resource management** .
 
 For example:
 
-<pre class="overflow-visible! px-0!" data-start="5072" data-end="5141"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼv">return</span><span>;
+    return;
 }
-</span><span class="ͼv">finally</span><span>
+finally
 {
-    </span><span class="ͼt">// Usually executes</span><span>
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    // Usually executes
+}
+```
 
 The `finally` block normally executes before control leaves the method.
 
@@ -291,19 +331,23 @@ For interviews, remember these:
 
 Avoid:
 
-<pre class="overflow-visible! px-0!" data-start="5660" data-end="5721"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">try</span><span>
+```
+try
 {
-    </span><span class="ͼt">// everything</span><span>
+    // everything
 }
-</span><span class="ͼv">catch</span><span> (</span><span class="ͼ11">Exception</span><span>)
+catch (Exception)
 {
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+}
+```
 
 Especially an empty catch:
 
-<pre class="overflow-visible! px-0!" data-start="5751" data-end="5774"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span>
+```
+catch
 {
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+}
+```
 
 This hides problems.
 
@@ -311,10 +355,12 @@ This hides problems.
 
 For example:
 
-<pre class="overflow-visible! px-0!" data-start="5858" data-end="5941"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">catch</span><span> (</span><span class="ͼ11">FileNotFoundException</span><span></span><span class="ͼ11">ex</span><span>)
+```
+catch (FileNotFoundExceptionex)
 {
-    </span><span class="ͼt">// Provide fallback behavior</span><span>
-}</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+    // Provide fallback behavior
+}
+```
 
 ##### Don't use exceptions for normal program flow
 
@@ -324,11 +370,15 @@ Exceptions should represent  **exceptional situations** , not ordinary business 
 
 Use:
 
-<pre class="overflow-visible! px-0!" data-start="6111" data-end="6131"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">throw</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+throw;
+```
 
 instead of:
 
-<pre class="overflow-visible! px-0!" data-start="6146" data-end="6169"><div class="relative w-full mt-4 mb-1"><div class=""><div class="contents"><div class="border border-token-border-light border-radius-3xl corner-superellipse/1.1 rounded-3xl"><div class="relative h-full w-full border-radius-3xl bg-(--code-block-surface) corner-superellipse/1.1 overflow-clip rounded-3xl [--code-block-surface:var(--bg-elevated-secondary)] dark:[--code-block-surface:var(--composer-surface-primary)] lxnfua_clipPathFallback"><div class="pointer-events-none absolute inset-x-4 top-12 bottom-4"><div class="pointer-events-none sticky z-40 shrink-0 z-1!"><div class="sticky bg-token-border-light"></div></div></div><div class="relative"><div class="h-full min-h-0 min-w-0"><div class="h-full min-h-0 min-w-0"><div class=""><div class="relative"><div class=""><div class="relative z-0 flex max-w-full"><div id="code-block-viewer" dir="ltr" class="q9tKkq_viewer cm-editor z-10 light:cm-light dark:cm-light flex h-full w-full flex-col items-stretch ͼs ͼ16"><div class="cm-scroller"><pre class="cm-content q9tKkq_readonly m-0"><code><span class="ͼv">throw</span><span></span><span class="ͼ11">ex</span><span>;</span></code></pre></div></div></div></div></div></div></div></div><div class=""><div class=""></div></div></div></div></div></div></div></div></pre>
+```
+throwex;
+```
 
 ##### Log useful information
 
@@ -447,9 +497,9 @@ For example, in an e-commerce application, you might define an `InsufficientStoc
 
 Typical reasons include:
 
-* Representing a specific business or domain failure.
-* Allowing callers to handle a particular failure differently.
-* Making error handling clearer in a large application.
+- Representing a specific business or domain failure.
+- Allowing callers to handle a particular failure differently.
+- Making error handling clearer in a large application.
 
 Example:
 
@@ -543,9 +593,9 @@ catch (Exceptionex)
 
 Here:
 
-* `InvalidOperationException` provides additional application context.
-* `ex` is the original exception.
-* `InnerException` lets you inspect the original failure.
+- `InvalidOperationException` provides additional application context.
+- `ex` is the original exception.
+- `InnerException` lets you inspect the original failure.
 
 #### What is the difference between `Message` and `InnerException`?
 
@@ -613,8 +663,8 @@ catch (InvalidOperationExceptionex)
 
 Here:
 
-* If the exception message contains `"Order"`, the first handler is selected.
-* Otherwise, the second handler can handle the exception.
+- If the exception message contains `"Order"`, the first handler is selected.
+- Otherwise, the second handler can handle the exception.
 
 In real applications, it's generally better to use meaningful exception types or structured error information rather than relying on exception message text.
 
@@ -658,7 +708,7 @@ Because the filter is false, this handler is skipped. The exception continues th
 
 Compare the approaches:
 
-**Using **`if`:
+\*\*Using \*\*`if`:
 
 ```
 catch (InvalidOperationExceptionex)
@@ -674,7 +724,7 @@ catch (InvalidOperationExceptionex)
 }
 ```
 
-**Using **`when`:
+\*\*Using \*\*`when`:
 
 ```
 catch (InvalidOperationExceptionex)
@@ -696,11 +746,11 @@ Exception propagation is the process by which an exception travels up the call s
 
 Consider this flow:
 
-Controller -> Calls the service
+Controller -&gt; Calls the service
 
-Service -> Calls the repository
+Service -&gt; Calls the repository
 
-Repository -> Exception occurs here
+Repository -&gt; Exception occurs here
 
 Exception propagates upward until a matching handler is found. For example, if a database operation throws an exception inside the repository and neither the repository nor service catches it, the exception propagates to the controller or to a higher-level exception handler.
 
@@ -721,18 +771,18 @@ System.InvalidOperationException: Order processing failed
 
 This tells us that:
 
-* `<span data-d-text-flow="word" data-d-stream-word="">SaveOrder()</span>` is where the exception originated or was thrown.
-* `<span data-d-text-flow="word" data-d-stream-word="">ProcessOrder()</span>` called the repository method.
-* `<span data-d-text-flow="word" data-d-stream-word="">Create()</span>` called the service method.
+- `<span data-d-text-flow="word" data-d-stream-word="">SaveOrder()</span>` is where the exception originated or was thrown.
+- `<span data-d-text-flow="word" data-d-stream-word="">ProcessOrder()</span>` called the repository method.
+- `<span data-d-text-flow="word" data-d-stream-word="">Create()</span>` called the service method.
 
 The exact stack trace depends on where the exception was thrown and rethrown.
 
 Why is it useful?
 
-* Debugging production errors
-* Identifying the source of a failure
-* Understanding the method call sequence
-* Investigating failures across application layers
+- Debugging production errors
+- Identifying the source of a failure
+- Understanding the method call sequence
+- Investigating failures across application layers
 
 In C#, you can inspect the stack trace using:
 
@@ -796,9 +846,9 @@ catch (Exceptionex)
 
 This is another useful interview distinction.
 
-* `throw;` rethrows the current exception.
-* `throw new Exception("...")` creates and throws a new exception, with a new throw location and a new exception type.
-* `throw new Exception("...", ex)` creates a new exception while retaining the original as its inner exception.
+- `throw;` rethrows the current exception.
+- `throw new Exception("...")` creates and throws a new exception, with a new throw location and a new exception type.
+- `throw new Exception("...", ex)` creates a new exception while retaining the original as its inner exception.
 
 ### Global Exception Handling in ASP.NET Core
 
@@ -830,11 +880,11 @@ Without global handling, developers may end up duplicating error-handling logic 
 
 In a production Web API, it helps you:
 
-* **Centralize error handling:** avoid repetitive `try-catch` blocks.
-* **Log unexpected failures:** capture diagnostic information for troubleshooting.
-* **Return consistent responses:** clients receive a predictable error format.
-* **Protect sensitive information:** avoid exposing stack traces or database details.
-* **Separate concerns:** keep business logic focused on application behavior.
+- **Centralize error handling:** avoid repetitive `try-catch` blocks.
+- **Log unexpected failures:** capture diagnostic information for troubleshooting.
+- **Return consistent responses:** clients receive a predictable error format.
+- **Protect sensitive information:** avoid exposing stack traces or database details.
+- **Separate concerns:** keep business logic focused on application behavior.
 
 Interview answer: Global exception handling is a centralized mechanism for handling unhandled exceptions across an application. In ASP.NET Core, exception-handling middleware can log errors and return consistent HTTP responses without duplicating exception-handling logic in every controller.
 
@@ -923,11 +973,11 @@ This gives the client a predictable response structure without exposing implemen
 
 It can include fields such as:
 
-* `<span data-d-text-flow="word" data-d-stream-word="">type</span>` — URI identifying the problem type.
-* `<span data-d-text-flow="word" data-d-stream-word="">title</span>` — short summary.
-* `<span data-d-text-flow="word" data-d-stream-word="">status</span>` — HTTP status code.
-* `<span data-d-text-flow="word" data-d-stream-word="">detail</span>` — explanation of the specific occurrence.
-* `<span data-d-text-flow="word" data-d-stream-word="">instance</span>` — URI identifying the particular occurrence.
+- `<span data-d-text-flow="word" data-d-stream-word="">type</span>` — URI identifying the problem type.
+- `<span data-d-text-flow="word" data-d-stream-word="">title</span>` — short summary.
+- `<span data-d-text-flow="word" data-d-stream-word="">status</span>` — HTTP status code.
+- `<span data-d-text-flow="word" data-d-stream-word="">detail</span>` — explanation of the specific occurrence.
+- `<span data-d-text-flow="word" data-d-stream-word="">instance</span>` — URI identifying the particular occurrence.
 
 ASP.NET Core supports returning `<span data-d-text-flow="word" data-d-stream-word="">ProblemDetails</span>` responses to make API error handling more consistent.
 
@@ -974,10 +1024,10 @@ It was introduced in ASP.NET Core 8.0.
 
 Its main method is:
 
-ValueTask<bool></bool> TryHandleAsync(
-    HttpContext httpContext,
-    Exception exception,
-    CancellationToken cancellationToken);
+ValueTask TryHandleAsync(
+HttpContext httpContext,
+Exception exception,
+CancellationToken cancellationToken);
 
 The handler returns:
 
@@ -989,7 +1039,7 @@ false — this handler hasn't handled the exception.
 
 In Program.cs, register the handler and exception-handling middleware:
 
-builder.Services.AddExceptionHandler<MyExceptionHandler></myexceptionhandler>();
+builder.Services.AddExceptionHandler();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
