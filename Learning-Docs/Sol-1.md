@@ -519,20 +519,21 @@ However, don't create custom exceptions for every error. Use built-in exceptions
 
 **Interview answer:** Create a custom exception when a distinct application or domain error needs its own type so that callers can identify and handle it specifically.
 
-| Exception                       | When it occurs                                  |
-| ------------------------------- | ----------------------------------------------- |
-| `NullReferenceException`      | Accessing a member through a null reference     |
-| `ArgumentNullException`       | A method receives`null`where it isn't allowed |
-| `ArgumentException`           | An argument is invalid                          |
-| `ArgumentOutOfRangeException` | An argument is outside the permitted range      |
-| `InvalidOperationException`   | An operation isn't valid for the current state  |
-| `FormatException`             | A string or value has an invalid format         |
-| `DivideByZeroException`       | Integer division by zero                        |
-| `IndexOutOfRangeException`    | An array index is outside its bounds            |
-| `KeyNotFoundException`        | A requested key isn't present in a dictionary   |
-| `IOException`                 | An input/output operation fails                 |
-| `UnauthorizedAccessException` | Access to a resource is denied                  |
-| `TimeoutException`            | An operation times out                          |
+
+| Exception                     | When it occurs                                 |
+| ------------------------------- | ------------------------------------------------ |
+| `NullReferenceException`      | Accessing a member through a null reference    |
+| `ArgumentNullException`       | A method receives`null`where it isn't allowed  |
+| `ArgumentException`           | An argument is invalid                         |
+| `ArgumentOutOfRangeException` | An argument is outside the permitted range     |
+| `InvalidOperationException`   | An operation isn't valid for the current state |
+| `FormatException`             | A string or value has an invalid format        |
+| `DivideByZeroException`       | Integer division by zero                       |
+| `IndexOutOfRangeException`    | An array index is outside its bounds           |
+| `KeyNotFoundException`        | A requested key isn't present in a dictionary  |
+| `IOException`                 | An input/output operation fails                |
+| `UnauthorizedAccessException` | Access to a resource is denied                 |
+| `TimeoutException`            | An operation times out                         |
 
 #### How do you create a custom exception?
 
@@ -599,8 +600,9 @@ Here:
 
 #### What is the difference between `Message` and `InnerException`?
 
-| Property           | Purpose                                                            |
-| ------------------ | ------------------------------------------------------------------ |
+
+| Property         | Purpose                                                            |
+| ------------------ | -------------------------------------------------------------------- |
 | `Message`        | Describes the current exception                                    |
 | `InnerException` | Provides the exception that caused or explains the current failure |
 | `StackTrace`     | Shows the call path associated with the exception                  |
@@ -828,17 +830,21 @@ catch (Exceptionex)
 
 `throw ex;` resets the stack trace to the current rethrow location, obscuring the original throw location in the resulting stack trace.
 
+
 | `throw;` | `throw ex;` |
 | ---------- | ------------- |
 
+
 | Preserves the original stack trace | Resets the stack trace at the rethrow location |
-| ---------------------------------- | ---------------------------------------------- |
+| ------------------------------------ | ------------------------------------------------ |
+
 
 | Preferred for rethrowing in a`catch`block | Generally avoid |
-| ------------------------------------------- | --------------- |
+| ------------------------------------------- | ----------------- |
+
 
 | Helps preserve debugging context | Can make the original failure harder to locate |
-| -------------------------------- | ---------------------------------------------- |
+| ---------------------------------- | ------------------------------------------------ |
 
 **Interview answer:** Use `throw;` when rethrowing the current exception from a catch block because it preserves the original stack trace. Avoid `throw ex;` when you want to preserve the original throw location.
 
@@ -930,10 +936,11 @@ How it works
 
 #### Development vs Production
 
+
 | Development                                            | Production                                       |
-| ------------------------------------------------------ | ------------------------------------------------ |
+| -------------------------------------------------------- | -------------------------------------------------- |
 | Detailed diagnostic information helps developers debug | Generic error responses protect internal details |
-| Developer Exception Page is useful                     | `UseExceptionHandler()`is commonly used        |
+| Developer Exception Page is useful                     | `UseExceptionHandler()`is commonly used          |
 | Stack traces may be shown locally                      | Stack traces should not be exposed to clients    |
 
 ASP.NET Core templates commonly enable the Developer Exception Page in Development and use exception-handling middleware in non-development environments.
@@ -942,8 +949,9 @@ ASP.NET Core templates commonly enable the Developer Exception Page in Developme
 
 Global exception handling should return a suitable status code rather than returning `200 OK` for every outcome.
 
-| Status code                   | Meaning                                                 | Example                                  |
-| ----------------------------- | ------------------------------------------------------- | ---------------------------------------- |
+
+| Status code                 | Meaning                                                 | Example                                  |
+| ----------------------------- | --------------------------------------------------------- | ------------------------------------------ |
 | `400 Bad Request`           | The request is invalid                                  | Invalid request data                     |
 | `401 Unauthorized`          | Authentication is required or failed                    | Missing or invalid authentication        |
 | `403 Forbidden`             | The caller isn't allowed to access the resource         | Insufficient permissions                 |
@@ -1024,7 +1032,7 @@ It was introduced in ASP.NET Core 8.0.
 
 Its main method is:
 
-ValueTask TryHandleAsync(
+ValueTask< bool > TryHandleAsync(
 HttpContext httpContext,
 Exception exception,
 CancellationToken cancellationToken);
@@ -1039,7 +1047,7 @@ false — this handler hasn't handled the exception.
 
 In Program.cs, register the handler and exception-handling middleware:
 
-builder.Services.AddExceptionHandler();
+builder.Services.AddExceptionHandler< MyExceptionHandlerClass >();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
@@ -1050,18 +1058,757 @@ app.MapControllers();
 
 app.Run();
 
-Here, MyExceptionHandler is your implementation of IExceptionHandler. The registration enables ASP.NET Core to use it through the exception-handling middleware.
+Here, MyExceptionHandlerClass is your implementation of IExceptionHandler. The registration enables ASP.NET Core to use it through the exception-handling middleware.
 
 AddProblemDetails() registers services for generating standardized error responses. The actual response depends on the exception handler and configured error-handling services.
 
 #### Which approach should you choose?
 
-| Approach                  | Best suited for                                                        |
-| ------------------------- | ---------------------------------------------------------------------- |
+
+| Approach                | Best suited for                                                        |
+| ------------------------- | ------------------------------------------------------------------------ |
 | `UseExceptionHandler()` | Standard centralized handling with minimal custom infrastructure       |
-| Custom middleware         | Special handling that requires control over the entire middleware flow |
+| Custom middleware       | Special handling that requires control over the entire middleware flow |
 | `IExceptionHandler`     | Dedicated, testable exception-handling logic in modern ASP.NET Core    |
 
 **Interview answer:** For a modern ASP.NET Core application, `IExceptionHandler` provides a clean abstraction for centralized exception handling. Custom middleware is useful when you need broader control over request-pipeline behavior. `UseExceptionHandler()` is the built-in middleware mechanism that can host centralized exception-handling logic.
 
 One important distinction: these approaches aren't necessarily alternatives. `IExceptionHandler` is commonly used together with `UseExceptionHandler()`.
+
+### Exception Logging with ILogger
+
+#### What is logging?
+
+Logging is the process of recording information about an application's execution, including errors, warnings, and important events.
+
+In .NET, `ILogger` is the standard logging abstraction used by application code. For example, suppose your Web API fails while saving an order. You want to record the exception details for troubleshooting rather than simply returning an error response.
+
+ Common logging levels
+
+
+| Level         | Purpose                                                            | Example                                   |
+| --------------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| `Trace`       | Very detailed diagnostic information                               | Detailed execution steps                  |
+| `Debug`       | Information useful during debugging                                | Intermediate processing details           |
+| `Information` | Normal application events                                          | Order successfully created                |
+| `Warning`     | An unexpected situation that doesn't necessarily prevent operation | Retry after a temporary failure           |
+| `Error`       | An operation failed                                                | Failed to save an order                   |
+| `Critical`    | A severe failure affecting application operation                   | A critical service component cannot start |
+
+#### How do you use ILogger?
+
+ASP.NET Core provides dependency injection for ILogger< T >. The generic type identifies the category, usually the class where the logger is used.
+For example, in a service:
+public class OrderService
+{
+    private readonly ILogger< OrderService > _logger;
+
+    public OrderService(ILogger< OrderService > logger)
+    {
+        _logger = logger;
+    }
+}
+
+You can log an error like this:
+
+```
+_logger.LogError(
+    exception,
+    "Failed to process order {OrderId}",
+    orderId);
+```
+
+Notice that the exception is passed as an argument. This lets the logging provider capture useful exception details, including its stack trace.
+
+The `{OrderId}` placeholder is structured logging: the order ID is recorded as a property rather than merely concatenated into a string.
+
+#### Should you log an exception and rethrow it?
+
+Sometimes, but be careful not to log the same exception redundantly at every application layer.
+
+For example:
+
+```
+try
+{
+    await repository.SaveOrderAsync(order);
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Failed to save order");
+    throw;
+}
+```
+
+This preserves the original stack trace, but if global exception-handling middleware also logs the same exception, you may end up with duplicate error logs.
+A good general approach is:
+
+- Handle an exception where you can genuinely recover from it.
+- Add contextual logging when it provides useful information.
+- Let centralized exception handling log unexpected failures that remain unhandled.
+- Avoid logging and swallowing exceptions silently.
+
+#### How does logging work with global exception handling?
+
+A common production flow looks like this:
+
+**Controller / Service / Repository [Unexpected exception occurs]**
+
+**Global exception handler [Logs exception details]**
+
+**Application logs For diagnosis OR API response for safe error details**
+
+The client receives a controlled HTTP error response, while authorized developers can investigate the detailed logs.
+
+Remember: don't expose stack traces, connection strings, passwords, or other sensitive details in API responses or logs.
+
+#### What is the difference between logging and exception handling?
+
+
+| Exception handling                                    | Logging                                        |
+| ------------------------------------------------------- | ------------------------------------------------ |
+| Determines how an exception is handled                | Records information about an event or failure  |
+| May recover, transform, or propagate an exception     | Helps developers diagnose and monitor problems |
+| Uses`try`,`catch`, middleware, and exception handlers | Uses`ILogger`and configured logging providers  |
+
+Interview answer: Exception handling controls the application's response to a failure, whereas logging records diagnostic information about that failure. They complement each other but serve different purposes.
+
+### Business Exceptions vs Unexpected Exceptions
+
+#### What are business exceptions?
+
+Business exceptions represent situations where an operation cannot proceed because of a business rule or domain condition.
+Examples in an e-commerce application:
+
+- A customer tries to order more items than are available.
+- A customer tries to cancel an already-shipped order.
+- A user attempts to withdraw more money than their available balance.
+  These situations may be expected outcomes of business operations, even though the requested operation cannot be completed.
+  For example, insufficient stock doesn't necessarily mean the application is broken. It means the order cannot be fulfilled under the current business rules.
+
+#### What are unexpected technical exceptions?
+
+Unexpected exceptions arise from technical failures or conditions the application isn't prepared to handle.
+Examples:
+
+- A database connection fails unexpectedly.
+- An external service times out.
+- A programming error causes a NullReferenceException.
+- An unexpected file or I/O operation fails.
+  These errors often require investigation, monitoring, or recovery mechanisms.
+
+#### Compare the two
+
+
+| Businessexception                              | Unexpectedtechnicalexception                        |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| Related to a business rule or domain condition | Related to an unexpected technical failure          |
+| May be a normal outcome of a request           | Usually indicates a failure requiring investigation |
+| Often maps to a meaningful client response     | Often maps to a generic server error                |
+| Example: insufficient stock                    | Example: database unavailable                       |
+
+Important: A business exception is not automatically a custom exception. You can represent business failures with a result type, a domain-specific exception, or another suitable design. Choose exceptions when they fit the flow and semantics of your application.
+
+#### How should a Web API handle them?
+
+Imagine an order API.
+
+Expected business outcome: Insufficient stock
+
+The application identifies the condition and returns a meaningful response, such as `<span>409 </span><span>Conflict</span>`, if that matches the API's contract.
+
+Unexpected technical failure: Database connection failure
+
+The application logs diagnostic details and returns a safe server error response, typically `<span>500 </span><span>Internal </span><span>Server </span><span>Error</span>` unless a more appropriate status applies.
+
+The precise status code depends on the API contract and the nature of the failure. Don't expose database errors or stack traces to the client.
+
+#### Should every business failure throw an exception?
+
+No. This is a valuable interview point.
+
+If a failure is an expected result of normal business processing, returning a result object may be clearer than throwing an exception.
+
+For example, a service might return a result containing:
+
+- Whether the operation succeeded
+- A business error code
+- A user-safe message
+
+Exceptions are more appropriate when using exception-based control flow makes sense, such as when a domain operation must abort or when the failure needs to propagate to a centralized handler.
+
+Interview answer:
+
+> Business exceptions represent domain or business-rule failures, whereas unexpected exceptions usually indicate technical failures or unanticipated conditions. Expected business outcomes can often be handled with result objects, while unexpected exceptions are commonly logged and handled centrally.
+>
+
+### Exception Handling Best Practices:
+
+##### Catch exceptions only when you can handle them
+
+Don't add `try-catch` blocks to every method automatically. Catch an exception when you can recover, translate it meaningfully, or add useful handling.
+
+##### Never silently swallow exceptions
+
+Avoid empty catch blocks:
+
+```
+catch (Exception)
+{
+    // Nothing happens
+}
+```
+
+This hides failures and makes troubleshooting difficult.
+
+##### Preserve the original stack trace
+
+Use `throw;` when rethrowing the current exception from a catch block.
+
+Avoid `throw ex;` when you need to preserve the original throw location in the stack trace.
+
+##### Use global exception handling
+
+In ASP.NET Core, use exception-handling middleware or a registered `IExceptionHandler` to centralize unexpected error handling.
+
+##### Return safe and meaningful HTTP responses
+
+Use appropriate status codes and consistent error formats, such as `ProblemDetails`. Never return internal stack traces or sensitive technical information to clients in production.
+
+##### Log exceptions appropriately
+
+Use `ILogger` and structured logging. Avoid redundant logs at every layer, and protect sensitive information in logs
+
+##### Don't use exceptions for ordinary control flow
+
+Prefer normal conditions or result types for expected outcomes, such as checking whether an item exists or whether a validation rule passes.
+
+
+## `IDisposable`, `using`, and Resource Management
+
+### Why do we need resource management?
+
+ When an application runs, it uses resources such as:
+
+- Memory for objects.
+- Database connections.
+- Files and file streams.
+- Network connections.
+- Operating system handles.
+
+.NET's Garbage Collector (GC) automatically manages managed memory, but it does not guarantee that external resources are released immediately when an object is no longer needed.
+
+For example, a file may remain open longer than necessary if its stream is not disposed.
+
+### What is `IDisposable`?
+
+`IDisposable` is a built-in .NET interface that provides a standard way to release resources explicitly.
+
+It contains one method:
+
+```
+public interface IDisposable
+{
+    void Dispose();
+}
+```
+
+A class implements `IDisposable` when it needs to clean up resources or delegate cleanup to other disposable objects.
+
+#### Practical example
+
+```
+using System;
+using System.IO;
+
+public class FileService : IDisposable
+{
+    private readonly FileStream _stream;
+
+    public FileService(string path)
+    {
+        _stream = new FileStream(path, FileMode.Open);
+    }
+
+    public void ReadFile()
+    {
+        // Read from the stream
+    }
+
+    public void Dispose()
+    {
+        _stream.Dispose();
+    }
+}
+```
+
+Here, `FileService` owns a `FileStream`. Calling `FileService.Dispose()` releases the stream.
+
+Important distinction: `Dispose()` is about deterministic cleanup. The GC is responsible for reclaiming managed memory; `Dispose()` is not a command to run the GC.
+
+### What is the `using` statement?
+
+The `using` statement ensures that an object implementing `IDisposable` is disposed when execution leaves the scope, including when an exception occurs.
+
+#### Without `using`:
+
+```
+var stream = new FileStream("data.txt", FileMode.Open);
+
+try
+{
+    // Work with the file
+}
+finally
+{
+    stream.Dispose();
+}
+```
+
+#### With `using`:
+
+```
+using (var stream =
+       new FileStream("data.txt", FileMode.Open))
+{
+    // Work with the file
+}
+```
+
+The `using` statement provides automatic cleanup without requiring you to write the `finally` block yourself.
+
+#### What if an exception occurs?
+
+```
+using (var stream =
+       new FileStream("data.txt", FileMode.Open))
+{
+    throw new Exception("Something went wrong");
+}
+
+// Dispose() is still called as control leaves the scope.
+```
+
+Even if an exception occurs inside the block, the compiler-generated cleanup ensures that `Dispose()` is called.
+
+#### What is a using declaration?
+
+Modern C# also supports a using declaration, introduced in C# 8.0.
+
+```
+using var stream =
+    new FileStream("data.txt", FileMode.Open);
+
+// Work with the stream
+```
+
+The object is disposed at the end of the enclosing scope, rather than at the end of an explicitly written `using` block.
+
+#### Compare:
+
+
+| `using`statement                      | `using`declaration                     |
+| --------------------------------------- | ---------------------------------------- |
+| Has an explicit block                 | Uses the enclosing scope               |
+| Disposes when the block ends          | Disposes when the enclosing scope ends |
+| Useful for limiting resource lifetime | Useful for cleaner, flatter code       |
+
+Interview trap: A using declaration does not dispose the object immediately after the declaration. Its lifetime extends to the end of its enclosing scope.
+
+#### What happens internally when we use `using`?
+
+Conceptually, the compiler transforms a using statement into a `try/finally` structure.
+
+```
+var stream = new FileStream("data.txt", FileMode.Open);
+
+try
+{
+    // Work with the stream
+}
+finally
+{
+    if (stream != null)
+    {
+        stream.Dispose();
+    }
+}
+```
+
+This is a simplified illustration of the generated behavior, not an exact representation of every compiler transformation.
+
+You generally do not need to write this boilerplate yourself.
+
+### What is the difference between `Dispose()` and a finalizer?
+
+Dispose()
+
+- Called explicitly, commonly through using.
+- Gives predictable cleanup timing.
+- Should release resources the object owns.
+
+Finalizer
+
+- Runs when the GC determines that an object is eligible for finalization.
+- Timing is nondeterministic.
+- Is primarily a fallback for types that directly own unmanaged resources and need finalization as a safety net.
+
+#### Example finalizer syntax:
+
+```
+public class MyResource
+{
+    ~MyResource()
+    {
+        // Finalizer cleanup
+    }
+}
+```
+
+Most application-level classes do not need a finalizer. If a class only owns other disposable managed objects, it normally implements `IDisposable` and disposes those objects.
+
+#### A useful rule
+
+- Use using for objects you own and need to dispose.
+- Implement IDisposable when your class owns disposable resources and must expose cleanup.
+- Use a finalizer only when there is a specific unmanaged-resource cleanup requirement; the SafeHandle pattern is usually preferable for unmanaged handles.
+
+### What is the difference between managed and unmanaged resources?
+
+
+| Managed resources                           | Unmanaged resources                                        |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| Managed by the .NET runtime                 | Acquired from external systems or operating system APIs    |
+| Examples: ordinary objects, strings, arrays | Examples: native handles, raw unmanaged memory, OS handles |
+| Memory is reclaimed by the GC               | Often require explicit release or a safe-handle mechanism  |
+
+One important nuance: a `FileStream` is a managed .NET object, but it uses an operating system file handle internally. Disposing the stream releases that handle.
+
+### Does the Garbage Collector call `Dispose()` automatically?
+
+No, not in general.
+
+The GC automatically reclaims managed memory when objects are no longer reachable. It does not ordinarily call `Dispose()` on every object implementing `IDisposable`.
+
+For example:
+
+```
+var connection = new SqlConnection(connectionString);
+
+// Use the connection
+connection.Dispose();
+```
+
+Prefer:
+
+```
+using var connection =
+    new SqlConnection(connectionString);
+
+// Use the connection
+```
+
+The second version ensures cleanup when the scope ends.
+
+Interview trap: An object becoming eligible for garbage collection does not mean its external resources have been immediately released.
+
+### What is `IAsyncDisposable`?
+
+Some resources need asynchronous cleanup. .NET provides `IAsyncDisposable`, which exposes `ValueTask DisposeAsync()`.
+
+It is commonly used with asynchronous resource types.
+
+```
+await using var resource =
+    new SomeAsyncDisposableResource();
+
+// Use the resource asynchronously
+```
+
+The resource is asynchronously disposed when the enclosing scope exits.
+
+
+#### Remember:
+
+
+- IDisposable → Dispose()
+- IAsyncDisposable → DisposeAsync()
+- using → synchronous disposal
+- await using → asynchronous disposal
+
+Use `await using` when the resource supports `IAsyncDisposable` and asynchronous cleanup is appropriate.
+
+### Common interview traps
+
+#### Trap 1: Does `using` destroy an object?
+
+No. It ensures disposal at the end of the relevant scope. The object may remain in memory until the GC reclaims it.
+
+#### Trap 2: Does `Dispose()` force garbage collection?
+
+No. It performs cleanup; it does not force the GC to reclaim memory.
+
+#### Trap 3: Can `Dispose()` be called more than once?
+
+It can be called more than once, but the class should be designed to handle repeated disposal safely where appropriate. Do not assume every custom implementation is safe to call repeatedly.
+
+#### Trap 4: Should every class implement `IDisposable`?
+
+No. Implement it when the class needs to manage cleanup of owned resources or disposable dependencies.
+
+#### Trap 5: Should you dispose an injected dependency?
+
+Usually, no. If a dependency is created and owned by a DI container, the container generally manages its lifetime and disposal. Avoid disposing a dependency you do not own.
+
+#### Q1. Why do we need `IDisposable`?
+
+To release resources deterministically instead of relying on garbage collection timing.
+
+#### Q2. What is the purpose of the `using` statement?
+
+It ensures that a disposable resource is cleaned up when execution leaves its scope, even if an exception occurs.
+
+#### Q3. What is the difference between `Dispose()` and the GC?
+
+`Dispose()` releases resources explicitly; the GC reclaims managed memory.
+
+#### Q4. What is the difference between a using statement and a using declaration?
+
+The statement disposes at the end of its block; the declaration disposes at the end of its enclosing scope.
+
+#### Q5. What is the difference between `IDisposable` and `IAsyncDisposable`?
+
+`IDisposable` provides synchronous cleanup; `IAsyncDisposable` provides asynchronous cleanup.
+
+#### Q6. When should a class have a finalizer?
+
+Only when it has a specific unmanaged-resource cleanup requirement. Prefer `SafeHandle` for operating system handles and avoid unnecessary finalizers.
+
+#### Q7. Does `using` work when an exception occurs?
+
+Yes. The compiler ensures disposal through cleanup logic equivalent in purpose to a `finally` block.
+
+
+## Garbage Collection (GC) and Memory Management
+
+### What is Garbage Collection?
+
+Garbage Collection (GC) is a feature of the .NET runtime that automatically reclaims memory occupied by managed objects that are no longer reachable by the application.
+
+Example:
+
+```
+public class Employee
+{
+    public string Name { get; set; }
+}
+
+void Test()
+{
+    Employee emp = new Employee();
+    emp.Name = "Arun";
+
+    emp = null;
+}
+```
+
+After `emp = null`, the `Employee` object may become eligible for garbage collection, provided no other references point to it.
+
+Important: Eligible for collection does not mean collected immediately. The GC decides when to reclaim the memory.
+
+#### Why do we need GC?
+
+- Reduces manual memory-management work.
+- Reclaims memory from unreachable managed objects.
+- Helps prevent errors associated with manually freeing managed memory.
+- Can compact parts of the managed heap to reduce fragmentation.
+
+GC does not automatically release every external resource, such as a database connection or file handle. That is why `IDisposable` and `using` are important.
+
+#### Where are objects stored?
+
+For interview purposes, remember the managed heap.
+
+```
+Employee emp = new Employee();
+```
+
+Conceptually:
+
+Local variable: `emp` Holds a reference to the object
+
+Managed heap: Employee object and its instance data
+
+This is a conceptual illustration. The actual placement of variables and objects depends on runtime implementation and context; not every local variable necessarily resides on the stack.
+
+Interview trap: Don't claim that all value types are always stored on the stack and all reference types are always stored on the heap. Value types can be fields inside objects, and JIT optimizations can change where values are represented.
+
+### What are GC generations?
+
+.NET uses generations to optimize garbage collection. The idea is that many objects become unused quickly, while objects that survive tend to live longer.
+
+#### There are three main generations:
+
+##### Gen  0: Short-lived objects
+
+Newly allocated objects generally start here. This generation is collected frequently.
+
+Example: temporary objects created while formatting a response.
+
+##### Gen 1: Intermediate objects
+
+Objects that survive a Gen 0 collection can be promoted here. It acts as a buffer between short- and long-lived objects.
+
+##### Gen 2: Long-lived objects
+
+Objects that survive further collections can be promoted here. Collecting Gen 2 generally requires more work.
+
+Example: long-lived application state that remains reachable.
+
+#### How promotion works
+
+Imagine an object is allocated in Gen 0:
+
+1. It survives a Gen 0 collection because it is still reachable.
+2. It may be promoted to Gen 1.
+3. If it survives further collections, it may be promoted to Gen 2.
+
+Promotion is based on survival, not simply on how many seconds the object has existed.
+
+#### Why does .NET have generations?
+
+To improve performance by collecting short-lived objects frequently without repeatedly scanning all long-lived objects.
+
+### What is a GC collection?
+
+When a generation is collected, the GC identifies live objects, reclaims memory occupied by unreachable objects, and may compact the heap.
+A simplified process is:
+
+1. Identify GC roots, such as active stack references and static references.
+2. Trace reachable objects.
+3. Identify unreachable objects.
+4. Reclaim their managed memory.
+5. Potentially compact the heap and update references.
+
+The exact process varies depending on the GC mode, generation and object types.
+
+### What are GC roots?
+
+GC roots are references from which the GC begins determining which objects are reachable.
+Examples include:
+
+- References held by active method calls.
+- Static references.
+- References maintained by the runtime.
+
+An object that is reachable from a GC root is generally considered live, subject to runtime details such as finalization.
+
+### What is the Large Object Heap (LOH)?
+
+The Large Object Heap stores large managed allocations. In the standard .NET GC, objects around 85,000 bytes or larger are generally allocated on the LOH.
+
+Example:
+
+```
+byte[] buffer = new byte[100_000];
+```
+
+This array is typically allocated on the LOH.
+
+Important points:
+
+- LOH objects are collected as part of Gen 2 collections.
+- Large allocations can increase memory pressure.
+- LOH fragmentation can affect performance.
+- Large Object Heap compaction is possible, but it is not generally performed on every collection.
+
+Interview trap: The LOH is not a fourth generation. It is a separate heap area associated with Gen 2 collection behavior.
+
+### What is a memory leak in C#?
+
+A memory leak can occur even in a garbage-collected language.
+
+It happens when objects are no longer logically needed but remain reachable, so the GC cannot reclaim them.
+
+Example:
+
+```
+public class CacheService
+{
+    private readonly List<byte[]> _cache = new();
+
+    public void StoreData()
+    {
+        _cache.Add(new byte[1_000_000]);
+    }
+}
+```
+
+If this method repeatedly adds arrays and the list continues growing without removing entries, memory usage can grow significantly.
+
+The GC cannot simply remove those arrays because the list still references them.
+
+Common causes include:
+
+- Unbounded caches or collections.
+- Event subscriptions that keep objects alive.
+- Static collections holding references indefinitely.
+- Long-lived references to objects that are no longer needed.
+
+Key distinction: A memory leak is not necessarily an object that is unreachable. In managed applications, leaked objects are often still reachable but are retained unnecessarily.
+
+### What is the difference between `Dispose()` and GC?
+
+This is one of the most important interview questions from your previous topic.
+
+
+| `Dispose()`                                         | Garbage Collector                                       |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| Explicitly releases resources owned by an object    | Reclaims memory occupied by unreachable managed objects |
+| Cleanup timing is predictable when called correctly | Collection timing is nondeterministic                   |
+| Does not automatically free all managed memory      | Does not ordinarily call`Dispose()`on every object      |
+| Often used for files, streams and connections       | Manages the managed heap                                |
+
+Example:
+
+```
+using var reader = new StreamReader("data.txt");
+
+string content = reader.ReadToEnd();
+```
+
+When the scope ends, the reader is disposed. The GC later reclaims its managed memory when appropriate.
+
+### What is `GC.Collect()`?
+
+`GC.Collect()` requests that the GC perform a collection.
+
+```
+GC.Collect();
+```
+
+You might see it in legacy code, but you should generally avoid calling it manually.
+
+#### Why?
+
+- The GC already uses runtime heuristics to decide when collection is appropriate.
+- Forcing collections can increase CPU overhead.
+- It can interfere with normal GC optimization and latency.
+- It does not fix objects that are still unnecessarily referenced.
+
+Interview answer: “I generally let the .NET GC manage collections automatically. I would consider a forced collection only in a specific, measured scenario where there is a clear justification.”
+
+### Workstation GC vs. Server GC
+
+.NET provides different GC modes for different application workloads.
+
+
+| Workstation GC                                           | Server GC                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------- |
+| Commonly suited to desktop and client applications       | Commonly suited to server workloads                |
+| Optimized for responsiveness and resource considerations | Designed for throughput on server workloads        |
+| Uses workstation-oriented collection behavior            | Can use multiple GC heaps and dedicated GC threads |
+
+The actual configuration depends on the application type and runtime settings. Server GC is not automatically the best choice for every application.
+
+For ASP.NET Core, understanding Server GC is useful because backend services often prioritize throughput under concurrent workloads.
