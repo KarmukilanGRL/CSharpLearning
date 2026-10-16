@@ -638,3 +638,471 @@ Also, configuration reload behavior depends on the provider and whether reload i
 | Example: GetValue< int >(...)            | Example: IOptions< EmailSettings ><EmailSettings></emailsettings> |
 
 Both approaches are useful. The Options pattern is often preferable for a group of related settings because the structure is clearer and easier to maintain.
+
+
+## Dependency Injection (DI)
+
+Dependency Injection
+Starting now
+
+- 1. DI fundamentals and the problem DI solves
+- 2. Inversion of Control (IoC)
+- 3. Constructor injection
+- 4. Service registration and resolution
+- 5. Transient, Scoped, and Singleton lifetimes
+- 6. Lifetime mismatches and captive dependencies
+  7. Other important DI concepts and interview questions
+
+### DI fundamentals
+
+#### What is Dependency Injection (DI)?
+
+##### Simple definition
+
+Dependency Injection is a technique in which a class receives the objects it depends on from outside instead of creating those objects itself.
+
+Let’s understand this with a practical example.
+
+Imagine you are developing an ASP.NET Core application that sends email notifications.
+
+Your `NotificationService` needs an email sender to send emails. That email sender is its dependency.
+
+##### Without Dependency Injection
+
+```
+public class EmailSender
+{
+    public void SendEmail()
+    {
+        Console.WriteLine("Email sent");
+    }
+}
+
+public class NotificationService
+{
+    private readonly EmailSender _emailSender;
+
+    public NotificationService()
+    {
+        _emailSender = new EmailSender();
+    }
+
+    public void Notify()
+    {
+        _emailSender.SendEmail();
+    }
+}
+```
+
+What is the problem here?
+
+- NotificationService creates its own EmailSender.
+- It is tightly coupled to the concrete EmailSender class.
+- Replacing it with an SMS sender or a different email provider requires changing the class.
+- Testing becomes harder because you cannot easily substitute a fake sender.
+
+The main issue is that `NotificationService` controls both its business responsibility and the creation of its dependency.
+
+##### With Dependency Injection
+
+Instead of creating `EmailSender` inside `NotificationService`, we pass it through the constructor.
+
+```
+public interface IMessageSender
+{
+    void Send();
+}
+
+public class EmailSender : IMessageSender
+{
+    public void Send()
+    {
+        Console.WriteLine("Email sent");
+    }
+}
+
+public class NotificationService
+{
+    private readonly IMessageSender _sender;
+
+    public NotificationService(IMessageSender sender)
+    {
+        _sender = sender;
+    }
+
+    public void Notify()
+    {
+        _sender.Send();
+    }
+}
+```
+
+Now `NotificationService` doesn't create its dependency. It receives an object that implements `IMessageSender`.
+
+For example, we can create another implementation:
+
+```
+public class SmsSender : IMessageSender
+{
+    public void Send()
+    {
+        Console.WriteLine("SMS sent");
+    }
+}
+```
+
+We can supply either an `EmailSender` or an `SmsSender` without changing the `NotificationService` class.
+
+##### How it works
+
+EmailSender or SmsSender - Dependency provided from outside
+
+Passed through the constructor
+
+NotificationService - Uses IMessageSender without creating it
+
+Important: Using an interface is not mandatory for Dependency Injection. You can inject a concrete class too. Interfaces simply make implementations easier to replace and test.
+
+#### Where does ASP.NET Core DI come in?
+
+ASP.NET Core provides a built-in DI container. You register services and their implementations in `Program.cs`.
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<IMessageSender, EmailSender>();
+builder.Services.AddScoped<NotificationService>();
+
+var app = builder.Build();
+```
+
+Here:
+
+- IMessageSender is the service abstraction.
+- EmailSender is the implementation.
+- AddScoped registers the service with a particular lifetime. We’ll study lifetimes separately.
+- ASP.NET Core can create NotificationService and supply its IMessageSender dependency when the service is requested.
+
+For this example, `NotificationService` doesn't need to be registered if you instantiate it manually. Registration allows the DI container to resolve it automatically.
+
+#### Important interview questions
+
+##### Q1. What is Dependency Injection?
+
+Dependency Injection is a design technique in which a class receives its dependencies from an external source rather than creating them itself. It reduces tight coupling and improves testability and maintainability.
+
+##### Q2. Why do we use DI in ASP.NET Core?
+
+- To reduce tight coupling between classes.
+- To replace implementations without changing dependent classes.
+- To make unit testing easier by injecting mock or fake dependencies.
+- To let the DI container manage service creation and lifetimes.
+
+##### Q3. Is an interface mandatory for DI?
+
+No. DI can inject concrete classes, interfaces, or other supported dependency types. Interfaces are useful when we want interchangeable implementations.
+
+##### Q4. Is DI a design pattern or a framework feature?
+
+DI is a technique and is commonly described as a design pattern. ASP.NET Core provides a built-in DI container to support it.
+
+#### Common interview traps
+
+- DI and the DI container are not the same thing. DI is the technique; the container is a tool that can perform dependency resolution and manage registered service lifetimes.
+- DI does not automatically mean loose coupling. Injecting a concrete class can still leave a class coupled to that implementation.
+- DI does not require interfaces. Constructor injection of a concrete class is still DI.
+- DI does not automatically make code testable. Good design and appropriate dependency boundaries still matter.
+
+### Inversion of Control (IoC)
+
+#### What is Inversion of Control?
+
+Inversion of Control (IoC) is a principle in which control over creating objects or managing dependencies is moved from a class to an external component or framework.
+
+Let's understand it using our previous `NotificationService` example.
+
+##### Without IoC
+
+```
+public class NotificationService
+{
+    private readonly EmailSender _sender;
+
+    public NotificationService()
+    {
+        _sender = new EmailSender();
+    }
+}
+```
+
+Here, `NotificationService` decides which dependency to create. It controls object creation itself.
+
+##### With IoC
+
+```
+public class NotificationService
+{
+    private readonly IMessageSender _sender;
+
+    public NotificationService(IMessageSender sender)
+    {
+        _sender = sender;
+    }
+}
+```
+
+Now, `NotificationService` receives its dependency from outside. It no longer controls how that dependency is created.
+
+In ASP.NET Core, the built-in DI container can create and supply the required dependencies.
+
+#### How IoC and DI are related
+
+##### IoC — Principle
+
+Control over object creation or dependency management is delegated elsewhere.
+
+##### DI — Technique
+
+Dependencies are supplied to a class instead of being created inside it.
+
+##### ASP.NET Core DI container
+
+Creates registered services and resolves their dependencies according to their configured lifetimes.
+
+Interview distinction: IoC is the broader principle. Dependency Injection is one way to implement IoC.
+
+IoC can also be achieved through other approaches, such as the Template Method pattern or framework-controlled callbacks.
+
+#### A real ASP.NET Core example
+
+Consider this registration in Program.cs:
+
+```
+builder.Services.AddScoped<IMessageSender, EmailSender>();
+builder.Services.AddScoped<NotificationService>();
+```
+
+And this constructor:
+
+```
+public NotificationService(IMessageSender sender)
+{
+    _sender = sender;
+}
+```
+
+When the DI container resolves NotificationService, it:
+
+1. Checks which dependencies NotificationService requires.
+2. Finds the registered implementation of IMessageSender.
+3. Creates or obtains an appropriate EmailSender instance.
+4. Supplies it to the NotificationService constructor.
+
+The container handles the dependency resolution rather than requiring `NotificationService` to create its own sender.
+
+#### Important interview questions
+
+##### Q1. What is IoC?
+
+IoC is a principle in which control over certain operations, such as object creation or dependency management, is delegated from application classes to an external component or framework.
+
+##### Q2. What is the difference between IoC and DI?
+
+IoC is a principle, whereas DI is a technique used to achieve IoC by supplying dependencies from outside a class.
+
+##### Q3. Is the DI container the same as IoC?
+
+No. IoC is a principle; a DI container is a tool that helps implement it.
+
+##### Q4. Is DI the only way to achieve IoC?
+
+No. Other approaches include framework callbacks, event-driven mechanisms, and the Template Method pattern.
+
+#### Common interview traps
+
+- Saying that IoC and DI are exactly the same.
+- Saying IoC is a class or a library. It is a design principle.
+- Assuming that IoC only applies to dependency injection.
+- Assuming that ASP.NET Core must use a DI container for every object. Objects can also be created manually, although application services are commonly managed through DI.
+
+### Constructor Injection
+
+#### What is Constructor Injection?
+
+Constructor Injection is a technique where a class receives its required dependencies through its constructor.
+
+Instead of creating dependencies using `new`, the class declares what it needs, and the caller or DI container provides those dependencies.
+
+##### Without Constructor Injection
+
+```
+public class OrderService
+{
+    private readonly EmailService _emailService;
+
+    public OrderService()
+    {
+        _emailService = new EmailService();
+    }
+
+    public void PlaceOrder()
+    {
+        // Place order
+        _emailService.SendEmail();
+    }
+}
+```
+
+Problem: `OrderService` creates `EmailService` directly. Replacing it with another implementation or a test double is harder.
+
+##### With Constructor Injection
+
+```
+public interface IEmailService
+{
+    void SendEmail();
+}
+
+public class EmailService : IEmailService
+{
+    public void SendEmail()
+    {
+        Console.WriteLine("Email sent");
+    }
+}
+
+public class OrderService
+{
+    private readonly IEmailService _emailService;
+
+    public OrderService(IEmailService emailService)
+    {
+        _emailService = emailService;
+    }
+  
+    public void PlaceOrder()
+    {
+        // Place order
+        _emailService.SendEmail();
+    }
+}
+```
+
+Notice these three things:
+
+- IEmailService defines the dependency contract.
+- The constructor accepts IEmailService.
+- The readonly field stores the dependency for use by other methods.
+
+`readonly` means the field can be assigned during declaration or in a constructor, but cannot be reassigned elsewhere after construction.
+
+#### How does ASP.NET Core inject the dependency?
+
+Register the service mappings in Program.cs:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OrderService>();
+
+var app = builder.Build();
+```
+
+When `OrderService` is requested from the DI container, ASP.NET Core resolves `IEmailService`, creates or reuses an appropriate `EmailService` instance according to its lifetime, and passes it into the constructor.
+
+1. Program.cs - Register service mappings
+
+2. ASP.NET Core DI container - Resolves IEmailService
+
+3. OrderService constructor - Receives IEmailService
+
+Important: Registering a service does not usually create its instance immediately. The built-in container typically creates it when the service is first resolved.
+
+#### Why is Constructor Injection preferred?
+
+1. Required dependencies are explicit: the constructor tells you what the class needs.
+2. Better testability: you can pass a fake or mock implementation during unit testing.
+3. Supports immutability: dependencies can be stored in readonly fields.
+4. Prevents partially initialized objects: construction fails if required dependencies aren't supplied.
+5. Works naturally with ASP.NET Core DI: the container resolves constructor parameters automatically.
+
+### Other types of Dependency Injection
+
+There are three commonly discussed forms of injection.
+
+
+| Type                  | How it works                               | Typical use                                         |
+| ----------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| Constructor Injection | Dependency is passed through a constructor | Required dependencies; preferred in most cases      |
+| Property Injection    | Dependency is assigned through a property  | Optional dependencies in frameworks that support it |
+| Method Injection      | Dependency is passed as a method parameter | Needed only for a particular operation              |
+
+#### Property Injection example
+
+```
+public class ReportService
+{
+    public IEmailService? EmailService { get; set; }
+}
+```
+
+The caller must assign `EmailService` before using it. Otherwise, it remains `null`.
+
+The built-in ASP.NET Core DI container does not automatically inject arbitrary public properties. You would need to assign the property yourself or use a mechanism that explicitly supports property injection.
+
+#### Method Injection example
+
+```
+public class ReportService
+{
+    public void GenerateReport(IEmailService emailService)
+    {
+        // Generate report
+        emailService.SendEmail();
+    }
+}
+```
+
+The dependency is supplied only when `GenerateReport` is called.
+
+ASP.NET Core also supports action method parameters supplied by its parameter-binding system, including service parameters when explicitly configured with `[FromServices]`.
+
+#### Important interview questions
+
+##### Q1. Why is Constructor Injection preferred over Property Injection?
+
+Constructor Injection makes required dependencies explicit and ensures they are supplied during object creation. Property Injection can leave dependencies unassigned, resulting in runtime errors.
+
+##### Q2. Can a class have multiple constructor parameters?
+
+Yes. A class can receive multiple dependencies through its constructor. However, an excessively large constructor may indicate that the class has too many responsibilities.
+
+##### Q3. What happens if a required dependency isn't registered?
+
+If the DI container cannot resolve a required constructor dependency, service resolution typically fails with an exception indicating that the required service cannot be provided.
+
+##### Q4. Can we inject a concrete class instead of an interface?
+
+Yes. For example:
+
+```
+public OrderService(EmailService emailService)
+{
+    // ...
+}
+```
+
+This is still Constructor Injection. An interface is useful when you need replaceable implementations or an abstraction for testing.
+
+##### Q5. Can a constructor be private for DI?
+
+For the standard Microsoft DI container, services normally need a suitable public constructor. A private constructor is not ordinarily used for standard constructor injection.
+
+#### Common interview traps
+
+- Constructor Injection does not create dependencies by itself; the caller or container supplies them.
+- readonly is useful but not mandatory for DI.
+- Interfaces are not mandatory for DI.
+- Constructor Injection alone does not prevent circular dependencies. For example, if OrderService requires PaymentService and PaymentService requires OrderService, the built-in container cannot resolve that circular dependency.
+- Multiple public constructors can create ambiguity if the DI container cannot select an applicable constructor unambiguously.
