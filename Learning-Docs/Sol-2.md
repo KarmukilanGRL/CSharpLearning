@@ -27,9 +27,8 @@ Database [SQL Server, PostgreSQL, etc.]
 
 This is a common interview question.
 
-
 | Feature              | ASP.NET Framework                           | ASP.NET Core                         |
-| ---------------------- | --------------------------------------------- | -------------------------------------- |
+| -------------------- | ------------------------------------------- | ------------------------------------ |
 | Platform             | Windows only                                | Cross-platform                       |
 | Performance          | Generally lower for modern web workloads    | Designed for high performance        |
 | Hosting              | Commonly IIS                                | Kestrel, IIS, containers, and others |
@@ -193,9 +192,8 @@ Common interview trap: Routing selects the appropriate endpoint. It does not exe
 
 You will study middleware deeply in its own roadmap section. For now, understand the distinction.
 
-
 | Middleware                                              | Routing                                         |
-| --------------------------------------------------------- | ------------------------------------------------- |
+| ------------------------------------------------------- | ----------------------------------------------- |
 | Processes requests and responses                        | Matches requests to endpoints                   |
 | Can perform logging, authentication, and error handling | Determines which endpoint matches a request     |
 | Can modify the request or response                      | Provides endpoint selection                     |
@@ -215,9 +213,8 @@ If no endpoint matches the URL, the request normally results in 404 Not Found, p
 
 #### Common HTTP status codes:
 
-
-| Status                      | Meaning                              |
-| ----------------------------- | -------------------------------------- |
+| Status                        | Meaning                              |
+| ----------------------------- | ------------------------------------ |
 | `200 OK`                    | Request succeeded                    |
 | `201 Created`               | Resource created                     |
 | `400 Bad Request`           | Invalid request                      |
@@ -441,11 +438,10 @@ A configuration provider reads settings from a particular source and makes them 
 
 Common providers include:
 
-
 | Provider                                | Typical use                                    |
-| ----------------------------------------- | ------------------------------------------------ |
-| `appsettings.json`                      | Default application settings                   |
-| `appsettings.Development.json`          | Development-specific overrides                 |
+| --------------------------------------- | ---------------------------------------------- |
+| `appsettings.json`                    | Default application settings                   |
+| `appsettings.Development.json`        | Development-specific overrides                 |
 | Environment variables                   | Deployment-specific settings                   |
 | User Secrets                            | Local development secrets                      |
 | Command-line arguments                  | Settings passed when launching the application |
@@ -610,9 +606,8 @@ Now your service receives strongly typed settings rather than repeatedly retriev
 
 ##### Difference between `IOptions`, `IOptionsSnapshot`, and `IOptionsMonitor`
 
-
 | Feature<T></t>   | IOptions< T >               | IOptionsSnapshot< T >                               | IOptionsMonitor< T >                         |
-| ------------------ | ----------------------------- | ----------------------------------------------------- | ---------------------------------------------- |
+| ---------------- | --------------------------- | --------------------------------------------------- | -------------------------------------------- |
 | Main purpose     | Basic options access        | Per-scope options snapshot                          | Current options and change notifications     |
 | Scoped lifetime  | No; singleton-friendly      | Yes                                                 | No; singleton-friendly                       |
 | Observes changes | Not as a refreshed value    | Can refresh between scopes when reload is supported | Can observe supported configuration changes  |
@@ -629,9 +624,8 @@ Also, configuration reload behavior depends on the provider and whether reload i
 
 ##### Configuration vs Options pattern
 
-
 | IConfiguration                           | Options pattern                                                   |
-| ------------------------------------------ | ------------------------------------------------------------------- |
+| ---------------------------------------- | ----------------------------------------------------------------- |
 | Reads values using configuration keys    | Maps a configuration section to a C# class                        |
 | Useful for individual or dynamic keys    | Useful for related groups of settings                             |
 | Values are often accessed by string keys | Provides strongly typed properties                                |
@@ -1028,9 +1022,8 @@ Important: Registering a service does not usually create its instance immediatel
 
 There are three commonly discussed forms of injection.
 
-
 | Type                  | How it works                               | Typical use                                         |
-| ----------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| --------------------- | ------------------------------------------ | --------------------------------------------------- |
 | Constructor Injection | Dependency is passed through a constructor | Required dependencies; preferred in most cases      |
 | Property Injection    | Dependency is assigned through a property  | Optional dependencies in frameworks that support it |
 | Method Injection      | Dependency is passed as a method parameter | Needed only for a particular operation              |
@@ -1137,9 +1130,8 @@ Think of registration as giving the container a set of instructions.
 
 ASP.NET Core provides three commonly used lifetime registration methods.
 
-
-| Method                                      | Meaning                                                   |
-| --------------------------------------------- | ----------------------------------------------------------- |
+| Method                                        | Meaning                                                   |
+| --------------------------------------------- | --------------------------------------------------------- |
 | `AddTransient<TService, TImplementation>()` | Creates a new instance each time the service is resolved. |
 | `AddScoped<TService, TImplementation>()`    | Reuses an instance within the same DI scope.              |
 | `AddSingleton<TService, TImplementation>()` | Reuses one instance for the lifetime of the DI container. |
@@ -1201,9 +1193,7 @@ When the container resolves OrderService, it:
 This is called resolving a dependency graph: the container resolves the required service and its dependencies recursively.
 
 1. Request `OrderService`
-
 2. Resolve `IEmailService` - Registration points to `EmailService`
-
 3. Construct `OrderService` - Inject the resolved email service
 
 #### What happens if a service is not registered?
@@ -1332,13 +1322,12 @@ These results assume the service is resolved twice in the same scope, as shown.
 
 #### Compare the three lifetimes
 
-
-| Behavior                 | Transient                                    | Scoped                                                  | Singleton                                               |
-| -------------------------- | ---------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                   | Across scopes within the same container                 |
-| Across two HTTP requests | Usually new instances                        | Different instances                                     | Same instance                                           |
+| Behavior                 | Transient                                    | Scoped                                                    | Singleton                                               |
+| ------------------------ | -------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                     | Across scopes within the same container                 |
+| Across two HTTP requests | Usually new instances                        | Different instances                                       | Same instance                                           |
 | Typical use              | Lightweight, stateless services              | Request-related business services and EFCore`DbContext` | Shared, thread-safe services and caches                 |
-| Thread safety            | Depends on usage                             | Depends on usage                                        | Especially important because many requests may share it |
+| Thread safety            | Depends on usage                             | Depends on usage                                          | Especially important because many requests may share it |
 
 Important distinction: Transient doesn't mean a new instance for every method call. It means a new instance each time the DI container resolves that service. If the service is injected once into a longer-lived object, that object keeps its injected instance.
 
@@ -1926,7 +1915,6 @@ Now the DI container can resolve services such as IRepository< Product > and IRe
 
 Interview takeaway: Open generic registration lets you register one generic service mapping instead of registering each concrete type separately.
 
-
 ## ASP.NET Core Middleware
 
 ### Fundamentals
@@ -2011,9 +1999,8 @@ Important: `next` represents the next middleware in the pipeline. Awaiting `next
 
 #### Important middleware methods
 
-
-| Method  | Purpose                                                         |
-| --------- | ----------------------------------------------------------------- |
+| Method    | Purpose                                                         |
+| --------- | --------------------------------------------------------------- |
 | `Use()` | Adds middleware that can call the next component.               |
 | `Run()` | Adds terminal middleware that does not call the next component. |
 | `Map()` | Branches the pipeline based on a matching path.                 |
@@ -2180,8 +2167,7 @@ app.Run(async context =>
 
 Example behavior:
 
-
-| Request        | Response        |
+| Request          | Response          |
 | ---------------- | ----------------- |
 | `/admin`       | `Admin branch`  |
 | `/admin/users` | `Admin branch`  |
@@ -2193,9 +2179,8 @@ For example, a request to `/admin/users` will typically have `/users` in `Reques
 
 #### Quick comparison
 
-
-| Feature                | `Use()`                 | `Run()`           | `Map()`                         |
-| ------------------------ | ------------------------- | ------------------- | --------------------------------- |
+| Feature                | `Use()`               | `Run()`         | `Map()`                       |
+| ---------------------- | ----------------------- | ----------------- | ------------------------------- |
 | Main purpose           | Continue processing     | End processing    | Create a branch                 |
 | Calls next middleware  | Can                     | No                | Depends on branch configuration |
 | Executes conditionally | Can, with custom logic  | Not inherently    | Yes, based on path              |
@@ -2229,9 +2214,8 @@ because middleware order directly affects security, error handling, routing, and
 
 ASP.NET Core provides ready-made middleware for common tasks, so you don't need to implement everything yourself.
 
-
-| Middleware              | Purpose                                                   |
-| ------------------------- | ----------------------------------------------------------- |
+| Middleware                | Purpose                                                   |
+| ------------------------- | --------------------------------------------------------- |
 | `UseExceptionHandler()` | Handles unhandled exceptions in production                |
 | `UseHttpsRedirection()` | Redirects HTTP requests to HTTPS                          |
 | `UseStaticFiles()`      | Serves static files such as CSS, JavaScript, and images   |
@@ -2428,9 +2412,8 @@ public class RequestTimingMiddleware
 
 Let's understand the important parts.
 
-
-| Code                   | Meaning                                             |
-| ------------------------ | ----------------------------------------------------- |
+| Code                     | Meaning                                             |
+| ------------------------ | --------------------------------------------------- |
 | `RequestDelegate`      | Represents the next middleware in the pipeline      |
 | `_next`                | Stores the next middleware delegate                 |
 | `HttpContext`          | Contains the current HTTP request and response      |
@@ -2714,11 +2697,10 @@ This illustrates the DI pattern; in a real application, `AppDbContext` should no
 
 #### Comparison table
 
-
-| Feature                         | Conventional middleware        | `IMiddleware`                       |
-| --------------------------------- | -------------------------------- | ------------------------------------- |
+| Feature                         | Conventional middleware        | `IMiddleware`                     |
+| ------------------------------- | ------------------------------ | ----------------------------------- |
 | Interface required              | No                             | Yes                                 |
-| `RequestDelegate`               | Constructor parameter          | `InvokeAsync()`parameter            |
+| `RequestDelegate`             | Constructor parameter          | `InvokeAsync()`parameter          |
 | Activation                      | Usually when pipeline is built | Through DI per activation           |
 | Scoped constructor dependencies | Generally unsuitable           | Supported with compatible lifetimes |
 | Must register middleware in DI? | No                             | Yes                                 |
@@ -2861,13 +2843,12 @@ Common trap: Trying to set response headers after the response has started can f
 
 #### Request vs response processing
 
-
-| Request processing       | Response processing           |
-| -------------------------- | ------------------------------- |
-| Validate request headers | Add response headers          |
-| Start a stopwatch        | Record elapsed time           |
-| Check request properties | Log the final status code     |
-| Call`next()`             | Continue after`next()`returns |
+| Request processing       | Response processing             |
+| ------------------------ | ------------------------------- |
+| Validate request headers | Add response headers            |
+| Start a stopwatch        | Record elapsed time             |
+| Check request properties | Log the final status code       |
+| Call`next()`           | Continue after`next()`returns |
 
 A useful pattern is:
 
@@ -2984,3 +2965,1161 @@ It cannot catch an exception thrown by an earlier middleware component because t
 * Thinking middleware always needs to call `next()`.
 * Assuming middleware can change headers after the response has started.
 * Confusing middleware with MVC filters or endpoint handlers.
+
+
+## ASP.NET Core Web API
+
+### Introduction to Web API
+
+#### What is a Web API?
+
+A Web API allows different applications to communicate with each other over HTTP.
+
+For example, imagine you are developing a shopping application.
+
+- A frontend application displays products.
+- A backend Web API provides product information.
+- A database stores the product details.
+
+When the frontend requests a list of products, the Web API retrieves the data and returns a response, commonly in JSON format.
+
+1. Client / Frontend - Browser, mobile app, or another service
+2. HTTP Request
+3. ASP.NET Core Web API - Processes the request and applies business logic
+4. Query or update data
+5. Database - Stores application data
+
+The API sends an HTTP response back to the client.
+
+#### What is ASP.NET Core Web API?
+
+ASP.NET Core Web API is a framework for building HTTP-based services using C# and .NET.
+
+It lets you create endpoints such as:
+
+| HTTP method | Endpoint             | Purpose                      |
+| ----------- | -------------------- | ---------------------------- |
+| GET         | `/api/products`    | Retrieve all products        |
+| GET         | `/api/products/10` | Retrieve product 10          |
+| POST        | `/api/products`    | Create a product             |
+| PUT         | `/api/products/10` | Replace or update product 10 |
+| DELETE      | `/api/products/10` | Delete product 10            |
+
+These endpoints are examples of a REST-style API design. We’ll study REST and HTTP methods in detail later.
+
+#### A simple C# Web API example
+
+Consider an API that returns a product.
+
+```
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetProducts()
+    {
+        var products = new[]
+        {
+            new { Id = 1, Name = "Laptop", Price = 50000 },
+            new { Id = 2, Name = "Keyboard", Price = 1500 }
+        };
+
+        return Ok(products);
+    }
+}
+```
+
+Let's understand the important parts.
+
+- [ApiController] — enables API-specific behaviors, including automatic model validation responses in applicable scenarios.
+- [Route("api/[controller]")] — defines the route pattern. Here, ProductsController produces the route prefix /api/products.
+- ControllerBase — provides API controller functionality without MVC view support.
+- [HttpGet] — maps HTTP GET requests to this action.
+- IActionResult — allows the action to return different HTTP responses.
+- Ok(products) — returns HTTP status code 200 OK with the product data, normally serialized as JSON.
+
+Example response:
+
+```
+[
+  {
+    "id": 1,
+    "name": "Laptop",
+    "price": 50000
+  },
+  {
+    "id": 2,
+    "name": "Keyboard",
+    "price": 1500
+  }
+]
+```
+
+Property casing can depend on JSON serialization settings; ASP.NET Core web defaults typically use camelCase.
+
+#### Important interview questions
+
+Q1. What is a Web API?
+
+A Web API is an HTTP-accessible interface that allows clients and services to exchange data and perform operations.
+
+Q2. What is ASP.NET Core Web API?
+
+It is a .NET framework for building HTTP services and APIs using C#.
+
+Q3. What is the difference between Controller and ControllerBase?
+
+- ControllerBase provides functionality commonly used for APIs.
+- Controller inherits from ControllerBase and adds support for MVC views.
+- Interview tip: For API controllers, ControllerBase is generally the appropriate choice.
+
+Q4. What is the difference between IActionResult and ActionResult< T >?
+
+- IActionResult supports returning different kinds of action results.
+- ActionResult< T > supports returning either a typed result or another HTTP action result.
+
+Example:
+
+```
+public ActionResult<Product> GetProduct()
+{
+    var product = new Product
+    {
+        Id = 1,
+        Name = "Laptop"
+    };
+
+    return Ok(product);
+}
+```
+
+This assumes a `Product` class with `Id` and `Name` properties.
+
+#### Common interview traps
+
+- Trap: Every Web API must use a controller.
+  Correct: ASP.NET Core also supports Minimal APIs, where endpoints can be defined directly in Program.cs.
+- Trap: Ok() means the database operation succeeded.
+  Correct: It means the server is returning HTTP 200 OK. It does not independently guarantee that the intended business operation was performed correctly.
+- Trap: A Web API always returns JSON.
+  Correct: JSON is common, but APIs can return other formats or content types.
+- Trap: ControllerBase supports Razor views.
+  Correct: MVC view support is provided by Controller, not ControllerBase.
+
+### REST API Fundamentals
+
+#### What is REST?
+
+REST (Representational State Transfer) is an architectural style for designing web services that communicate over HTTP.
+
+A REST API organizes data around resources and uses HTTP methods to perform operations on them.
+
+For example, in an e-commerce application, products are resources.
+
+| Operation                  | HTTP method | Endpoint             |
+| -------------------------- | ----------- | -------------------- |
+| Get all products           | GET         | `/api/products`    |
+| Get one product            | GET         | `/api/products/10` |
+| Create a product           | POST        | `/api/products`    |
+| Update a product           | PUT         | `/api/products/10` |
+| Partially update a product | PATCH       | `/api/products/10` |
+| Delete a product           | DELETE      | `/api/products/10` |
+
+Interview tip: REST is an architectural style, not a framework or a protocol. HTTP is commonly used to implement REST APIs.
+
+#### Important REST principles
+
+##### 1. Client-server architecture
+
+The client handles the user interface, while the server handles data and business logic. They can evolve independently as long as their communication contract remains compatible.
+
+##### 2. Statelessness
+
+Each request must contain the information needed to process it. The server should not rely on stored client session context from a previous request.
+
+Example: an authenticated request sends its access token rather than relying on the server remembering a previous API call.
+
+##### 3. Resource-based design
+
+Resources are identified by URLs, usually using nouns.
+
+Good: /api/products/10
+
+Avoid: /api/getProductById/10
+
+##### 4. Uniform interface
+
+APIs use consistent conventions for resource identification, HTTP methods, status codes, and representations.
+
+##### 5. Cacheability
+
+Responses should indicate whether they can be cached. Proper caching can reduce server load and improve response times.
+
+REST also defines layered-system and optional code-on-demand constraints. For most .NET interviews, understand the principles above first.
+
+#### What does stateless mean in ASP.NET Core?
+
+Imagine a user sends two requests:
+
+- Request 1: GET /api/products
+- Request 2: GET /api/orders
+
+With a stateless API, the server processes each request using the information provided with that request and its own application data. It does not depend on remembering the client's previous request context.
+
+Important trap: Stateless does not mean the application cannot use a database, caching, or authentication. It means the server does not rely on stored client session state to understand the sequence of requests.
+
+#### REST vs SOAP
+
+| REST                          | SOAP                                                              |
+| ----------------------------- | ----------------------------------------------------------------- |
+| Architectural style           | Messaging protocol                                                |
+| Commonly uses HTTP and JSON   | Uses XML-based messages                                           |
+| Generally lightweight         | More formal message structure                                     |
+| Resource-oriented design      | Operation-oriented messaging is common                            |
+| Often used in modern Web APIs | Used in enterprise integrations that need SOAP-specific standards |
+
+Interview answer: REST is an architectural style, whereas SOAP is a protocol. REST APIs commonly exchange JSON, while SOAP messages use XML.
+
+#### Important interview questions
+
+##### Q1. What makes an API RESTful?
+
+It follows REST constraints, including client-server separation, stateless communication, a uniform interface, cacheability, and a layered system.
+
+##### Q2. Why should REST endpoints generally use nouns instead of verbs?
+
+Because the URL identifies the resource, while the HTTP method indicates the operation.
+
+For example, `DELETE /api/products/10` expresses the deletion operation without putting `delete` in the URL.
+
+##### Q3. Is every HTTP API a REST API?
+
+No. An HTTP API may use HTTP without following REST's architectural constraints.
+
+##### Q4. Can a REST API use XML instead of JSON?
+
+Yes. REST does not require JSON; an API can use different representations depending on its supported media types.
+
+### HTTP Methods
+
+what each method does, but also how they differ in terms of safety, idempotency, and partial updates.
+
+#### The five main HTTP methods
+
+Imagine you are developing a product management API.
+
+| Method     | Purpose                                   | Example              |
+| ---------- | ----------------------------------------- | -------------------- |
+| `GET`    | Retrieve data                             | `/api/products/10` |
+| `POST`   | Create a resource or perform an operation | `/api/products`    |
+| `PUT`    | Replace a resource                        | `/api/products/10` |
+| `PATCH`  | Partially update a resource               | `/api/products/10` |
+| `DELETE` | Remove a resource                         | `/api/products/10` |
+
+#### GET — Retrieve data
+
+GET is used to read data from the server.
+
+```
+[HttpGet("{id}")]
+public ActionResult<Product> GetProduct(int id)
+{
+    var product = new Product
+    {
+        Id = id,
+        Name = "Laptop",
+        Price = 50000
+    };
+
+    return Ok(product);
+}
+```
+
+Request: GET /api/products/10
+
+Response: 200 OK, with the product represented as JSON.
+
+Key points:
+
+- GET should not change the resource's state.
+- GET is safe and idempotent.
+- Query parameters are commonly used for filtering, sorting, and pagination.
+  Example: GET /api/products?page=1&pageSize=10
+
+#### POST — Create a resource
+
+POST is commonly used to create a new resource.
+
+```
+[HttpPost]
+public ActionResult<Product> CreateProduct(Product product)
+{
+    // Normally, save the product to the database.
+
+    return CreatedAtAction(
+        nameof(GetProduct),
+        new { id = product.Id },
+        product);
+}
+```
+
+Key points:
+
+- The request body commonly contains the data to create.
+- A successful creation commonly returns 201 Created.
+- CreatedAtAction can return the new resource's location in the Location header.
+- POST is generally not idempotent.
+
+For example, submitting the same creation request twice might create two products.
+
+#### PUT vs PATCH — A critical interview distinction
+
+Suppose a product contains these properties:
+
+```
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+    public int Stock { get; set; }
+}
+```
+
+Existing resource:
+
+```
+{
+  "id": 10,
+  "name": "Laptop",
+  "price": 50000,
+  "stock": 20
+}
+```
+
+##### PUT — Replace the resource
+
+A PUT request generally supplies the complete intended representation of the resource.
+
+```
+PUT /api/products/10
+Content-Type: application/json
+```
+
+```
+{
+  "id": 10,
+  "name": "Laptop Pro",
+  "price": 60000,
+  "stock": 15
+}
+```
+
+A typical controller action:
+
+```
+[HttpPut("{id}")]
+public IActionResult UpdateProduct(int id, Product product)
+{
+    if (id != product.Id)
+        return BadRequest();
+
+    // Normally, replace/update the stored resource.
+
+    return NoContent();
+}
+```
+
+`204 No Content` means the operation succeeded and no response body is returned.
+
+Important: PUT is defined in terms of replacing the target resource's state, although exact implementation details depend on the API's resource model.
+
+##### PATCH — Update part of a resource
+
+Suppose you only want to change the price.
+
+```
+PATCH /api/products/10
+Content-Type: application/merge-patch+json
+```
+
+```
+{
+  "price": 55000
+}
+```
+
+The intention is to change only the price while retaining the other properties.
+
+PATCH can use different patch formats, such as JSON Patch (`application/json-patch+json`) or JSON Merge Patch (`application/merge-patch+json`). The API must define which format it supports.
+
+Common trap: PATCH does not automatically mean that any JSON body will update only the supplied fields. Your API must implement the appropriate partial-update behavior.
+
+#### DELETE — Remove a resource
+
+```
+[HttpDelete("{id}")]
+public IActionResult DeleteProduct(int id)
+{
+    // Normally, delete the product from the database.
+
+    return NoContent();
+}
+```
+
+Request: `DELETE /api/products/10`
+
+A successful deletion commonly returns `204 No Content`.
+
+Other valid outcomes depend on the API's design. For example, an API might return `404 Not Found` if the product doesn't exist.
+
+#### Safe vs idempotent — Interview favorite
+
+These two terms are often confused.
+
+Safe: The method is intended to read data without changing the server's application state.
+
+Idempotent: Repeating the same request has the same intended effect on server state as making it once.
+
+| Method | Safe? | Idempotent?              |
+| ------ | ----- | ------------------------ |
+| GET    | Yes   | Yes                      |
+| POST   | No    | Generally no             |
+| PUT    | No    | Yes                      |
+| PATCH  | No    | Depends on the operation |
+| DELETE | No    | Yes                      |
+
+Why is DELETE idempotent? Deleting a resource once removes it. Repeating the deletion does not remove it again or produce an additional state change, even if the second response is `404 Not Found`.
+
+Why can PATCH be non-idempotent? An operation such as “increase price by 100” produces a different result each time it is applied. A PATCH request that sets the price to `55000`, however, can be idempotent.
+
+### HTTP Status Codes
+
+They tell the client whether a request succeeded, failed, or requires further action.
+
+In ASP.NET Core, we typically return status codes from controller actions using methods such as `Ok()`, `NotFound()`, `BadRequest()`, and `StatusCode()`.
+
+#### Important HTTP status codes
+
+Learn these first for interviews.
+
+| Status code                   | Meaning                           | When to use                                      |
+| ----------------------------- | --------------------------------- | ------------------------------------------------ |
+| `200 OK`                    | Success                           | GET or successful operation with a response body |
+| `201 Created`               | Resource created                  | POST successfully creates a resource             |
+| `204 No Content`            | Success, no body                  | Successful update or deletion                    |
+| `400 Bad Request`           | Invalid request                   | Malformed input or invalid request data          |
+| `401 Unauthorized`          | Authentication required or failed | Missing or invalid credentials                   |
+| `403 Forbidden`             | Access denied                     | User is authenticated but lacks permission       |
+| `404 Not Found`             | Resource not found                | Requested product or endpoint doesn't exist      |
+| `409 Conflict`              | State conflict                    | Duplicate resource or conflicting update         |
+| `500 Internal Server Error` | Unexpected server failure         | Unhandled application error                      |
+
+Interview trap: `401 Unauthorized` usually means the client is not successfully authenticated; `403 Forbidden` means the server refuses access even though the client may be authenticated.
+
+#### How to return status codes in ASP.NET Core
+
+Consider this product model:
+
+```
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+}
+```
+
+A controller can return different responses depending on the situation:
+
+```
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet("{id}")]
+    public ActionResult<Product> GetProduct(int id)
+    {
+        if (id <= 0)
+            return BadRequest("Invalid product ID.");
+
+        var product = FindProduct(id);
+
+        if (product is null)
+            return NotFound();
+
+        return Ok(product);
+    }
+
+    private Product? FindProduct(int id)
+    {
+        // Example only: normally retrieve data from a database.
+        if (id != 1)
+            return null;
+
+        return new Product { Id = 1, Name = "Laptop" };
+    }
+}
+```
+
+Possible results:
+
+- GET /api/products/0 → 400 Bad Request
+- GET /api/products/99 → 404 Not Found
+- GET /api/products/1 → 200 OK with the product
+
+Notice that the HTTP status communicates the result to the client.
+
+#### IActionResult vs ActionResult< T ><T></t>
+
+##### `IActionResult`
+
+Use it when an action can return different kinds of HTTP responses.
+
+```
+[HttpDelete("{id}")]
+public IActionResult DeleteProduct(int id)
+{
+    bool deleted = DeleteFromDatabase(id);
+
+    if (!deleted)
+        return NotFound();
+
+    return NoContent();
+}
+
+private bool DeleteFromDatabase(int id)
+{
+    // Example placeholder.
+    return id == 1;
+}
+```
+
+##### ActionResult< T >
+
+Use it when the action normally returns a specific data type, but may also return an HTTP error result.
+
+```
+[HttpGet("{id}")]
+public ActionResult<Product> GetProductById(int id)
+{
+    var product = FindProduct(id);
+
+    if (product is null)
+        return NotFound();
+
+    return product;
+}
+```
+
+Interview answer: ActionResult< T > communicates the expected response data type while still allowing other action results, such as NotFound(). IActionResult is useful when the response type varies without one primary data type.
+
+#### Important differences interviewers test
+
+Q1. When should you return 200 vs 201?
+
+- 200 OK: The request succeeded.
+- 201 Created: A new resource was successfully created.
+- For resource creation, 201 Created is usually the better choice.
+
+Q2. When should you return 204 instead of 200?
+
+Use 204 No Content when the operation succeeded and there is no response body to send. Do not attach a response body to a 204 response.
+
+Q3. What is the difference between 400 and 500?
+
+- 400: The request is invalid or cannot be processed as submitted.
+- 500: An unexpected server-side failure occurred.
+- Don't expose internal exception details in a production 500 response.
+
+Q4. Does [ApiController] automatically return 400 for invalid model data?
+
+Yes, for model-state validation failures, [ApiController] automatically generates an HTTP 400 Bad Request response by default. You generally don't need to check ModelState.IsValid manually for this behavior.
+
+### Routing
+
+It determines which controller action or endpoint handles an incoming HTTP request.
+
+#### What is routing?
+
+Suppose a client sends this request:
+
+```
+GET /api/products/10
+```
+
+ASP.NET Core examines the request's URL and HTTP method, matches them against registered endpoints, and invokes the appropriate action.
+
+1. HTTP Request - GET /api/products/10
+2. Endpoint Routing - Matches URL + HTTP method
+3. ProductsController.GetProduct(10)
+
+If no endpoint matches the request, the application commonly returns `404 Not Found`, unless other middleware or fallback endpoints handle it differently.
+
+#### Attribute routing
+
+In ASP.NET Core Web API, attribute routing is widely used. You define routes using attributes on controllers and action methods.
+
+```
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetAll()
+    {
+        return Ok("All products");
+    }
+
+    [HttpGet("{id}")]
+    public IActionResult GetById(int id)
+    {
+        return Ok($"Product ID: {id}");
+    }
+}
+```
+
+The routes are:
+
+| Request                  | Action          |
+| ------------------------ | --------------- |
+| `GET /api/products`    | `GetAll()`    |
+| `GET /api/products/10` | `GetById(10)` |
+| `GET /api/products/25` | `GetById(25)` |
+
+Here, `[Route("api/products")]` defines the controller's route prefix. `[HttpGet("{id}")]` adds a route parameter for the action.
+
+#### Route parameters vs query parameters
+
+Route parameter: Identifies a particular resource.
+
+```
+GET /api/products/10
+```
+
+```
+[HttpGet("{id}")]
+public IActionResult GetById(int id)
+{
+    return Ok(id);
+}
+```
+
+The `id` value is `10`.
+
+Query parameter: Commonly filters, sorts, or paginates a collection.
+
+```
+GET /api/products?category=electronics&page=2
+```
+
+```
+[HttpGet]
+public IActionResult GetProducts(
+    [FromQuery] string? category,
+    [FromQuery] int page = 1)
+{
+    return Ok(new { category, page });
+}
+```
+
+Here, `category` is `"electronics"` and `page` is `2`.
+
+| Route parameter             | Query parameter                              |
+| --------------------------- | -------------------------------------------- |
+| Part of the URL path        | Appears after`?`                           |
+| `/products/10`            | `/products?id=10`                          |
+| Often identifies a resource | Often filters or modifies a collection query |
+
+Both can bind to action parameters. The choice depends on the API's design.
+
+#### Route constraints
+
+Route constraints restrict which values match a route.
+
+```
+[HttpGet("{id:int}")]
+public IActionResult GetById(int id)
+{
+    return Ok(id);
+}
+```
+
+The :int constraint means the route parameter must match an integer.
+
+- GET /api/products/10 → matches this route.
+- GET /api/products/abc → does not match this route.
+
+Other common constraints include:
+
+| Constraint     | Purpose                      |
+| -------------- | ---------------------------- |
+| `:int`       | Integer                      |
+| `:guid`      | GUID                         |
+| `:bool`      | Boolean                      |
+| `:alpha`     | Alphabetic characters        |
+| `:min(1)`    | Minimum numeric value of 1   |
+| `:max(100)`  | Maximum numeric value of 100 |
+| `:length(5)` | String length of 5           |
+
+Interview trap: A route constraint is primarily used to select a matching endpoint. It is not a replacement for business validation. For example, `{id:int}` can match `-5`; it does not guarantee that an ID is positive or exists in the database.
+
+#### How controller and action routes combine
+
+Consider this example:
+
+```
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    [HttpGet("{id:int}")]
+    public IActionResult GetOrder(int id)
+    {
+        return Ok(id);
+    }
+}
+```
+
+The route is: GET /api/orders/5
+
+Why?
+
+- [controller] becomes orders, derived from OrdersController.
+- "{id:int}" adds the integer route parameter.
+- The combined route becomes /api/orders/{id:int}.
+
+Another useful syntax:
+
+```
+[HttpGet("active")]
+public IActionResult GetActiveOrders()
+{
+    return Ok();
+}
+```
+
+This maps to `GET /api/orders/active`.
+
+#### Important routing trap
+
+An action-level route beginning with `/` or `~/` is treated as an absolute route template rather than being combined with the controller's route prefix.
+
+#### Important interview questions
+
+##### Q1. What is attribute routing?
+
+Defining routes directly with attributes such as [Route], [HttpGet], and [HttpPost].
+
+##### Q2. What happens if two endpoints match the same request equally well?
+
+ASP.NET Core may report an ambiguous match rather than arbitrarily choosing one. Design routes and HTTP method attributes so the intended endpoint is unambiguous.
+
+##### Q3. What is the difference between routing and model binding?
+
+- Routing selects the endpoint and extracts route values.
+- Model binding populates action parameters from request data, such as route values, query strings, and request bodies.
+
+##### Q4. Does {id:int} validate that the product exists?
+
+No. It only constrains route matching. The action or application service must check whether the product exists.
+
+### Model Binding
+
+It explains how data sent by a client becomes C# parameters or objects inside a controller action.
+
+#### What is model binding?
+
+Model binding is the process of mapping incoming HTTP request data to action method parameters or model objects.
+
+For example, a client sends:
+
+```
+GET /api/products/10
+```
+
+ASP.NET Core binds the value `10` to the C# parameter `id`.
+
+```
+[HttpGet("{id}")]
+public IActionResult GetProduct(int id)
+{
+    return Ok(new { ProductId = id });
+}
+```
+
+The value of `id` is `10`. Model binding can obtain values from route parameters, query strings, request bodies, headers, and form data.
+
+#### Binding Attributes
+
+##### `[FromRoute]` — URL path
+
+Request: `GET /api/products/10`
+
+```
+[HttpGet("{id}")]
+public IActionResult Get([FromRoute] int id)
+{
+    return Ok(id);
+}
+```
+
+Result: `id = 10`.
+
+##### `[FromQuery]` — Query string
+
+Request: `GET /api/products?category=books&page=2`
+
+```
+[HttpGet]
+public IActionResult Get(
+    [FromQuery] string category,
+    [FromQuery] int page)
+{
+    return Ok(new { category, page });
+}
+```
+
+Result: `category = "books"`, `page = 2`.
+
+##### `[FromBody]` — Request body
+
+Request: `POST /api/products`
+
+```
+{
+  "name": "Laptop",
+  "price": 50000
+}
+```
+
+```
+[HttpPost]
+public IActionResult Create(
+    [FromBody] CreateProductRequest request)
+{
+    return Ok(request.Name);
+}
+```
+
+ASP.NET Core uses an input formatter, commonly the JSON formatter, to deserialize the request body into the C# object.
+
+##### `[FromHeader]` — HTTP headers
+
+```
+[HttpGet("info")]
+public IActionResult GetInfo(
+    [FromHeader(Name = "X-Client-Version")]
+    string version)
+{
+    return Ok(version);
+}
+```
+
+Useful for custom headers and request metadata. Authentication headers are usually handled by authentication middleware.
+
+##### `[FromForm]` — Form data
+
+```
+[HttpPost("submit")]
+public IActionResult Submit(
+    [FromForm] string name)
+{
+    return Ok(name);
+}
+```
+
+Commonly used with form submissions and `multipart/form-data`, including file uploads.
+
+#### Model binding vs JSON deserialization
+
+This distinction is a common interview question.
+
+- Model binding obtains request values from supported sources and populates action parameters.
+- JSON deserialization converts JSON text into a .NET object.
+
+For example, when an API receives a JSON request body, the input formatter deserializes the JSON into a model as part of the request-processing and parameter-binding process.
+
+#### Important interview traps
+
+##### Can an action have multiple `[FromBody]` parameters?
+
+Generally, no. The request body is read by an input formatter, and ASP.NET Core does not support binding multiple action parameters independently from the same body this way.
+
+Incorrect:
+
+```
+public IActionResult Create(
+    [FromBody] string name,
+    [FromBody] decimal price)
+{
+    return Ok();
+}
+```
+
+Better: use a single request model.
+
+```
+public class CreateProductRequest
+{
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+}
+```
+
+```
+[HttpPost]
+public IActionResult Create(
+    [FromBody] CreateProductRequest request)
+{
+    return Ok(request);
+}
+```
+
+##### Does `[FromQuery]` read the request body?
+
+No. It reads values from the URL query string.
+
+##### Does `[FromBody]` mean JSON only?
+
+No. The supported input formatter and content type determine which formats can be read. JSON is simply the most common case.
+
+##### What happens when a value cannot be converted?
+
+For example, if the request contains `?page=abc` but the parameter is `int page`, model binding records an error. With `[ApiController]`, invalid model state typically results in an automatic `400 Bad Request` response.
+
+##### What does `[ApiController]` change?
+
+In addition to other API-specific behaviors, `[ApiController]` enables inference of binding sources in common scenarios.
+
+For example, complex parameters are typically inferred to come from the request body, while parameters matching route values are inferred from the route.
+
+However, don't assume every parameter always comes from the body. Binding-source inference depends on the parameter type, route, and framework conventions. Explicit attributes are useful when you want to make the source clear.
+
+#### Interview questions and answers
+
+Q1. What is model binding?
+
+It maps HTTP request data to action parameters and .NET models.
+
+Q2. What is the difference between `[FromRoute]` and `[FromQuery]`?
+
+`[FromRoute]` reads values from the URL path; `[FromQuery]` reads values from the query string.
+
+Q3. Why use a request DTO instead of separate body parameters?
+
+A single DTO groups related request data, simplifies validation, and gives the API a clear input contract.
+
+Q4. What happens if JSON cannot be deserialized into the request model?
+
+The request generally fails input formatting. In a controller marked with `[ApiController]`, this typically produces an automatic `400 Bad Request`.
+
+### Model Validation
+
+It ensures that incoming request data meets the rules your application expects before you process it.
+
+#### What is model validation?
+
+Model validation checks whether the data received from a client satisfies defined validation rules.
+
+Imagine a client sends a request to create a product.
+
+```
+{
+  "name": "",
+  "price": -500
+}
+```
+
+The request contains two invalid values:
+
+- name is empty.
+- price is negative.
+
+Instead of accepting the data, your API should return a validation error.
+
+#### Data annotations
+
+ASP.NET Core supports validation attributes from `System.ComponentModel.DataAnnotations`.
+
+Let's create a request DTO:
+
+```
+using System.ComponentModel.DataAnnotations;
+
+public class CreateProductRequest
+{
+    [Required]
+    [StringLength(100, MinimumLength = 2)]
+    public string Name { get; set; } = "";
+
+    [Range(0.01, 1000000)]
+    public decimal Price { get; set; }
+
+    [Range(0, 10000)]
+    public int Stock { get; set; }
+}
+```
+
+What do these attributes do?
+
+| Attribute               | Purpose                                                               |
+| ----------------------- | --------------------------------------------------------------------- |
+| `[Required]`          | Requires a non-null value                                             |
+| `[StringLength]`      | Limits the length of a string                                         |
+| `[Range]`             | Restricts a value to a specified range                                |
+| `[EmailAddress]`      | Validates email address format                                        |
+| `[RegularExpression]` | Validates a value against a regular expression                        |
+| `[MaxLength]`         | Specifies a maximum length, commonly used for strings and collections |
+
+Important trap: `[Required]` on a string rejects `null` and, by default, empty or whitespace-only strings. It does not mean that every other validation rule is automatically satisfied.
+
+#### How `[ApiController]` handles validation
+
+Consider this controller:
+
+```
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    [HttpPost]
+    public IActionResult Create(CreateProductRequest request)
+    {
+        return Ok(new
+        {
+            Message = "Product is valid",
+            request.Name,
+            request.Price
+        });
+    }
+}
+```
+
+Because the controller has `[ApiController]`, ASP.NET Core automatically returns `400 Bad Request` when model validation fails, by default.
+
+You typically do not need to write this check yourself:
+
+```
+if (!ModelState.IsValid)
+{
+    return BadRequest(ModelState);
+}
+```
+
+The framework handles invalid model state before invoking the action.
+
+Example: Invalid request
+
+Request body:
+
+```
+{
+  "name": "",
+  "price": -500,
+  "stock": 10
+}
+```
+
+The API responds with `400 Bad Request` and a validation problem response describing the invalid fields.
+
+The precise error messages and response details depend on your validation configuration.
+
+#### What is `ModelState`?
+
+`ModelState` contains information about model binding and validation, including errors.
+
+Without automatic API behavior, you can inspect it explicitly:
+
+```
+[HttpPost]
+public IActionResult Create(CreateProductRequest request)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    return Ok("Product is valid");
+}
+```
+
+Interview distinction:
+
+- Model binding converts request data into parameter values or model objects.
+- Model validation checks whether the bound values meet validation rules.
+- ModelState records binding and validation errors.
+
+With `[ApiController]`, invalid model state normally results in an automatic `400` response, so the explicit check is often redundant.
+
+#### Custom validation
+
+Sometimes built-in attributes aren't enough.
+
+For example, suppose a product's price must be greater than zero. You can create a custom validation attribute.
+
+```
+using System.ComponentModel.DataAnnotations;
+
+public class PositivePriceAttribute : ValidationAttribute
+{
+    public override bool IsValid(object? value)
+    {
+        if (value is decimal price)
+        {
+            return price > 0;
+        }
+
+        return false;
+    }
+}
+```
+
+Use it on a property:
+
+```
+public class CreateProductRequest
+{
+    [Required]
+    public string Name { get; set; } = "";
+
+    [PositivePrice]
+    public decimal Price { get; set; }
+}
+```
+
+For more complex rules involving multiple properties or database state, application-level validation may be more appropriate. For example, checking whether a product code is unique usually requires a database query and should not be handled by a simple data annotation alone.
+
+#### Important interview questions
+
+##### Q1. What is the difference between model binding and model validation?
+
+Model binding populates parameters and models from request data. Model validation checks that the resulting values satisfy validation rules.
+
+##### Q2. Does `[Required]` guarantee that a string contains meaningful text?
+
+It rejects null, empty, and whitespace-only strings by default. However, it does not validate business-specific requirements such as whether the text is a real product name.
+
+##### Q3. Why use DTOs for validation?
+
+DTOs define the API's input contract and allow you to validate incoming data independently of your database entities.
+
+##### Q4. Does `[ApiController]` automatically return a 400 response for validation errors?
+
+Yes, by default, when model state is invalid. This behavior can be customized.
+
+##### Q5. Should all business rules be implemented with data annotations?
+
+No. Data annotations are useful for straightforward validation. Cross-field rules, database-dependent checks, and complex business rules often belong in the application or domain layer.
+
+#### Common mistakes to avoid
+
+- Assuming model binding alone validates all business rules.
+- Trusting client-side validation without validating on the server.
+- Using database entities directly as request DTOs when a separate input contract would be safer.
+- Returning 200 OK for invalid request data instead of an appropriate error response.
+- Exposing sensitive internal exception details in validation responses.
