@@ -639,7 +639,6 @@ Also, configuration reload behavior depends on the provider and whether reload i
 
 Both approaches are useful. The Options pattern is often preferable for a group of related settings because the structure is clearer and easier to maintain.
 
-
 ## Dependency Injection (DI)
 
 Dependency Injection
@@ -1012,9 +1011,7 @@ var app = builder.Build();
 When `OrderService` is requested from the DI container, ASP.NET Core resolves `IEmailService`, creates or reuses an appropriate `EmailService` instance according to its lifetime, and passes it into the constructor.
 
 1. Program.cs - Register service mappings
-
 2. ASP.NET Core DI container - Resolves IEmailService
-
 3. OrderService constructor - Receives IEmailService
 
 Important: Registering a service does not usually create its instance immediately. The built-in container typically creates it when the service is first resolved.
@@ -1106,3 +1103,825 @@ For the standard Microsoft DI container, services normally need a suitable publi
 - Interfaces are not mandatory for DI.
 - Constructor Injection alone does not prevent circular dependencies. For example, if OrderService requires PaymentService and PaymentService requires OrderService, the built-in container cannot resolve that circular dependency.
 - Multiple public constructors can create ambiguity if the DI container cannot select an applicable constructor unambiguously.
+
+### Service Registration and Resolution
+
+It explains how the built-in DI container knows which class to create when a dependency is requested.
+
+#### What is service registration?
+
+Service registration is the process of telling the DI container which services your application uses and how to create or provide them.
+
+In ASP.NET Core, we usually register services in `Program.cs` using `builder.Services`.
+
+For example:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OrderService>();
+
+var app = builder.Build();
+```
+
+Here:
+
+- IEmailService is the service type (abstraction).
+- EmailService is the implementation.
+- OrderService is registered so the container can construct it and resolve its dependencies.
+
+Think of registration as giving the container a set of instructions.
+
+#### The three main registration methods
+
+ASP.NET Core provides three commonly used lifetime registration methods.
+
+
+| Method                                      | Meaning                                                   |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `AddTransient<TService, TImplementation>()` | Creates a new instance each time the service is resolved. |
+| `AddScoped<TService, TImplementation>()`    | Reuses an instance within the same DI scope.              |
+| `AddSingleton<TService, TImplementation>()` | Reuses one instance for the lifetime of the DI container. |
+
+You can also register a concrete service without an interface:
+
+```
+builder.Services.AddScoped<OrderService>();
+```
+
+And register an existing instance:
+
+```
+var emailService = new EmailService();
+
+builder.Services.AddSingleton<IEmailService>(emailService);
+```
+
+In the last example, you supply the instance yourself. The container reuses that same instance and does not create it through the registered implementation type.
+
+#### What is service resolution?
+
+Service resolution is the process of obtaining a registered service from the DI container.
+
+Suppose we have this class:
+
+```
+public class OrderService
+{
+    private readonly IEmailService _emailService;
+
+    public OrderService(IEmailService emailService)
+    {
+        _emailService = emailService;
+    }
+
+    public void PlaceOrder()
+    {
+        _emailService.SendEmail();
+    }
+}
+```
+
+And this registration:
+
+```
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OrderService>();
+```
+
+When the container resolves OrderService, it:
+
+1. Examines its constructor.
+2. Finds that IEmailService is required.
+3. Looks up the registered implementation, EmailService.
+4. Creates or obtains an appropriate instance.
+5. Passes that instance into OrderService.
+
+This is called resolving a dependency graph: the container resolves the required service and its dependencies recursively.
+
+1. Request `OrderService`
+
+2. Resolve `IEmailService` - Registration points to `EmailService`
+
+3. Construct `OrderService` - Inject the resolved email service
+
+#### What happens if a service is not registered?
+
+Consider this registration:
+
+```
+builder.Services.AddScoped<OrderService>();
+```
+
+But suppose `IEmailService` has not been registered.
+
+If the container tries to resolve `OrderService`, it cannot supply the required `IEmailService` dependency. Resolution normally fails with an `InvalidOperationException`.
+
+Interview tip: A class can compile successfully but still fail at runtime because its required dependency was not registered.
+
+#### How do we manually resolve a service?
+
+ASP.NET Core normally resolves services for you through constructor injection. However, manual resolution is possible.
+
+```
+using var scope = app.Services.CreateScope();
+
+var orderService =
+    scope.ServiceProvider.GetRequiredService<OrderService>();
+```
+
+GetRequiredService< T >() returns the requested service or throws an exception if it cannot be resolved.
+
+Important: Avoid resolving application services manually throughout your code. Prefer constructor injection for normal application dependencies. Manual resolution is useful in specific scenarios, such as startup tasks and scoped background operations.
+
+#### Important interview questions
+
+##### Q1. Where do we register services in ASP.NET Core?
+
+Usually in Program.cs, using builder.Services before builder.Build().
+
+Q2. What is the difference between registration and resolution?
+
+- Registration tells the container how a service should be provided.
+- Resolution obtains the service and resolves its dependencies.
+
+##### Q3. What does `AddScoped<IEmailService, EmailService>()` mean?
+
+It tells the container to provide `EmailService` when `IEmailService` is requested, reusing an instance within the same scope.
+
+##### Q4. What is `IServiceProvider`?
+
+It is the abstraction used to retrieve services from a service container. ASP.NET Core uses it internally to resolve dependencies.
+
+##### Q5. What is the difference between GetService< T >() and GetRequiredService< T >()?
+
+- GetService< T >() returns null if the service is unavailable.
+- GetRequiredService< T >() throws an exception if the service is unavailable.
+
+#### Common interview traps
+
+- Registering a service does not necessarily instantiate it immediately.
+- Registering an interface-to-implementation mapping does not mean the interface itself is instantiated.
+- The DI container can resolve nested dependencies, not just the first constructor parameter.
+- Manual service resolution is supported, but excessive use can hide dependencies and make testing harder.
+- AddSingleton does not automatically make your service thread-safe.
+
+### Service Lifetimes
+
+Difference between Transient, Scoped, and Singleton, including when each instance is created and reused.
+
+#### What are service lifetimes?
+
+A service lifetime defines how long a service instance is retained and when the DI container reuses or creates instances.
+
+ASP.NET Core has three main service lifetimes:
+
+1. Transient — AddTransient
+   New instance per resolution
+   The container creates a new instance each time the service is resolved.
+2. Scoped — AddScoped
+   One instance per scope
+   The same instance is reused for resolutions within a particular scope. In a typical ASP.NET Core web app, a scope is created for each HTTP request.
+3. Singleton — AddSingleton
+   One instance per container
+   The same instance is reused for the lifetime of the root DI container.
+
+#### Practical C# example
+
+Let's create a service that generates a unique ID whenever its instance is constructed.
+
+```
+public class MyService
+{
+    public Guid Id { get; } = Guid.NewGuid();
+}
+```
+
+Register it in `Program.cs`:
+
+```
+builder.Services.AddTransient<MyService>();
+// Or use AddScoped<MyService>();
+// Or use AddSingleton<MyService>();
+```
+
+Now inject the service twice into another class:
+
+```
+public class TestService
+{
+    public Guid FirstId { get; }
+    public Guid SecondId { get; }
+
+    public TestService(MyService first, MyService second)
+    {
+        FirstId = first.Id;
+        SecondId = second.Id;
+    }
+}
+```
+
+What happens?
+
+- Transient: FirstId and SecondId will normally differ because the two constructor parameters resolve to separate instances.
+- Scoped: They will match because both resolutions use the same scope.
+- Singleton: They will match because both resolutions use the same singleton instance.
+
+These results assume the service is resolved twice in the same scope, as shown.
+
+#### Compare the three lifetimes
+
+
+| Behavior                 | Transient                                    | Scoped                                                  | Singleton                                               |
+| -------------------------- | ---------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                   | Across scopes within the same container                 |
+| Across two HTTP requests | Usually new instances                        | Different instances                                     | Same instance                                           |
+| Typical use              | Lightweight, stateless services              | Request-related business services and EFCore`DbContext` | Shared, thread-safe services and caches                 |
+| Thread safety            | Depends on usage                             | Depends on usage                                        | Especially important because many requests may share it |
+
+Important distinction: Transient doesn't mean a new instance for every method call. It means a new instance each time the DI container resolves that service. If the service is injected once into a longer-lived object, that object keeps its injected instance.
+
+#### Understand it through HTTP requests
+
+Imagine two HTTP requests arrive at your ASP.NET Core API.
+
+##### HTTP Request 1
+
+Transient  - New
+
+Scoped - Instance A
+
+Singleton - Shared S
+
+##### HTTP Request 2
+
+Transient - New
+
+Scoped - Instance B
+
+Singleton - Shared S
+
+Illustration: assuming each request resolves the services, and the singleton belongs to the same root container.
+
+The scoped instance changes between requests, while the singleton remains shared.
+
+When a request scope ends, the container disposes scoped services it owns that implement `IDisposable` or `IAsyncDisposable`. Disposable transient services resolved from a scope are also disposed with that scope. Singleton services managed by the container are disposed when the container shuts down.
+
+#### When should you use each lifetime?
+
+##### Transient
+
+Use for lightweight services that don't need to preserve instance state between resolutions.
+
+Example: a stateless formatter or simple message-building service.
+
+##### Scoped
+
+Use for services that should share state or resources within a single operation or web request.
+
+Example: EF Core's `DbContext`, which is commonly registered as scoped by `AddDbContext`.
+
+##### Singleton
+
+Use when one shared instance is appropriate for the application's lifetime and the implementation is designed for concurrent access.
+
+Example: an in-memory cache service or immutable application-wide metadata provider.
+
+Avoid storing request-specific data in a singleton field, because multiple requests can access the same object.
+
+#### Important interview questions
+
+##### Q1. What is the difference between Scoped and Singleton?
+
+Scoped services are reused within one scope and typically get a new instance for each HTTP request. Singleton services are shared across scopes for the lifetime of the root container.
+
+##### Q2. Is a Singleton service thread-safe automatically?
+
+No. The DI container reuses the instance, but it does not make the object's fields or operations thread-safe. You must design concurrent access appropriately.
+
+##### Q3. Is `DbContext` usually Transient, Scoped, or Singleton?
+
+Scoped. This normally provides one `DbContext` per HTTP request, enabling related operations in that request to share the same context. A `DbContext` is not thread-safe.
+
+##### Q4. Does Transient mean a new instance every time a method is called?
+
+No. It means a new instance each time the DI container resolves the service. An already-injected instance can be reused by its consumer.
+
+##### Q5. Can a Singleton depend on a Scoped service?
+
+Not directly in the normal constructor-injection pattern. Doing so can cause a scoped service to be retained beyond its intended lifetime. We'll cover this in the next topic.
+
+#### Common interview traps
+
+- A Singleton is one instance per DI container, not necessarily one instance across every process or server.
+- A Scoped service isn't automatically one instance per user; its lifetime is tied to a DI scope.
+- A Transient service can still hold mutable state. Transient registration doesn't guarantee statelessness.
+- A Singleton is not automatically thread-safe.
+- Registering a service with the correct lifetime is important, but it doesn't replace proper resource management.
+
+### Lifetime Mismatches and Captive Dependencies
+
+what happens when a Singleton depends on a Scoped service, especially when `DbContext` is involved.
+
+#### What is a lifetime mismatch?
+
+A lifetime mismatch happens when a service depends on another service whose lifetime is not appropriate for the way the dependent service is used.
+
+The most common example is: A Singleton service directly depends on a Scoped service.
+
+Let's understand why this causes problems.
+
+ Example: Incorrect DI configuration
+
+```
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddSingleton<OrderService>();
+```
+
+Suppose `OrderService` depends on `IOrderRepository`:
+
+```
+public class OrderService
+{
+    private readonly IOrderRepository _repository;
+
+    public OrderService(IOrderRepository repository)
+    {
+        _repository = repository;
+    }
+}
+```
+
+Here:
+
+- OrderService is Singleton.
+- OrderRepository is Scoped.
+- The Singleton needs the Scoped repository when it is constructed.
+
+The Singleton is supposed to live for the entire lifetime of the root container, but the repository is supposed to live only within a scope.
+
+This creates a lifetime conflict.
+
+#### What is a captive dependency?
+
+A captive dependency occurs when a longer-lived service holds onto a dependency that was intended to have a shorter lifetime.
+
+For example:
+
+Singleton: `OrderService` - Lives for the application container's lifetime
+
+Scoped: `OrderRepository` - Intended to live within one scope
+
+The longer-lived service retains the shorter-lived dependency.
+
+If the container allows this dependency to be resolved from the root provider, the scoped dependency may effectively be retained for the root container's lifetime rather than being recreated per request.
+
+That defeats the intended scoped lifetime and can cause stale state, resource retention, or incorrect behavior across requests.
+
+In the default ASP.NET Core development environment, scope validation typically detects this invalid dependency when the service provider is built or the service is resolved.
+
+#### Why is Singleton + Scoped dangerous?
+
+Consider OrderRepository using EF Core's DbContext.
+
+If a Singleton retains that repository:
+
+- Different HTTP requests may share the same repository and DbContext.
+- DbContext is not thread-safe.
+- One request's tracked entities or state may affect another request.
+- Concurrent database operations can fail or behave incorrectly.
+
+Interview rule: Do not directly inject a Scoped service into a Singleton through its constructor.
+
+#### How do we fix a lifetime mismatch?
+
+There are two common approaches.
+
+##### Solution 1: Change the Singleton to Scoped
+
+If `OrderService` is a request-oriented business service, make it Scoped too.
+
+```
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<OrderService>();
+```
+
+Now both services live within the same request scope. This is usually the simplest solution for typical web application services.
+
+##### Solution 2: Use `IServiceScopeFactory`
+
+Sometimes a service genuinely needs to be Singleton, such as a background worker that periodically processes orders.
+
+In that case, create a new scope whenever you need to use scoped dependencies.
+
+```
+public class OrderProcessor
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public OrderProcessor(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    public async Task ProcessAsync()
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+
+        var repository = scope.ServiceProvider
+            .GetRequiredService<IOrderRepository>();
+
+        // Use repository within this scope.
+        // Perform the required async operations here.
+    }
+}
+```
+
+Register the services:
+
+```
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddSingleton<OrderProcessor>();
+```
+
+Each call to `ProcessAsync` creates a scope. The scoped repository is resolved inside that scope, and the scope is disposed when processing finishes.
+
+This example demonstrates the lifetime pattern; a real processor would also need to implement its actual database or business operation.
+
+Important: Avoid injecting `IServiceProvider` into every class as a general workaround. Constructor injection should remain the normal approach. `IServiceScopeFactory` is useful when a longer-lived component legitimately needs to create short-lived scopes.
+
+#### What is scope validation?
+
+ASP.NET Core's DI container can validate service lifetimes to catch common mistakes.
+
+For example, in development, it can detect a Singleton that directly depends on a Scoped service.
+
+Scope validation can be configured through ServiceProviderOptions, including:
+
+- ValidateScopes: detects inappropriate resolution of scoped services from the root provider.
+- ValidateOnBuild: checks whether registered services can be constructed when the provider is built, where supported by the validation process.
+
+ASP.NET Core commonly enables these validations in development. Do not rely on validation being enabled in every custom configuration or environment.
+
+#### Important interview questions
+
+##### Q1. What is a captive dependency?
+
+A captive dependency occurs when a longer-lived service holds a shorter-lived dependency beyond its intended lifetime.
+
+##### Q2. Can a Singleton depend on a Transient service?
+
+Yes, the container generally permits this. However, if the Singleton stores the Transient instance in a field, that particular instance remains referenced for as long as the Singleton retains it. It is no longer effectively used as a fresh instance for each resolution by that Singleton.
+
+##### Q3. Can a Scoped service depend on a Singleton?
+
+Yes. A Singleton can safely be shared with Scoped services if it is designed for concurrent access and doesn't retain inappropriate request-specific state.
+
+##### Q4. How do you use a Scoped service inside a background service?
+
+Inject `IServiceScopeFactory`, create a scope for each unit of work, resolve the Scoped service from that scope, and dispose of the scope when finished.
+
+##### Q5. Why should `DbContext` not be registered as Singleton?
+
+`DbContext` is not thread-safe and maintains tracking state. Sharing one instance across requests can lead to concurrency errors and unwanted state sharing. It is normally registered as Scoped.
+
+#### Common interview traps
+
+- Saying that every lifetime mismatch causes an exception. Some invalid lifetime combinations are detected by validation, while others can be allowed but cause behavioral problems.
+- Assuming a Transient dependency injected into a Singleton is recreated on every method call.
+- Creating a scope but retaining its scoped services after disposing that scope.
+- Using IServiceProvider everywhere instead of proper constructor injection.
+- Assuming a Singleton is safe for concurrent requests merely because the DI container creates only one instance.
+
+### Other Important DI Concepts
+
+#### Multiple implementations of the same interface
+
+Interview question: What if multiple classes implement the same interface? How does ASP.NET Core DI choose which one to inject?
+
+Example:
+
+```
+public interface IMessageSender
+{
+    void Send();
+}
+
+public class EmailSender : IMessageSender
+{
+    public void Send() => Console.WriteLine("Email");
+}
+
+public class SmsSender : IMessageSender
+{
+    public void Send() => Console.WriteLine("SMS");
+}
+```
+
+Register both:
+
+```
+builder.Services.AddScoped<IMessageSender, EmailSender>();
+builder.Services.AddScoped<IMessageSender, SmsSender>();
+```
+
+What happens when a class requests a single IMessageSender?
+
+- With the built-in Microsoft DI container, the last registered implementation is returned when resolving a single IMessageSender.
+- If you request IEnumerable<IMessageSender></imessagesender>, both registered implementations are supplied in registration order.
+
+Example:
+
+```
+public class NotificationService
+{
+    public NotificationService(
+        IEnumerable<IMessageSender> senders)
+    {
+        foreach (var sender in senders)
+        {
+            sender.Send();
+        }
+    }
+}
+```
+
+This allows the service to use both implementations.
+
+Interview trap: Don't assume registering two implementations automatically makes the container choose one based on business requirements. If you need a particular implementation, use a suitable selection mechanism.
+
+#### Circular dependencies
+
+A circular dependency occurs when two or more services depend on each other, directly or indirectly.
+
+For example:
+
+```
+public class OrderService
+{
+    public OrderService(PaymentService paymentService) { }
+}
+
+public class PaymentService
+{
+    public PaymentService(OrderService orderService) { }
+}
+```
+
+The dependency chain becomes:
+
+1. OrderService
+2. PaymentService
+3. OrderService again
+
+Neither service can be constructed first.
+
+The built-in DI container cannot resolve this constructor dependency cycle and throws an exception.
+
+How to fix it:
+
+- Review whether both services really need to depend on each other.
+- Extract shared logic into a third service.
+- Use events or another suitable design to decouple the services.
+
+Interview trap: Switching one of the services from Scoped to Transient or Singleton does not solve the underlying circular dependency.
+
+#### Optional dependencies
+
+Sometimes a dependency is optional rather than essential.
+
+For example, an application might send an email when an email service is available, but continue processing if email notifications are disabled.
+
+You can use an optional constructor parameter with a default value:
+
+```
+public class NotificationService
+{
+    private readonly IMessageSender? _sender;
+
+    public NotificationService(IMessageSender? sender = null)
+    {
+        _sender = sender;
+    }
+}
+```
+
+However, nullable annotations (?) alone do not make a dependency optional in the built-in DI container. The default parameter value and the container's constructor-resolution behavior matter.
+
+For optional services, another approach is to explicitly check for a registered service using IServiceProvider.GetService< T >(). Use that sparingly because it hides the dependency compared with normal constructor injection.
+
+Interview takeaway: Required dependencies should normally use Constructor Injection without a default value. Make dependencies optional only when the application genuinely supports their absence.
+
+#### What is IEnumerable< T > in DI?
+
+IEnumerable< T > allows a class to receive all registered implementations of a particular service type.
+
+```
+builder.Services.AddTransient<IMessageSender, EmailSender>();
+builder.Services.AddTransient<IMessageSender, SmsSender>();
+```
+
+Then:
+
+```
+public class NotificationService
+{
+    private readonly IEnumerable<IMessageSender> _senders;
+
+    public NotificationService(IEnumerable<IMessageSender> senders)
+    {
+        _senders = senders;
+    }
+}
+```
+
+The container supplies both implementations.
+
+Typical uses include:
+
+- Sending notifications through multiple channels.
+- Running multiple validators.
+- Applying a collection of registered processing strategies.
+
+Interview trap: IEnumerable< T > doesn't mean the implementations are singletons. Each implementation follows its own registration lifetime.
+
+#### What is the difference between `AddSingleton` overloads?
+
+ASP.NET Core supports different ways to register a singleton.
+
+```
+builder.Services.AddSingleton<IMessageSender, EmailSender>();
+```
+
+The container creates and manages the implementation when required.
+
+```
+builder.Services.AddSingleton<IMessageSender>(
+    new EmailSender());
+```
+
+You provide an existing instance, which the container reuses. The container does not create that instance itself.
+
+```
+builder.Services.AddSingleton<IMessageSender>(
+    serviceProvider => new EmailSender());
+```
+
+You provide a factory that the container calls when it needs to create the singleton.
+
+Interview trap: When you supply an existing instance, you are responsible for its creation and any cleanup that belongs to you. The container does not dispose of instances registered through the existing-instance overload.
+
+#### How does DI handle `IDisposable` services?
+
+The DI container manages disposal for services it creates and owns.
+
+For example:
+
+```
+builder.Services.AddScoped<MyDisposableService>();
+```
+
+If MyDisposableService implements IDisposable, the container disposes of it when its scope ends.
+
+For scoped services in a typical web application, this usually means disposal at the end of the HTTP request.
+
+Important points:
+
+- Don't manually dispose a container-managed service while it is still in use.
+- Dispose scopes that you create manually.
+- For services implementing IAsyncDisposable, use asynchronous scope disposal when appropriate.
+- The container does not dispose an existing instance registered using the AddSingleton(instance) overload.
+
+This connects directly to the `IDisposable`, `using`, and resource-management topics you already completed.
+
+#### What is the Service Locator anti-pattern?
+
+The Service Locator approach retrieves dependencies from `IServiceProvider` inside a class rather than declaring those dependencies in its constructor.
+
+Example:
+
+```
+public class OrderService
+{
+    private readonly IServiceProvider _provider;
+
+    public OrderService(IServiceProvider provider)
+    {
+        _provider = provider;
+    }
+
+    public void PlaceOrder()
+    {
+        var sender =
+            _provider.GetRequiredService<IMessageSender>();
+
+        sender.Send();
+    }
+}
+```
+
+This works technically, but the class's actual dependency is hidden inside the method.
+
+A more explicit design is:
+
+```
+public class OrderService
+{
+    private readonly IMessageSender _sender;
+
+    public OrderService(IMessageSender sender)
+    {
+        _sender = sender;
+    }
+}
+```
+
+Interview answer: Constructor Injection is generally preferred because dependencies are explicit and easier to test. `IServiceProvider` is appropriate in specific infrastructure scenarios, but should not become the default way to obtain dependencies.
+
+#### Important DI interview questions
+
+What is DI?	Supplying dependencies from outside a class.
+What is IoC?	A principle that delegates control to an external component or framework.
+What is Constructor Injection?	Supplying dependencies through constructor parameters.
+What are the three lifetimes?	Transient, Scoped, Singleton.
+What is a captive dependency?	A longer-lived service retaining a shorter-lived dependency beyond its intended lifetime.
+What happens with multiple registrations?	Single-service resolution uses the last registration; IEnumerable< T > supplies all registrations.
+What is a circular dependency?	A dependency cycle that prevents normal construction.
+What is Service Locator?	Retrieving dependencies from a provider rather than declaring them explicitly.
+Does DI make Singleton services thread-safe?	No. Thread safety must be designed into the service.
+Who disposes container-created Scoped services?	The DI container, when their scope ends.
+
+### Final Revision
+
+#### Tricky interview questions
+
+ Q1. What happens if we register the same service multiple times?
+
+```
+builder.Services.AddScoped<IMessageSender, EmailSender>();
+builder.Services.AddScoped<IMessageSender, SmsSender>();
+```
+
+With ASP.NET Core's built-in DI container:
+
+- Requesting a single IMessageSender returns the last registered implementation, SmsSender.
+- Requesting IEnumerable< IMessageSender > returns both implementations, in registration order.
+
+##### Q2. Can we inject a Scoped service into a Singleton?
+
+Not directly through normal constructor injection. This creates a lifetime mismatch.
+
+Solution: Change the consuming service to Scoped if appropriate, or use `IServiceScopeFactory` to create a scope when a Singleton genuinely needs a Scoped dependency.
+
+##### Q3. Does the DI container create every registered service at startup?
+
+No. Most services are created when first resolved. Registration describes how to provide the service; it does not generally instantiate it immediately.
+
+##### Q4. What happens if a dependency is not registered?
+
+If a required constructor dependency cannot be resolved, the container throws an exception, typically an `InvalidOperationException`.
+
+##### Q5. Does registering a service as Singleton guarantee thread safety?
+
+No. Multiple requests or threads can access the same Singleton instance concurrently. Its implementation must handle concurrent access safely.
+
+##### Q6. What is the difference between DI and the Service Locator pattern?
+
+- DI: Dependencies are supplied explicitly, usually through constructors.
+- Service Locator: A class retrieves dependencies from a service provider when needed.
+
+Constructor Injection is generally preferred because dependencies are visible and easier to test.
+
+#### One final concept: Open generic registration
+
+This is useful when you work with generic repositories or generic services.
+
+Suppose you have:
+
+```
+public interface IRepository<T>
+{
+    T? GetById(int id);
+}
+
+public class Repository<T> : IRepository<T>
+{
+    public T? GetById(int id)
+    {
+        return default;
+    }
+}
+```
+
+You can register the generic mapping once:
+
+```
+builder.Services.AddScoped(
+    typeof(IRepository<>),
+    typeof(Repository<>));
+```
+
+Now the DI container can resolve services such as IRepository< Product > and IRepository< Customer > using the corresponding closed generic implementation types.
+
+Interview takeaway: Open generic registration lets you register one generic service mapping instead of registering each concrete type separately.
