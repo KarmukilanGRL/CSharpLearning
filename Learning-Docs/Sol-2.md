@@ -1925,3 +1925,1062 @@ builder.Services.AddScoped(
 Now the DI container can resolve services such as IRepository< Product > and IRepository< Customer > using the corresponding closed generic implementation types.
 
 Interview takeaway: Open generic registration lets you register one generic service mapping instead of registering each concrete type separately.
+
+
+## ASP.NET Core Middleware
+
+### Fundamentals
+
+#### What is Middleware in ASP.NET Core?
+
+Middleware is a component that handles an HTTP request or response as it passes through the ASP.NET Core application pipeline.
+
+Think of middleware as a series of checkpoints that a request passes through before reaching the endpoint.
+
+For example, when a client calls an API: GET /api/products
+
+The request might pass through:
+
+- Exception handling
+- HTTPS redirection
+- Authentication
+- Authorization
+- Endpoint execution
+
+Each middleware component can inspect the request, perform an operation, pass control to the next component, or stop the pipeline.
+
+#### How does middleware work?
+
+1. Client - HTTP request
+2. Middleware 1 - Exception handling
+3. Middleware 2 - Authentication
+4. Middleware 3 - Authorization
+5. Endpoint - Executes the API logic
+6. HTTP response - Returns to the client
+
+The request flows forward through the pipeline. Middleware can also execute code after the next middleware finishes, so the response path can flow backward.
+
+#### Practical C# example
+
+In `Program.cs`, you can write:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Before next middleware");
+
+    await next();
+
+    Console.WriteLine("After next middleware");
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Hello from API");
+});
+
+app.Run();
+```
+
+What happens when a request arrives?
+
+1. The first middleware prints Before next middleware.
+2. await next() passes control to the next component.
+3. The terminal middleware writes Hello from API.
+4. Control returns to the first middleware.
+5. It prints After next middleware.
+
+Output in the console:
+
+```
+Before next middleware
+After next middleware
+```
+
+The client receives:
+
+```
+Hello from API
+```
+
+Important: `next` represents the next middleware in the pipeline. Awaiting `next()` allows the current middleware to continue after downstream processing completes.
+
+#### Important middleware methods
+
+
+| Method  | Purpose                                                         |
+| --------- | ----------------------------------------------------------------- |
+| `Use()` | Adds middleware that can call the next component.               |
+| `Run()` | Adds terminal middleware that does not call the next component. |
+| `Map()` | Branches the pipeline based on a matching path.                 |
+
+Example:
+
+```
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 1");
+    await next();
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Finished");
+});
+```
+
+Here, `app.Run()` terminates the pipeline for that request. Any middleware registered after this terminal middleware will not execute for requests that reach it.
+
+Interview trap: `app.Run()` and `app.RunAsync()` are different. `app.Run()` in the example registers terminal middleware; `app.RunAsync()` starts the application asynchronously.
+
+#### Common interview questions
+
+##### Q1. What is middleware in ASP.NET Core?
+
+Middleware is a component in the HTTP request pipeline that processes requests and responses. It can perform operations, call the next middleware, or terminate the pipeline.
+
+##### Q2. Can middleware stop request processing?
+
+Yes. If middleware does not call `next()`, downstream middleware and the endpoint are not executed.
+
+##### Q3. Does middleware execute in registration order?
+
+Yes. Middleware is invoked in the order it is registered for the incoming request. Code after `await next()` runs while unwinding the pipeline.
+
+##### Q4. Why is middleware ordering important?
+
+Middleware depends on other components. For example, authentication should run before authorization so authorization can use the authenticated user's identity.
+
+##### Q5. Is middleware the same as a controller?
+
+No. Middleware operates at the request-pipeline level. A controller handles routed application requests and executes endpoint logic.
+
+#### Common interview traps
+
+- Trap 1: Middleware always calls the next component.
+  Incorrect. It can short-circuit the pipeline.
+- Trap 2: Code after await next() runs before the next middleware.
+  Incorrect. It normally runs after downstream processing completes.
+- Trap 3: Middleware order does not matter.
+  Incorrect. Incorrect ordering can cause security and application behavior problems.
+- Trap 4: app.Run() is the same as app.RunAsync().
+  Incorrect. One registers terminal middleware; the other starts the application asynchronously.
+
+### `Use()`, `Run()`, and `Map()`
+
+The most important difference is whether middleware continues the pipeline or branches it.
+
+#### `app.Use()` — Continue the pipeline
+
+`Use()` registers middleware that can execute code before and after the next middleware.
+
+```
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 1 - Before");
+
+    await next();
+
+    Console.WriteLine("Middleware 1 - After");
+});
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 2 - Before");
+
+    await next();
+
+    Console.WriteLine("Middleware 2 - After");
+});
+
+app.Run(async context =>
+{
+    Console.WriteLine("Endpoint");
+    await context.Response.WriteAsync("Hello");
+});
+```
+
+Output:
+
+```
+Middleware 1 - Before
+Middleware 2 - Before
+Endpoint
+Middleware 2 - After
+Middleware 1 - After
+```
+
+Why does this happen?
+
+- The request travels forward through the middleware.
+- Each await next() invokes the next component.
+- Once the endpoint finishes, execution returns in reverse order.
+
+This is sometimes called the onion model of middleware execution.
+
+#### `app.Run()` — Terminate the pipeline
+
+In this context, `app.Run()` registers terminal middleware. It doesn't accept a `next` delegate.
+
+```
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Before terminal middleware");
+    await next();
+    Console.WriteLine("After terminal middleware");
+});
+
+app.Run(async context =>
+{
+    Console.WriteLine("Terminal middleware");
+    await context.Response.WriteAsync("Hello");
+});
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("This will not execute");
+    await next();
+});
+```
+
+For a request that reaches the terminal middleware, the output is:
+
+```
+Before terminal middleware
+Terminal middleware
+After terminal middleware
+```
+
+The final `Use()` component doesn't execute because the terminal middleware never calls a next component.
+
+Interview trap: Middleware registered after `app.Run()` is not necessarily invalid. It simply won't execute for requests that reach that terminal middleware.
+
+#### `app.Map()` — Branch the pipeline
+
+`Map()` creates a separate branch when the request path matches a specified path.
+
+```
+app.Map("/admin", adminApp =>
+{
+    adminApp.Run(async context =>
+    {
+        await context.Response.WriteAsync("Admin branch");
+    });
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Main pipeline");
+});
+```
+
+Example behavior:
+
+
+| Request        | Response        |
+| ---------------- | ----------------- |
+| `/admin`       | `Admin branch`  |
+| `/admin/users` | `Admin branch`  |
+| `/products`    | `Main pipeline` |
+
+By default, `Map()` matches the specified path as a path segment. The matching prefix is removed from `Request.Path` within the branch and added to `Request.PathBase`.
+
+For example, a request to `/admin/users` will typically have `/users` in `Request.Path` inside this branch.
+
+#### Quick comparison
+
+
+| Feature                | `Use()`                 | `Run()`           | `Map()`                         |
+| ------------------------ | ------------------------- | ------------------- | --------------------------------- |
+| Main purpose           | Continue processing     | End processing    | Create a branch                 |
+| Calls next middleware  | Can                     | No                | Depends on branch configuration |
+| Executes conditionally | Can, with custom logic  | Not inherently    | Yes, based on path              |
+| Typical use            | Logging, authentication | Terminal response | Admin or API path branches      |
+
+Remember that `app.Run()` here means terminal middleware registration, not the method used to start the web application.
+
+#### Interview questions
+
+Q1. What happens if you don't call `await next()` inside `Use()`?
+
+Downstream middleware won't execute for that request. The current middleware has short-circuited the pipeline.
+
+Q2. Can we use multiple `Use()` calls?
+
+Yes. ASP.NET Core executes them in registration order, and code after each awaited `next()` executes as the downstream pipeline returns.
+
+Q3. What is the difference between `Map()` and `MapWhen()`?
+
+`Map()` branches based on a path prefix. `MapWhen()` branches based on a custom predicate that examines the `HttpContext`.
+
+Q4. Does `Map()` always terminate the main pipeline?
+
+No. It creates a branch. If the branch reaches its end without invoking a next component, processing ends in that branch; otherwise, the branch can continue through its own registered components.
+
+### Built-in Middleware and Execution Order
+
+because middleware order directly affects security, error handling, routing, and how requests are processed.
+
+#### What is built-in middleware?
+
+ASP.NET Core provides ready-made middleware for common tasks, so you don't need to implement everything yourself.
+
+
+| Middleware              | Purpose                                                   |
+| ------------------------- | ----------------------------------------------------------- |
+| `UseExceptionHandler()` | Handles unhandled exceptions in production                |
+| `UseHttpsRedirection()` | Redirects HTTP requests to HTTPS                          |
+| `UseStaticFiles()`      | Serves static files such as CSS, JavaScript, and images   |
+| `UseRouting()`          | Matches a request to an endpoint                          |
+| `UseCors()`             | Applies Cross-Origin Resource Sharing policies            |
+| `UseAuthentication()`   | Identifies the current user                               |
+| `UseAuthorization()`    | Checks whether the user is allowed to access a resource   |
+| `MapControllers()`      | Registers controller endpoints with the endpoint pipeline |
+
+Interview distinction: `MapControllers()` registers endpoints; it is not itself a conventional middleware-registration method like `UseAuthentication()`.
+
+#### Why does middleware order matter?
+
+Consider this example:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
+This shows a simplified pipeline. Authentication middleware identifies the user, and authorization middleware checks access before a protected controller endpoint executes.
+
+If authentication is missing or incorrectly configured, protected endpoints may not recognize the user's identity as expected.
+
+#### Recommended middleware ordering
+
+A common explicit ordering for a controller-based API is:
+
+```
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/error");
+}
+
+app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors("MyPolicy");
+
+app.UseAuthentication();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
+This is an illustrative example: the CORS policy must be registered, authentication must be configured for the chosen scheme, and the `/error` endpoint must exist if using this exception-handler path.
+
+##### critical ordering rules:
+
+Rule 1: Exception handling should be early
+
+It should wrap the components whose exceptions you want to catch, allowing it to handle unhandled downstream exceptions and produce an appropriate error response.
+
+Rule 2: Routing must precede middleware that depends on the selected endpoint
+
+For example, CORS, when configured in the explicit pipeline, should run after routing so it can use endpoint metadata.
+
+Rule 3: Authentication before authorization
+
+Authentication establishes the user's identity. Authorization uses that identity to determine whether access is permitted.
+
+##### Important modern ASP.NET Core detail
+
+With `WebApplication` and minimal hosting, ASP.NET Core can automatically add certain middleware, including routing and authentication-related middleware in supported configurations. Therefore, you won't always see every middleware call explicitly in `Program.cs`.
+
+For interviews, understand both the explicit ordering rules and the conveniences provided by modern hosting.
+
+##### What happens if authentication and authorization are reversed?
+
+Suppose you write:
+
+```
+app.UseAuthorization();
+app.UseAuthentication();
+```
+
+This is the wrong order for the usual authentication setup.
+
+Authorization may run before the authentication middleware establishes the user's identity, potentially causing an authenticated request to be treated as anonymous.
+
+Correct order:
+
+```
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+Interview answer: Authentication establishes identity; authorization determines access. Therefore, authentication should precede authorization.
+
+#### Common interview questions
+
+##### Q1. What happens if middleware is registered in the wrong order?
+
+Requests may bypass expected behavior, errors may not be handled properly, CORS may not work as intended, or authorization may evaluate an incorrectly established user identity.
+
+##### Q2. Why should exception-handling middleware be registered early?
+
+So it can catch unhandled exceptions thrown by downstream middleware and endpoint execution.
+
+##### Q3. What is the difference between authentication and authorization?
+
+Authentication answers, “Who are you?” Authorization answers, “What are you allowed to do?”
+
+##### Q4. Is `UseRouting()` always required explicitly?
+
+No. Modern ASP.NET Core hosting can add routing middleware automatically. Explicit registration is still useful when you need precise control over ordering.
+
+##### Q5. What does `UseStaticFiles()` do?
+
+It serves eligible static files from configured file providers, commonly from `wwwroot`. In the traditional pipeline, placing it before authorization can allow those files to be served without endpoint authorization checks.
+
+#### Common interview traps
+
+* `UseAuthentication()` does not decide whether the user can access a resource; that is authorization's job.
+* `UseAuthorization()` does not automatically authenticate a user.
+* Middleware ordering matters, but not every middleware has one universally mandatory position.
+* Modern ASP.NET Core can insert some middleware automatically, so the absence of an explicit `UseRouting()` call does not necessarily mean routing is missing.
+* `UseExceptionHandler()` does not magically fix every exception. It handles eligible unhandled exceptions that occur downstream and must be configured appropriately.
+
+### Custom Middleware
+
+real applications often need request logging, correlation IDs, custom error handling, request timing, and other cross-cutting functionality.
+
+#### What is custom middleware?
+
+Custom middleware is middleware that you create yourself to handle application-specific request or response processing.
+
+For example, suppose you want to log how long every API request takes. Instead of adding timing code to every controller, you can write middleware once and apply it across the application.
+
+There are two common approaches:
+
+- Inline middleware: use app.Use() directly in Program.cs.
+- Class-based middleware: create a separate class and register it in the pipeline.
+
+Class-based middleware is particularly useful when the logic is reusable or complex.
+
+#### Create custom middleware using a class
+
+Let's create middleware that measures request processing time.
+
+##### Step 1: Create a middleware class
+
+Create a file named `RequestTimingMiddleware.cs`.
+
+```
+using System.Diagnostics;
+
+public class RequestTimingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<RequestTimingMiddleware> _logger;
+
+    public RequestTimingMiddleware(
+        RequestDelegate next,
+        ILogger<RequestTimingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        await _next(context);
+
+        stopwatch.Stop();
+
+        _logger.LogInformation(
+            "Request {Path} took {ElapsedMs} ms",
+            context.Request.Path,
+            stopwatch.ElapsedMilliseconds);
+    }
+}
+```
+
+Let's understand the important parts.
+
+
+| Code                   | Meaning                                             |
+| ------------------------ | ----------------------------------------------------- |
+| `RequestDelegate`      | Represents the next middleware in the pipeline      |
+| `_next`                | Stores the next middleware delegate                 |
+| `HttpContext`          | Contains the current HTTP request and response      |
+| `InvokeAsync()`        | Method ASP.NET Core calls to execute the middleware |
+| `ILogger`              | Writes structured log messages                      |
+| `await _next(context)` | Passes control to downstream processing             |
+
+The stopwatch starts before the next middleware and stops after it completes, so it measures downstream processing time, including endpoint execution.
+
+Important: This example assumes downstream processing completes normally. If an exception escapes `_next`, the stopwatch won't be stopped by the subsequent lines. A `try/finally` block can ensure cleanup and timing even when an exception occurs.
+
+##### Step 2: Register the middleware
+
+In `Program.cs`:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+app.UseMiddleware<RequestTimingMiddleware>();
+
+app.MapControllers();
+
+app.Run();
+```
+
+The key line is:
+
+```
+app.UseMiddleware<RequestTimingMiddleware>();
+```
+
+This tells ASP.NET Core to add your custom middleware to the request pipeline.
+
+When a request reaches it, ASP.NET Core invokes InvokeAsync(). Your middleware logs the request duration after downstream processing finishes.
+
+#### How does the execution flow work?
+
+1. Incoming HTTP request
+2. RequestTimingMiddleware - Start stopwatch
+3. `await _next(context)` - Pass request downstream
+4. Controller / endpoint - Execute application logic
+5. RequestTimingMiddleware - Stop stopwatch and log duration
+6. HTTP response
+
+This pattern is useful for request timing, logging, and adding or reading correlation IDs.
+
+### Middleware and Dependency Injection
+
+#### Don't inject a scoped service into custom middleware constructor.
+
+Consider this constructor:
+
+```
+public RequestTimingMiddleware(
+    RequestDelegate next,
+    ILogger<RequestTimingMiddleware> logger)
+{
+    _next = next;
+    _logger = logger;
+}
+```
+
+ASP.NET Core supplies these dependencies when creating the middleware.
+
+However, conventional class-based middleware is typically constructed once for the application lifetime. Therefore, don't inject a scoped service directly into its constructor.
+
+For example, this is generally incorrect for conventional middleware:
+
+```
+public MyMiddleware(
+    RequestDelegate next,
+    MyDbContext dbContext)
+{
+    // Avoid this for conventional middleware.
+}
+```
+
+`MyDbContext` is usually scoped, while conventional middleware is long-lived. This creates a lifetime mismatch.
+
+#### How can you use a scoped service correctly?
+
+Inject it into `InvokeAsync()` instead:
+
+```
+public class MyMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public MyMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(
+        HttpContext context,
+        MyDbContext dbContext)
+    {
+        // Use dbContext for this request.
+
+        await _next(context);
+    }
+}
+```
+
+ASP.NET Core resolves the scoped service for the current request.
+
+Another option is to use `IMiddleware`, whose instances are activated through DI and whose lifetime can be configured through service registration.
+
+Interview trap: Don't assume every middleware instance is a singleton. Conventional middleware and factory-activated `IMiddleware` have different activation and lifetime behavior.
+
+#### Important interview questions
+
+##### Why do we create custom middleware?
+
+To implement reusable cross-cutting functionality such as logging, request timing, correlation IDs, and custom request validation without duplicating the logic in every controller.
+
+##### What is RequestDelegate?
+
+It represents the next component in the HTTP request pipeline and accepts an HttpContext, returning a Task.
+
+##### Why is InvokeAsync() asynchronous?
+
+It allows middleware to await downstream asynchronous operations without synchronously blocking a thread while waiting for I/O.
+
+##### Why should we avoid injecting a scoped service into conventional middleware's constructor?
+
+The middleware instance is generally created once and reused, while a scoped service belongs to an individual request scope. Injecting it into the long-lived constructor can cause a lifetime mismatch.
+
+##### What is the difference between UseMiddleware< T >() and app.Use()?
+
+UseMiddleware< T >() registers middleware implemented as a class or through the IMiddleware pattern. app.Use() can register inline middleware using a delegate.
+
+#### Common interview traps
+
+* Forgetting to call `await _next(context)` prevents downstream processing.
+* Forgetting `await` can cause unexpected execution behavior and incomplete handling.
+* Reading the response before downstream middleware finishes may not give you the final response state.
+* Injecting scoped services into the constructor of conventional middleware can cause lifetime issues.
+* Middleware should not assume every request reaches an endpoint; requests may be short-circuited earlier.
+
+### `IMiddleware` vs Conventional Middleware
+
+ASP.NET Core supports two common ways to implement class-based middleware:
+
+1. Conventional middleware — uses RequestDelegate and InvokeAsync().
+2. Factory-activated middleware — implements the IMiddleware interface.
+
+#### Conventional middleware
+
+This is the approach we covered in the previous topic.
+
+```
+public class LoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<LoggingMiddleware> _logger;
+
+    public LoggingMiddleware(
+        RequestDelegate next,
+        ILogger<LoggingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        _logger.LogInformation("Request started");
+
+        await _next(context);
+
+        _logger.LogInformation("Request completed");
+    }
+}
+```
+
+Register it using:
+
+```
+app.UseMiddleware<LoggingMiddleware>();
+```
+
+Important characteristics:
+
+- ASP.NET Core normally creates the middleware instance when the pipeline is built.
+- The instance is reused across requests.
+- Constructor injection is suitable for dependencies that can safely live for the middleware's lifetime.
+- Scoped services should generally be injected into InvokeAsync() instead of the constructor.
+
+#### Middleware using `IMiddleware`
+
+The alternative is to implement the `IMiddleware` interface.
+
+```
+public class LoggingMiddleware : IMiddleware
+{
+    private readonly ILogger<LoggingMiddleware> _logger;
+
+    public LoggingMiddleware(
+        ILogger<LoggingMiddleware> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(
+        HttpContext context,
+        RequestDelegate next)
+    {
+        _logger.LogInformation("Request started");
+
+        await next(context);
+
+        _logger.LogInformation("Request completed");
+    }
+}
+```
+
+Notice the differences:
+
+- It implements IMiddleware.
+- Its InvokeAsync() method receives RequestDelegate next.
+- It doesn't need a RequestDelegate constructor parameter.
+
+ Register it in DI
+
+```
+builder.Services.AddTransient<LoggingMiddleware>();
+
+var app = builder.Build();
+
+app.UseMiddleware<LoggingMiddleware>();
+
+app.Run();
+```
+
+Here, `AddTransient()` registers the middleware in the DI container. The factory-based middleware activation system resolves an instance when needed.
+
+You can also register an `IMiddleware` implementation with a scoped lifetime if that fits your design.
+
+#### The key difference: service lifetimes
+
+Suppose you need a scoped database service such as `AppDbContext`.
+
+With conventional middleware, injecting that service into the constructor can cause a lifetime mismatch because the middleware is reused across requests.
+
+With `IMiddleware`, you can use constructor injection when the middleware itself is registered as scoped or transient and the dependencies have compatible lifetimes.
+
+For example:
+
+```
+builder.Services.AddScoped<AppDbContext>();
+builder.Services.AddScoped<DatabaseMiddleware>();
+```
+
+```
+public class DatabaseMiddleware : IMiddleware
+{
+    private readonly AppDbContext _db;
+
+    public DatabaseMiddleware(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task InvokeAsync(
+        HttpContext context,
+        RequestDelegate next)
+    {
+        // Use _db for this request.
+
+        await next(context);
+    }
+}
+```
+
+This illustrates the DI pattern; in a real application, `AppDbContext` should normally be registered using EF Core's `AddDbContext()` rather than manually as shown.
+
+#### Comparison table
+
+
+| Feature                         | Conventional middleware        | `IMiddleware`                       |
+| --------------------------------- | -------------------------------- | ------------------------------------- |
+| Interface required              | No                             | Yes                                 |
+| `RequestDelegate`               | Constructor parameter          | `InvokeAsync()`parameter            |
+| Activation                      | Usually when pipeline is built | Through DI per activation           |
+| Scoped constructor dependencies | Generally unsuitable           | Supported with compatible lifetimes |
+| Must register middleware in DI? | No                             | Yes                                 |
+| Supports DI                     | Yes                            | Yes                                 |
+
+#### Important interview questions
+
+Q1. What is IMiddleware?
+
+IMiddleware is an ASP.NET Core interface that defines an InvokeAsync(HttpContext, RequestDelegate) method. It allows middleware to be activated through dependency injection.
+
+Q2. Do we need to register conventional middleware in DI?
+
+Not necessarily. Conventional middleware can be registered using app.UseMiddleware< T >() without an explicit service registration, provided its constructor dependencies are resolvable by the middleware activation mechanism.
+
+Q3. Why might we choose IMiddleware?
+
+It provides DI-controlled activation and makes it easier to use scoped dependencies through constructor injection when their lifetimes are compatible.
+
+Q4. Is IMiddleware always better?
+
+No. Conventional middleware is straightforward and widely used. Choose based on dependency lifetimes, activation requirements, and maintainability.
+
+#### Common interview traps
+
+- Both approaches support dependency injection.
+- IMiddleware must be registered in the service container for factory activation.
+- Conventional middleware is not automatically a singleton service registered through DI; its instance is generally created once and reused by the pipeline.
+- A transient IMiddleware may be activated for each request that reaches it, but the exact lifetime is controlled by its registration.
+- Using IMiddleware does not eliminate the need to understand service lifetime compatibility.
+
+### Short-Circuiting, Exception Handling, and Response Modification
+
+They explain how a request can stop early, how errors are handled, and how middleware can modify an HTTP response.
+
+#### Middleware short-circuiting
+
+Short-circuiting means stopping the request pipeline before it reaches the remaining middleware or endpoint.
+
+For example, suppose an API blocks requests containing a particular header.
+
+```
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Headers.ContainsKey("X-Api-Key"))
+    {
+        context.Response.StatusCode = 401;
+
+        await context.Response.WriteAsync("API key required");
+        return;
+    }
+
+    await next(context);
+});
+
+app.MapGet("/products", () => "Product list");
+```
+
+##### What happens?
+
+1. Incoming request
+2. Check for API key - Is the required header present?
+3. No - Return 401; stop pipeline / Yes  - Continue to endpoint
+
+Interview trap: `return` exits the current middleware delegate. It does not send control to the next middleware. Only calling `await next(context)` continues the pipeline.
+
+Also, this example demonstrates the mechanism, not a complete API-key security implementation. Production authentication should use an appropriate authentication handler or other properly designed security mechanism.
+
+#### Exception-handling middleware
+
+Middleware can throw exceptions, and downstream middleware or endpoints can also throw them.
+
+Exception-handling middleware is usually registered early so it can catch unhandled exceptions from downstream components.
+
+```
+var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync("Something went wrong");
+    });
+});
+
+app.MapGet("/test", () =>
+{
+    throw new InvalidOperationException("Unexpected error");
+});
+
+app.Run();
+```
+
+When `/test` throws an exception, the exception handler can generate a generic HTTP 500 response instead of exposing the internal exception details.
+
+Important points
+
+- Register exception handling before the components whose exceptions it should catch.
+- Don't expose stack traces or sensitive exception details to production clients.
+- A response that has already started cannot generally be replaced with a completely new error response.
+- Exception handling does not guarantee recovery from every possible failure.
+
+Interview question: Why should exception-handling middleware come first?
+
+Because it must wrap downstream execution to observe and handle exceptions that propagate back up the pipeline.
+
+#### Modifying the HTTP response
+
+Middleware can modify response headers or other response properties before or after calling the next component.
+
+For example, add a custom response header:
+
+```
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["X-App-Name"] = "MyApi";
+        return Task.CompletedTask;
+    });
+
+    await next(context);
+});
+
+app.MapGet("/hello", () => "Hello");
+```
+
+The response includes:
+
+```
+X-App-Name: MyApi
+```
+
+##### Why use `OnStarting()`?
+
+The response may be committed when its headers are sent. Registering an `OnStarting()` callback allows you to modify headers immediately before the response starts, provided they have not already been committed.
+
+Common trap: Trying to set response headers after the response has started can fail. If you need to modify headers, do so before they are sent or register an appropriate callback.
+
+#### Request vs response processing
+
+
+| Request processing       | Response processing           |
+| -------------------------- | ------------------------------- |
+| Validate request headers | Add response headers          |
+| Start a stopwatch        | Record elapsed time           |
+| Check request properties | Log the final status code     |
+| Call`next()`             | Continue after`next()`returns |
+
+A useful pattern is:
+
+```
+app.Use(async (context, next) =>
+{
+    // Before downstream processing
+    Console.WriteLine("Request started");
+
+    await next(context);
+
+    // After downstream processing
+    Console.WriteLine(
+        $"Status: {context.Response.StatusCode}");
+});
+```
+
+Remember that if downstream execution throws an exception and the exception is not handled inside this middleware, the code after `await next(context)` will not execute normally. Use `try/finally` when cleanup must happen regardless of success or failure.
+
+#### Interview questions
+
+##### Q1. What is short-circuiting in middleware?
+
+It is when middleware ends processing without calling the next component, preventing downstream middleware and the endpoint from executing.
+
+##### Q2. Can middleware modify response headers?
+
+Yes. It can set headers before the response starts or register an `OnStarting()` callback to modify them before they are sent.
+
+##### Q3. What happens if an exception occurs in downstream middleware?
+
+The exception propagates upstream unless handled. An earlier exception-handling middleware can catch it and generate an appropriate response.
+
+##### Q4. Can middleware change the HTTP status code?
+
+Yes, provided the response has not already started. For example, middleware can set status code 401 when a required condition is not met.
+
+##### Q5. Why use `try/finally` around `await next(context)`?
+
+To guarantee cleanup or post-processing that must occur even if downstream processing throws an exception.
+
+#### Common interview traps
+
+- Returning from middleware is not the same as calling next().
+- Exception-handling middleware cannot reliably replace a response after it has started.
+- OnStarting() runs before response headers are sent, not after the client receives the response.
+- Code after await next() does not necessarily run if an unhandled exception propagates.
+- A custom header check is not a substitute for a complete authentication and authorization design.
+
+### Final Interview Revision
+
+#### Quick revision: Must-know concepts
+
+Middleware	        A component that processes HTTP requests and responses in the pipeline.
+app.Use()	                Registers middleware that can call the next component.
+app.Run()	                Registers terminal middleware that doesn't call the next component.
+app.Map()	        Creates a branch based on a matching request path.
+RequestDelegate	Represents the next middleware component.
+HttpContext	        Provides access to the current request, response, user, and related HTTP information.
+UseMiddleware<T></t>()	Registers class-based middleware.
+IMiddleware     	Enables DI-controlled middleware activation.
+Short-circuiting	Stops downstream processing without calling the next component.
+OnStarting()	        Registers a callback to run before response headers are sent.
+
+#### What is the output of this middleware?
+
+```
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("A");
+    await next();
+    Console.WriteLine("B");
+});
+
+app.Run(async context =>
+{
+    Console.WriteLine("C");
+    await context.Response.WriteAsync("Hello");
+});
+```
+
+Answer:
+
+```
+A
+C
+B
+```
+
+#### What happens if middleware doesn't call `next()`?
+
+Downstream middleware won't execute for that request. The current middleware has short-circuited the pipeline, though it should still produce an appropriate response if necessary.
+
+#### Why should `UseAuthentication()` come before `UseAuthorization()`?
+
+Authentication establishes the user's identity. Authorization uses that identity to determine whether access is allowed.
+
+#### Can conventional middleware use a scoped service?
+
+Yes. Inject the scoped service into `InvokeAsync()` rather than the constructor. Conventional middleware is normally created once and reused, so constructor injection of scoped services creates a lifetime problem.
+
+#### What is the difference between middleware and filters?
+
+Middleware operates in the HTTP request pipeline and can apply broadly across requests. MVC filters operate within the MVC action pipeline and provide access to MVC-specific execution stages and context.
+
+#### What happens if exception-handling middleware is registered after the component that throws?
+
+It cannot catch an exception thrown by an earlier middleware component because that exception propagates upstream, not downstream. Exception handling should be registered before the components it needs to protect.
+
+#### Common mistakes to avoid
+
+* Confusing `app.Run()` terminal middleware with `app.RunAsync()`, which starts the application.
+* Assuming every middleware instance is created once; `IMiddleware` activation depends on its DI lifetime.
+* Thinking middleware always needs to call `next()`.
+* Assuming middleware can change headers after the response has started.
+* Confusing middleware with MVC filters or endpoint handlers.
