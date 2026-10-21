@@ -2966,7 +2966,6 @@ It cannot catch an exception thrown by an earlier middleware component because t
 * Assuming middleware can change headers after the response has started.
 * Confusing middleware with MVC filters or endpoint handlers.
 
-
 ## ASP.NET Core Web API
 
 ### Introduction to Web API
@@ -3722,7 +3721,7 @@ ASP.NET Core may report an ambiguous match rather than arbitrarily choosing one.
 - Routing selects the endpoint and extracts route values.
 - Model binding populates action parameters from request data, such as route values, query strings, and request bodies.
 
-##### Q4. Does {id:int} validate that the product exists?
+##### Q4. Does validate that the product exists?
 
 No. It only constrains route matching. The action or application service must check whether the product exists.
 
@@ -4123,3 +4122,1224 @@ No. Data annotations are useful for straightforward validation. Cross-field rule
 - Using database entities directly as request DTOs when a separate input contract would be safer.
 - Returning 200 OK for invalid request data instead of an appropriate error response.
 - Exposing sensitive internal exception details in validation responses.
+
+### Dependency Injection in Controllers
+
+#### Why do controllers need services?
+
+Imagine you're building an API to retrieve products.
+
+A controller should handle HTTP requests and responses. Business logic, such as retrieving products or applying business rules, should generally live in a separate service.
+
+A common structure is:
+
+1. ProductsController - Receives HTTP requests and returns responses
+2. IProductService - Contract defining product operations
+3. ProductService - Implements business logic and data access coordination
+
+The controller depends on an abstraction (`IProductService`) instead of directly creating a concrete service.
+
+#### Practical C# example
+
+##### Step 1: Create a service interface
+
+```
+public interface IProductService
+{
+    string GetProductName(int id);
+}
+```
+
+This defines what the service can do without specifying how it does it.
+
+##### Step 2: Implement the service
+
+```
+public class ProductService : IProductService
+{
+    public string GetProductName(int id)
+    {
+        return id == 1 ? "Laptop" : "Product not found";
+    }
+}
+```
+
+This is a simple demonstration. A real service would typically retrieve product data from a repository or database.
+
+##### Step 3: Inject the service into the controller
+
+```
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    private readonly IProductService _productService;
+
+    public ProductsController(IProductService productService)
+    {
+        _productService = productService;
+    }
+
+    [HttpGet("{id:int}")]
+    public IActionResult GetProduct(int id)
+    {
+        var product = _productService.GetProductName(id);
+
+        return Ok(product);
+    }
+}
+```
+
+Notice this constructor:
+
+```
+public ProductsController(IProductService productService)
+{
+    _productService = productService;
+}
+```
+
+The controller does not create `ProductService` itself. ASP.NET Core's DI container supplies an implementation of `IProductService` when creating the controller.
+
+##### Step 4: Register the service in `Program.cs`
+
+Without registration, the built-in DI container generally cannot resolve this interface to the intended implementation.
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddScoped<IProductService, ProductService>();
+
+var app = builder.Build();
+
+app.MapControllers();
+
+app.Run();
+```
+
+The key line is:
+
+```
+builder.Services.AddScoped<IProductService, ProductService>();
+```
+
+It tells ASP.NET Core:
+
+“When something requests `IProductService`, provide a `ProductService` instance with scoped lifetime.”
+
+We'll discuss the appropriate lifetime choices when they matter in application design. For now, remember that scoped is a common choice for request-oriented services.
+
+##### Step 5: What happens when a request arrives?
+
+For GET /api/products/1:
+
+1. ASP.NET Core routes the request to ProductsController.
+2. The DI container creates the controller and supplies IProductService.
+3. GetProduct(1) calls the injected service.
+4. The service returns "Laptop".
+5. The controller returns an HTTP 200 OK response.
+
+The response body contains:
+
+```
+"Laptop"
+```
+
+#### Why not use new ProductService()?
+
+Consider this alternative:
+
+```
+private readonly ProductService _service = new ProductService();
+```
+
+This creates a direct dependency on the concrete implementation.
+
+Problems include:
+
+- The controller is harder to unit test with a mock implementation.
+- Replacing the implementation requires changing controller code.
+- The controller controls object creation instead of delegating it to DI.
+- Dependencies of ProductService can become harder to manage.
+
+Constructor injection makes dependencies explicit and improves testability and maintainability.
+
+#### Important interview questions
+
+Q1. How do you inject a service into an ASP.NET Core controller?
+
+Register the service in the DI container and declare it as a constructor parameter in the controller.
+
+Q2. Why should a controller depend on an interface?
+
+It reduces coupling to a specific implementation and makes the controller easier to test and maintain.
+
+Q3. What happens if a required service isn't registered?
+
+If the DI container cannot resolve the controller's dependency, controller activation generally fails, resulting in a server error unless the failure is handled elsewhere.
+
+Q4. Should controllers contain all business logic?
+
+Generally, no. Controllers should focus on HTTP concerns, while services handle application or business logic. This separation is a design practice, not a strict framework requirement.
+
+#### Common interview trap
+
+Does registering a service as scoped mean it is created once for the entire application?
+
+No. A scoped service is typically reused within a single HTTP request's scope and may be created again for another request. A singleton, by contrast, is shared for the lifetime of the application.
+
+Also, don't inject a scoped service directly into a singleton without appropriate scope management.
+
+### DTOs (Data Transfer Objects)
+
+#### What is a DTO?
+
+A DTO (Data Transfer Object) is an object used to transfer data between parts of an application, especially between an API and its client.
+
+For example, imagine your database contains a `User` entity with these properties:
+
+```
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string PasswordHash { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+```
+
+Should your API return this entire entity to the client?
+
+No—not by default. The client probably doesn't need the password hash or every internal database field.
+
+Instead, define a response DTO:
+
+```
+public class UserResponseDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+}
+```
+
+Now the API can return only the information intended for the client.
+
+#### Why do we use DTOs?
+
+Security - Avoid exposing sensitive properties such as password hashes, internal flags, or administrative fields.
+
+Separation of concerns - Your API contract doesn't have to match your database entity exactly.
+
+Control over input - Clients can submit only the fields the operation allows them to change.
+
+Maintainability - Database changes don't necessarily require changes to the public API response.
+
+#### Request DTO vs Response DTO
+
+These are often separate classes because incoming and outgoing data serve different purposes.
+
+##### Request DTO
+
+Represents the data a client is allowed to send.
+
+```
+public class CreateProductRequestDto
+{
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+}
+```
+
+##### Response DTO
+
+Represents the data the API returns.
+
+```
+public class ProductResponseDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+}
+```
+
+Notice that the client doesn't supply the product ID when creating a product. The server or database typically generates it.
+
+#### Practical ASP.NET Core Web API example
+
+Let's connect a request DTO, service, and controller.
+
+##### Step 1: Define the DTOs
+
+```
+public class CreateProductRequestDto
+{
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+}
+
+public class ProductResponseDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+}
+```
+
+##### Step 2: Create a controller action
+
+```
+[HttpPost]
+public ActionResult<ProductResponseDto> CreateProduct(
+    CreateProductRequestDto request)
+{
+    // Demonstration only; no database is involved here.
+    var response = new ProductResponseDto
+    {
+        Id = 1,
+        Name = request.Name,
+        Price = request.Price
+    };
+
+    return CreatedAtAction(
+        nameof(GetProduct),
+        new { id = response.Id },
+        response);
+}
+
+[HttpGet("{id:int}")]
+public ActionResult<ProductResponseDto> GetProduct(int id)
+{
+    return Ok(new ProductResponseDto
+    {
+        Id = id,
+        Name = "Laptop",
+        Price = 50000
+    });
+}
+```
+
+In a real application, the controller would normally call an injected service to create and retrieve the product, rather than constructing the response directly.
+
+The key point is that the API receives CreateProductRequestDto and returns ProductResponseDto. Neither needs to be the same class as the database entity.
+
+#### What is overposting?
+
+Overposting occurs when a client submits properties that it should not be allowed to control, and the application inadvertently binds or copies those properties into an entity.
+
+Imagine a user entity:
+
+```
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public bool IsAdmin { get; set; }
+}
+```
+
+If an update endpoint binds this entity directly, a malicious client might send:
+
+```
+{
+  "name": "Alex",
+  "isAdmin": true
+}
+```
+
+If the application blindly applies those values, it could allow an unauthorized privilege change.
+
+Prevention: Use a request DTO that contains only permitted fields, and enforce authorization and business rules on the server.
+
+```
+public class UpdateUserRequestDto
+{
+    public string Name { get; set; } = "";
+}
+```
+
+A DTO helps prevent overposting, but it doesn't replace authorization checks.
+
+#### DTO vs Entity vs ViewModel
+
+| Type      | Main purpose                                   |
+| --------- | ---------------------------------------------- |
+| Entity    | Represents domain or persisted data            |
+| DTO       | Transfers data across an application boundary  |
+| ViewModel | Represents data needed by a particular UI view |
+
+In an ASP.NET Core Web API, DTOs are commonly used for request and response contracts. Entities are often managed by EF Core, which we'll cover in the next major roadmap step after completing Web API.
+
+#### Important interview questions
+
+Q1. Why not return EF Core entities directly from an API?
+
+Doing so can expose unwanted fields, couple the API contract to the database model, and create problems with serialization or navigation properties. DTOs give you control over the API contract.
+
+Q2. Should request and response DTOs be the same class?
+
+They can be the same in simple cases, but separate DTOs are often preferable because the fields a client may send differ from those it should receive.
+
+Q3. Do DTOs automatically make an API secure?
+
+No. DTOs help limit exposed and writable properties, but authentication, authorization, validation, and safe data handling are still required.
+
+Q4. How do you map an entity to a DTO?
+
+You can map properties manually, use mapping libraries such as AutoMapper, or use other mapping approaches. Manual mapping is straightforward for small examples; mapping libraries can help in larger applications.
+
+### Asynchronous Web API Actions
+
+#### Why do we need asynchronous Web API actions?
+
+Imagine a client requests a product:
+
+1. The API receives the request.
+2. The controller calls a service.
+3. The service fetches the product from a database.
+4. The API returns the product as JSON.
+
+Database calls can take time. If the application uses synchronous calls, a server thread remains occupied while waiting for the database response.
+
+With asynchronous calls, the thread can return to the thread pool while the I/O operation is pending, allowing the server to handle other work.
+
+Interview point: Async improves scalability for I/O-bound operations. It does not automatically make an individual database query faster.
+
+#### Synchronous vs asynchronous action
+
+##### Synchronous action
+
+```
+[HttpGet("{id:int}")]
+public IActionResult GetProduct(int id)
+{
+    var product = _productService.GetById(id);
+
+    if (product == null)
+        return NotFound();
+
+    return Ok(product);
+}
+```
+
+The service call blocks the executing thread while waiting for its result.
+
+##### Asynchronous action
+
+```
+[HttpGet("{id:int}")]
+public async Task<ActionResult<ProductResponseDto>>
+    GetProduct(int id)
+{
+    var product = await _productService.GetByIdAsync(id);
+
+    if (product == null)
+        return NotFound();
+
+    return Ok(product);
+}
+```
+
+The action awaits an asynchronous operation without blocking the thread while the I/O is pending.
+
+Understand the return type
+
+- IActionResult — returns an HTTP response such as Ok(), NotFound(), or BadRequest().
+- Task< IActionResult > — an asynchronous action that eventually produces an IActionResult.
+- ActionResult< T > — returns either a value of type T or an HTTP result.
+- Task<ActionResult< T >> — an asynchronous action that eventually returns a typed value or an HTTP result.
+
+Remember: `Task` represents an operation that may complete in the future. It does not necessarily mean a new thread is created.
+
+#### What happens when we use `async` and `await`?
+
+Consider:
+
+```
+var product = await _productService.GetByIdAsync(id);
+```
+
+The general flow is:
+
+1. The controller starts the asynchronous service operation.
+2. If the operation is incomplete, the action yields while it waits.
+3. When the operation completes, execution resumes.
+4. The controller returns the appropriate HTTP response.
+
+`async` allows the method to use `await`. `await` asynchronously waits for the operation to complete.
+
+#### Why should we avoid `.Result` and `.Wait()`?
+
+Avoid this pattern in an asynchronous controller:
+
+```
+var product = _productService.GetByIdAsync(id).Result;
+```
+
+Prefer:
+
+```
+var product = await _productService.GetByIdAsync(id);
+```
+
+Using `.Result` or `.Wait()` blocks the calling thread. Under load, blocking can reduce throughput and contribute to thread-pool starvation. `await` is the preferred pattern for asynchronous I/O.
+
+Interview trap: Adding `async` to a method does not make a synchronous operation asynchronous. The underlying service or database call should itself support asynchronous execution.
+
+#### Real-world example with cancellation
+
+A client may disconnect or cancel a request. ASP.NET Core supports passing a `CancellationToken` through the controller and service layers.
+
+```
+[HttpGet("{id:int}")]
+public async Task<ActionResult<ProductResponseDto>>
+    GetProduct(
+        int id,
+        CancellationToken cancellationToken)
+{
+    var product = await _productService
+        .GetByIdAsync(id, cancellationToken);
+
+    if (product == null)
+        return NotFound();
+
+    return Ok(product);
+}
+```
+
+The service and underlying database operation must also support and honor the token for cancellation to propagate effectively. Passing a token does not guarantee every operation will be cancelled immediately.
+
+#### Important interview questions
+
+Q1. Why use async methods in Web APIs?
+
+To improve scalability and responsiveness when waiting for I/O operations such as database calls or external HTTP requests.
+
+Q2. Does async/await create a new thread?
+
+No. It generally does not create a new thread. For asynchronous I/O, the thread can be released while the operation is pending.
+
+Q3. Can an action return Task< IActionResult >?
+
+Yes. It is a common return type for an asynchronous controller action that returns different HTTP responses.
+
+Q4. Is async always better than sync?
+
+No. Async is particularly useful for I/O-bound work. For simple, immediate operations, async may add unnecessary overhead. CPU-bound work requires a different approach.
+
+Q5. Can we use await without async?
+
+In a normal method body, you need the async modifier to use await. There are specialized cases involving returning a Task directly without awaiting it, but that is different from using the await keyword.
+
+### Global Exception Handling
+
+#### What is exception handling in a Web API?
+
+Suppose your API tries to retrieve a product from the database, but the database connection fails.
+
+Without proper exception handling, the request may result in an unhandled exception and an inconsistent error response.
+
+A Web API should return a meaningful HTTP status code and a safe error response.
+
+For example:
+
+```
+{
+  "status": 500,
+  "title": "An unexpected error occurred."
+}
+```
+
+The API should log the actual exception internally rather than exposing database credentials, stack traces, or sensitive implementation details to the client.
+
+#### Local vs global exception handling
+
+##### Local exception handling
+
+```
+[HttpGet("{id:int}")]
+public IActionResult GetProduct(int id)
+{
+    try
+    {
+        var product = _productService.GetById(id);
+        return Ok(product);
+    }
+    catch (Exception ex)
+    {
+        // Handle or log the exception
+        return StatusCode(500, "Error occurred");
+    }
+}
+```
+
+Problem: repeating similar try-catch blocks across many controllers makes the code harder to maintain.
+
+##### Global exception handling
+
+Configure one central handler to process unexpected exceptions from across the request pipeline.
+
+Benefits:
+
+- Consistent error responses.
+- Centralized logging.
+- Less duplicated code.
+- Better separation of concerns.
+
+#### How to configure global exception handling
+
+In modern ASP.NET Core, you can use the built-in exception handler middleware.
+
+In `Program.cs`:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler();
+}
+
+app.MapControllers();
+
+app.Run();
+```
+
+`AddProblemDetails()` registers services for producing standardized error responses. `UseExceptionHandler()` enables centralized exception handling and uses the registered problem-details service when applicable.
+
+Important: In this example, exception handling is enabled only outside Development. For a real application, configure appropriate error handling for every environment, with detailed diagnostics restricted to development or protected internal logging.
+
+ASP.NET Core also supports creating a custom exception-handling middleware or implementing `IExceptionHandler` for more control.
+
+#### What is the difference between `UseExceptionHandler()` and `UseDeveloperExceptionPage()`?
+
+| Feature                         | `UseExceptionHandler()`      | `UseDeveloperExceptionPage()`   |
+| ------------------------------- | ------------------------------ | --------------------------------- |
+| Purpose                         | Production-safe error handling | Development diagnostics           |
+| Detailed stack traces to client | Normally no                    | Yes, for debugging                |
+| Typical environment             | Production                     | Development                       |
+| Main goal                       | Safe, consistent responses     | Help developers diagnose failures |
+
+Never expose detailed exception pages to public clients in production.
+
+#### Should every exception return HTTP 500?
+
+No. The response depends on the meaning of the error.
+
+| Situation                   | Typical status            |
+| --------------------------- | ------------------------- |
+| Invalid request data        | 400 Bad Request           |
+| Resource not found          | 404 Not Found             |
+| Unauthenticated request     | 401 Unauthorized          |
+| Authenticated but forbidden | 403 Forbidden             |
+| Unexpected server failure   | 500 Internal Server Error |
+
+For example, a product not existing is usually a normal business outcome, not an unexpected exception. Return `NotFound()` rather than throwing a general exception just to represent that condition.
+
+#### Common interview questions
+
+Q1. What is global exception handling?
+
+It is a centralized way to catch and process unhandled exceptions across the application, commonly using middleware.
+
+Q2. Why not handle every exception inside the controller?
+
+It duplicates code and makes consistent logging and response formatting harder. Controllers should generally focus on handling expected outcomes, while global handling covers unexpected failures.
+
+Q3. Does global exception middleware handle every error?
+
+No. It handles exceptions that propagate to it through the request pipeline. It cannot handle every possible failure, such as a process crash, and it cannot reliably replace a response that has already been sent.
+
+Q4. What is Problem Details?
+
+Problem Details is a standardized format for describing HTTP API errors. ASP.NET Core supports generating these responses through its Problem Details services.
+
+Q5. Should we catch `Exception` everywhere?
+
+No. Catch exceptions where you can meaningfully recover, translate them, or add useful context. Let unexpected exceptions reach the central handler when appropriate.
+
+Q6. Where should exception-handling middleware be placed?
+
+It should be early enough in the middleware pipeline to catch exceptions from downstream middleware and endpoints. Middleware ordering matters.
+
+### Logging in ASP.NET Core Web APIs
+
+#### What is logging?
+
+Logging is the process of recording information about an application's behavior while it runs.
+
+For example, when a client requests a product, you might log:
+
+- An information message when the request is processed.
+- A warning when a requested product is unavailable, if that is operationally useful.
+- An error when an unexpected exception occurs.
+
+Logging helps developers troubleshoot issues without having to reproduce every problem locally.
+
+#### What is ILogger< T >?
+
+ASP.NET Core provides the built-in logging abstraction ILogger. The framework supplies an implementation through Dependency Injection.
+
+Example:
+
+```
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly ILogger<ProductsController> _logger;
+
+    public ProductsController(
+        ILogger<ProductsController> logger)
+    {
+        _logger = logger;
+    }
+
+    [HttpGet("{id:int}")]
+    public IActionResult GetProduct(int id)
+    {
+        _logger.LogInformation(
+            "Fetching product with ID {ProductId}", id);
+
+        try
+        {
+            // Example only: replace with service/database call
+            var product = id == 1 ? "Laptop" : null;
+
+            if (product == null)
+            {
+                _logger.LogWarning(
+                    "Product with ID {ProductId} was not found", id);
+
+                return NotFound();
+            }
+
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to fetch product with ID {ProductId}", id);
+
+            throw;
+        }
+    }
+}
+```
+
+Understand the important parts
+
+- ILogger< ProductsController > identifies the controller as the logging category.
+- LogInformation() records normal operational events.
+- LogWarning() records something unexpected or potentially problematic that does not necessarily stop execution.
+- LogError() records an error, often with an exception.
+- Passing ex to LogError() allows the logging provider to capture exception details.
+
+Interview point: ILogger< T > is an abstraction. The actual destination may be the console, a file, or an external monitoring system, depending on the configured logging providers.
+
+#### What are the different log levels?
+
+| Log level       | Purpose                                  | Example                              |
+| --------------- | ---------------------------------------- | ------------------------------------ |
+| `Trace`       | Very detailed diagnostic information     | Detailed execution steps             |
+| `Debug`       | Information useful during debugging      | Intermediate diagnostic values       |
+| `Information` | Normal application events                | Request processed successfully       |
+| `Warning`     | Potential issue that may need attention  | Unexpected but recoverable condition |
+| `Error`       | An operation failed                      | Database operation failed            |
+| `Critical`    | Severe failure affecting the application | Essential service unavailable        |
+| `None`        | Disables logging at this level           | No logs emitted                      |
+
+A common interview question is: What is the difference between Warning and Error?
+
+A warning indicates a potential or recoverable problem. An error indicates that an operation failed. The exact choice depends on the event's meaning and your team's logging standards.
+
+#### What is structured logging?
+
+Consider these two examples:
+
+```
+_logger.LogInformation(
+    $"Fetching product {id}");
+```
+
+```
+_logger.LogInformation(
+    "Fetching product {ProductId}", id);
+```
+
+The second is preferred for structured logging.
+
+Why?
+
+- ProductId is a named property.
+- Logging providers can store it as structured data.
+- You can search and filter logs by product ID.
+- It avoids relying only on a preformatted text message.
+
+Interview trap: Do not assume every logging provider handles interpolated strings identically. Prefer message templates with named placeholders for structured logging.
+
+#### How does logging work with global exception handling?
+
+Earlier, we covered global exception-handling middleware. Logging complements it.
+
+A typical flow is:
+
+1. A controller or service encounters an unexpected exception.
+2. The exception propagates up the request pipeline.
+3. Global exception-handling middleware catches it.
+4. The handler logs the exception.
+5. The API returns an appropriate error response.
+
+Avoid logging the same exception repeatedly at every layer unless each log adds useful context. Otherwise, one failure can create many duplicate error entries.
+
+#### Common interview questions
+
+Q1. Do we need to register ILogger< T > manually?
+
+No. ASP.NET Core provides logging services through the default host and Dependency Injection setup.
+
+Q2. What is a logging provider?
+
+A provider determines where logs are sent, such as the console, Debug output, or an external logging platform.
+
+Q3. What happens if a log level is disabled?
+
+Messages below the configured minimum level generally won't be emitted by that provider.
+
+Q4. Should we log passwords, access tokens, or connection strings?
+
+No. Avoid logging secrets and sensitive personal information. Log only the information necessary for troubleshooting, following your organization's data-handling policies.
+
+Q5. Is Console.WriteLine() the same as structured application logging?
+
+No. It writes text to standard output but does not provide the same logging abstraction, levels, structured properties, and provider configuration.
+
+### Authentication vs Authorization
+
+#### What is Authentication?
+
+Authentication verifies who the user is.
+
+For example, a user sends a username and password to log in. If the credentials are valid, the application can authenticate the user.
+
+Other authentication methods include:
+
+- JWT bearer tokens
+- Cookies
+- OAuth 2.0 / OpenID Connect
+- API keys for certain service-to-service scenarios
+
+#### What is Authorization?
+
+Authorization determines what an authenticated user is allowed to do.
+
+For example, both an Admin and a Customer may successfully log in, but only the Admin can delete products.
+
+Example: E-commerce API
+
+Step 1 — Authentication - Is this request coming from a valid, authenticated user? - Who are you?
+
+Step 2 — Authorization - Does this user have permission to delete the product? - What are you allowed to do?
+
+#### How do we implement authorization in ASP.NET Core?
+
+Consider this controller:
+
+```
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult GetProducts()
+    {
+        return Ok("Anyone can view products");
+    }
+
+    [HttpPost]
+    [Authorize]
+    public IActionResult CreateProduct()
+    {
+        return Ok("Authenticated users can access this endpoint");
+    }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public IActionResult DeleteProduct(int id)
+    {
+        return NoContent();
+    }
+}
+```
+
+Understand these attributes:
+
+- [AllowAnonymous] allows access without authentication, even if an authorization policy otherwise requires authentication.
+- [Authorize] requires an authenticated user.
+- [Authorize(Roles = "Admin")] requires an authenticated user with the appropriate Admin role.
+
+These attributes define access requirements; they do not, by themselves, configure the authentication mechanism.
+
+#### What are 401 and 403?
+
+This is a common interview question.
+
+| Status code          | Meaning                                        | Example                                         |
+| -------------------- | ---------------------------------------------- | ----------------------------------------------- |
+| `401 Unauthorized` | Authentication is missing or invalid           | Expired or invalid bearer token                 |
+| `403 Forbidden`    | The user is authenticated but lacks permission | Customer tries to access an Admin-only endpoint |
+
+Strictly speaking, 401 means the request lacks valid authentication credentials, while 403 means the server understands the request but refuses access.
+
+With ASP.NET Core bearer authentication, the exact response can depend on the configured authentication scheme and authorization policies.
+
+#### What is JWT authentication?
+
+JWT stands for JSON Web Token. It is a compact token format commonly used to carry claims about a user.
+
+A typical bearer-token flow looks like this:
+
+1. Client logs in - Sends credentials to an authentication endpoint.
+2. Authentication service issues a token - After successful authentication, a signed token may be returned.
+3. Client calls the Web API - Sends the token in the Authorization header as a Bearer token.
+4. API validates the token - Checks the signature, issuer, audience, lifetime, and other configured requirements.
+5. Authorization is evaluated - The API checks whether the authenticated identity meets the endpoint's requirements.
+
+A JWT is not automatically encrypted. Its payload is generally readable by whoever possesses the token, so never put secrets in it.
+
+#### Important interview questions
+
+Q1. Can authentication succeed while authorization fails?
+
+Yes. A Customer can be authenticated successfully but still be forbidden from accessing an Admin-only endpoint.
+
+Q2. Does [Authorize] automatically enable JWT authentication?
+
+No. You must configure the authentication scheme, register the necessary services, and add the authentication and authorization middleware.
+
+Q3. What is a claim?
+
+A claim is a statement about an identity, such as a user ID, name, or role. Authorization policies can evaluate claims.
+
+Q4. What is the difference between role-based and policy-based authorization?
+
+- Role-based: access depends on roles, such as Admin.
+- Policy-based: access depends on configured requirements, which may include roles, claims, or custom authorization logic.
+
+Q5. Is a JWT the same as OAuth 2.0?
+
+No. JWT is a token format. OAuth 2.0 is an authorization framework. OAuth access tokens can be JWTs or opaque tokens.
+
+### JWT Bearer Authentication in ASP.NET Core
+
+#### What services do we need to configure?
+
+ASP.NET Core uses these two main service registrations:
+
+- AddAuthentication() — configures how the application authenticates requests.
+- AddJwtBearer() — configures the JWT bearer authentication handler to read and validate bearer tokens.
+
+Example in `Program.cs`:
+
+```
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority =
+            builder.Configuration["Jwt:Authority"];
+
+        options.Audience =
+            builder.Configuration["Jwt:Audience"];
+    });
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
+This example assumes an identity provider that exposes the metadata needed for token validation through its authority. It is not a complete standalone token-issuing setup.
+
+#### Understand the important lines
+
+##### `AddAuthentication()`
+
+```
+builder.Services.AddAuthentication(
+    JwtBearerDefaults.AuthenticationScheme);
+```
+
+This sets JWT bearer authentication as the default authentication scheme.
+
+##### `AddJwtBearer()`
+
+```
+.AddJwtBearer(options =>
+{
+    options.Authority = builder.Configuration["Jwt:Authority"];
+    options.Audience = builder.Configuration["Jwt:Audience"];
+});
+```
+
+- Authority identifies the trusted issuer or identity provider.
+- Audience identifies the API for which the token is intended.
+
+The handler validates tokens according to its configured validation parameters and metadata.
+
+Interview trap: Decoding a JWT is not the same as validating it. The API must verify the signature and relevant claims, including issuer, audience, and expiration.
+
+#### Why does middleware order matter?
+
+These lines are important:
+
+```
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+Authentication should generally run before authorization.
+
+1. Incoming HTTP request
+2. Authentication middleware - Identifies the caller and validates credentials.
+3. Authorization middleware - Checks whether the caller meets access requirements.
+4. Controller endpoint - Executes if the request is permitted.
+
+If you reverse the middleware order, authorization may run before authentication has established the caller's identity, causing incorrect behavior.
+
+#### Protect an endpoint with `[Authorize]`
+
+```
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    [HttpGet]
+    [Authorize]
+    public IActionResult GetOrders()
+    {
+        return Ok("Orders returned");
+    }
+
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public IActionResult GetPublicInfo()
+    {
+        return Ok("Public information");
+    }
+}
+```
+
+- GetOrders() requires authentication.
+- GetPublicInfo() allows anonymous access.
+
+To use these attributes, import `Microsoft.AspNetCore.Authorization`.
+
+#### Where should JWT settings be stored?
+
+You may see configuration like this in `appsettings.json`:
+
+```
+{
+  "Jwt": {
+    "Authority": "https://identity.example.com",
+    "Audience": "products-api"
+  }
+}
+```
+
+These values are examples. Use your actual identity provider's authority and API audience.
+
+Never hardcode signing secrets or store production credentials in source control. Use a secure secret store or deployment environment configuration where appropriate.
+
+Also remember that the API typically validates access tokens. Token issuance is often handled by a dedicated identity provider rather than by every Web API itself.
+
+#### Common interview questions
+
+Q1. What is the difference between `AddAuthentication()` and `UseAuthentication()`?
+
+`AddAuthentication()` registers and configures authentication services. `UseAuthentication()` adds authentication middleware to the HTTP request pipeline.
+
+Q2. What is the difference between `UseAuthentication()` and `UseAuthorization()`?
+
+Authentication establishes the caller's identity. Authorization checks whether that identity is permitted to access the resource.
+
+Q3. What happens if the JWT is expired?
+
+The bearer handler rejects the token as invalid for authentication. A protected endpoint will typically return `401 Unauthorized`.
+
+Q4. Is HTTPS necessary when using JWT?
+
+Yes, use HTTPS in production. Bearer tokens are credentials; anyone who obtains a valid token may be able to use it until it expires or is otherwise invalidated.
+
+Q5. Should we write our own JWT validation code?
+
+Generally, no. Use the built-in JWT bearer handler or a trusted identity platform and configure validation correctly.
+
+### Role-Based vs Policy-Based Authorization
+
+#### Role-based authorization
+
+Role-based authorization grants access based on a user's role.
+
+For example:
+
+- Admin can delete products.
+- Customer can view products.
+- Manager can approve orders.
+
+In ASP.NET Core, use the `[Authorize(Roles = "...")]` attribute.
+
+```
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public IActionResult DeleteProduct(int id)
+    {
+        return NoContent();
+    }
+
+    [HttpGet("reports")]
+    [Authorize(Roles = "Admin,Manager")]
+    public IActionResult GetReports()
+    {
+        return Ok("Reports");
+    }
+}
+```
+
+Important:
+
+- Roles = "Admin" means the user must have the Admin role.
+- Roles = "Admin,Manager" means the user can have either role.
+- Multiple roles in the same attribute are alternatives, not requirements to have both.
+
+#### Policy-based authorization
+
+Policy-based authorization is more flexible. Instead of checking only a role, you define a named policy with one or more requirements.
+
+For example, suppose only employees with the `CanApproveOrders` claim set to `true` can approve orders.
+
+Register the policy in `Program.cs`:
+
+```
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanApproveOrders", policy =>
+        policy.RequireClaim("CanApproveOrders", "true"));
+});
+```
+
+Apply it to an endpoint:
+
+```
+[HttpPost("{id:int}/approve")]
+[Authorize(Policy = "CanApproveOrders")]
+public IActionResult ApproveOrder(int id)
+{
+    return Ok("Order approved");
+}
+```
+
+The authenticated identity must contain the required claim for this policy to succeed. Your identity provider or authentication setup must issue that claim appropriately.
+
+#### Role-based vs policy-based
+
+| Feature         | Role-based             | Policy-based                 |
+| --------------- | ---------------------- | ---------------------------- |
+| Checks          | User roles             | Configured requirements      |
+| Example         | Admin can delete       | User has approval claim      |
+| Complexity      | Simple access rules    | Flexible access rules        |
+| Best suited for | Broad role permissions | Business-specific conditions |
+
+Policies can also require roles, combine multiple requirements, or use custom authorization handlers for more complex rules.
+
+For example:
+
+```
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+});
+```
+
+This policy is role-based in its condition, but it is applied using the policy-based authorization mechanism.
+
+#### Can a user have multiple roles?
+
+Yes. An identity can have multiple role claims, depending on how roles are represented and supplied by the authentication system.
+
+For example, a user may be both a `Manager` and an `Admin`.
+
+```
+[Authorize(Roles = "Admin,Manager")]
+```
+
+The user needs at least one of those roles to satisfy this attribute.
+
+Interview trap: Do not confuse commas with separate authorization attributes. Roles within one `Roles` value are alternatives. Multiple authorization attributes on the same endpoint generally impose additional requirements.
+
+#### What is the difference between authentication, roles, claims, and policies?
+
+- Authentication: Establishes who the caller is.
+- Claim: A piece of information about the caller, such as department or user ID.
+- Role: A category of user, such as Admin or Customer; it is commonly represented through role claims.
+- Policy: A named set of authorization requirements evaluated before access is granted.
+
+#### Important interview questions
+
+Q1. Which is better: role-based or policy-based authorization?
+
+Neither is universally better. Roles are simple for broad access rules; policies are more flexible for complex requirements. Real applications often use both.
+
+Q2. Can policy-based authorization check a role?
+
+Yes. Use `RequireRole()` inside a policy.
+
+Q3. What happens when an authenticated user fails an authorization policy?
+
+Typically, ASP.NET Core returns `403 Forbidden` for an authenticated user who does not satisfy the policy.
+
+Q4. Is hiding a button in the frontend enough to secure an API?
+
+No. Authorization must be enforced by the backend. Clients can call API endpoints directly.
+
+Q5. Should every endpoint require authorization by default?
+
+For APIs containing protected data or operations, a secure-by-default approach is often appropriate. ASP.NET Core supports a fallback authorization policy, while individual public endpoints can use `[AllowAnonymous]`.
