@@ -27,8 +27,9 @@ Database [SQL Server, PostgreSQL, etc.]
 
 This is a common interview question.
 
+
 | Feature              | ASP.NET Framework                           | ASP.NET Core                         |
-| -------------------- | ------------------------------------------- | ------------------------------------ |
+| ---------------------- | --------------------------------------------- | -------------------------------------- |
 | Platform             | Windows only                                | Cross-platform                       |
 | Performance          | Generally lower for modern web workloads    | Designed for high performance        |
 | Hosting              | Commonly IIS                                | Kestrel, IIS, containers, and others |
@@ -192,8 +193,9 @@ Common interview trap: Routing selects the appropriate endpoint. It does not exe
 
 You will study middleware deeply in its own roadmap section. For now, understand the distinction.
 
+
 | Middleware                                              | Routing                                         |
-| ------------------------------------------------------- | ----------------------------------------------- |
+| --------------------------------------------------------- | ------------------------------------------------- |
 | Processes requests and responses                        | Matches requests to endpoints                   |
 | Can perform logging, authentication, and error handling | Determines which endpoint matches a request     |
 | Can modify the request or response                      | Provides endpoint selection                     |
@@ -213,8 +215,9 @@ If no endpoint matches the URL, the request normally results in 404 Not Found, p
 
 #### Common HTTP status codes:
 
-| Status                        | Meaning                              |
-| ----------------------------- | ------------------------------------ |
+
+| Status                      | Meaning                              |
+| ----------------------------- | -------------------------------------- |
 | `200 OK`                    | Request succeeded                    |
 | `201 Created`               | Resource created                     |
 | `400 Bad Request`           | Invalid request                      |
@@ -438,10 +441,11 @@ A configuration provider reads settings from a particular source and makes them 
 
 Common providers include:
 
+
 | Provider                                | Typical use                                    |
-| --------------------------------------- | ---------------------------------------------- |
-| `appsettings.json`                    | Default application settings                   |
-| `appsettings.Development.json`        | Development-specific overrides                 |
+| ----------------------------------------- | ------------------------------------------------ |
+| `appsettings.json`                      | Default application settings                   |
+| `appsettings.Development.json`          | Development-specific overrides                 |
 | Environment variables                   | Deployment-specific settings                   |
 | User Secrets                            | Local development secrets                      |
 | Command-line arguments                  | Settings passed when launching the application |
@@ -606,8 +610,9 @@ Now your service receives strongly typed settings rather than repeatedly retriev
 
 ##### Difference between `IOptions`, `IOptionsSnapshot`, and `IOptionsMonitor`
 
+
 | Feature<T></t>   | IOptions< T >               | IOptionsSnapshot< T >                               | IOptionsMonitor< T >                         |
-| ---------------- | --------------------------- | --------------------------------------------------- | -------------------------------------------- |
+| ------------------ | ----------------------------- | ----------------------------------------------------- | ---------------------------------------------- |
 | Main purpose     | Basic options access        | Per-scope options snapshot                          | Current options and change notifications     |
 | Scoped lifetime  | No; singleton-friendly      | Yes                                                 | No; singleton-friendly                       |
 | Observes changes | Not as a refreshed value    | Can refresh between scopes when reload is supported | Can observe supported configuration changes  |
@@ -624,8 +629,9 @@ Also, configuration reload behavior depends on the provider and whether reload i
 
 ##### Configuration vs Options pattern
 
+
 | IConfiguration                           | Options pattern                                                   |
-| ---------------------------------------- | ----------------------------------------------------------------- |
+| ------------------------------------------ | ------------------------------------------------------------------- |
 | Reads values using configuration keys    | Maps a configuration section to a C# class                        |
 | Useful for individual or dynamic keys    | Useful for related groups of settings                             |
 | Values are often accessed by string keys | Provides strongly typed properties                                |
@@ -1022,8 +1028,9 @@ Important: Registering a service does not usually create its instance immediatel
 
 There are three commonly discussed forms of injection.
 
+
 | Type                  | How it works                               | Typical use                                         |
-| --------------------- | ------------------------------------------ | --------------------------------------------------- |
+| ----------------------- | -------------------------------------------- | ----------------------------------------------------- |
 | Constructor Injection | Dependency is passed through a constructor | Required dependencies; preferred in most cases      |
 | Property Injection    | Dependency is assigned through a property  | Optional dependencies in frameworks that support it |
 | Method Injection      | Dependency is passed as a method parameter | Needed only for a particular operation              |
@@ -1130,8 +1137,9 @@ Think of registration as giving the container a set of instructions.
 
 ASP.NET Core provides three commonly used lifetime registration methods.
 
-| Method                                        | Meaning                                                   |
-| --------------------------------------------- | --------------------------------------------------------- |
+
+| Method                                      | Meaning                                                   |
+| --------------------------------------------- | ----------------------------------------------------------- |
 | `AddTransient<TService, TImplementation>()` | Creates a new instance each time the service is resolved. |
 | `AddScoped<TService, TImplementation>()`    | Reuses an instance within the same DI scope.              |
 | `AddSingleton<TService, TImplementation>()` | Reuses one instance for the lifetime of the DI container. |
@@ -1322,12 +1330,13 @@ These results assume the service is resolved twice in the same scope, as shown.
 
 #### Compare the three lifetimes
 
-| Behavior                 | Transient                                    | Scoped                                                    | Singleton                                               |
-| ------------------------ | -------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                     | Across scopes within the same container                 |
-| Across two HTTP requests | Usually new instances                        | Different instances                                       | Same instance                                           |
+
+| Behavior                 | Transient                                    | Scoped                                                  | Singleton                                               |
+| -------------------------- | ---------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                   | Across scopes within the same container                 |
+| Across two HTTP requests | Usually new instances                        | Different instances                                     | Same instance                                           |
 | Typical use              | Lightweight, stateless services              | Request-related business services and EFCore`DbContext` | Shared, thread-safe services and caches                 |
-| Thread safety            | Depends on usage                             | Depends on usage                                          | Especially important because many requests may share it |
+| Thread safety            | Depends on usage                             | Depends on usage                                        | Especially important because many requests may share it |
 
 Important distinction: Transient doesn't mean a new instance for every method call. It means a new instance each time the DI container resolves that service. If the service is injected once into a longer-lived object, that object keeps its injected instance.
 
@@ -1999,8 +2008,9 @@ Important: `next` represents the next middleware in the pipeline. Awaiting `next
 
 #### Important middleware methods
 
-| Method    | Purpose                                                         |
-| --------- | --------------------------------------------------------------- |
+
+| Method  | Purpose                                                         |
+| --------- | ----------------------------------------------------------------- |
 | `Use()` | Adds middleware that can call the next component.               |
 | `Run()` | Adds terminal middleware that does not call the next component. |
 | `Map()` | Branches the pipeline based on a matching path.                 |
@@ -2167,7 +2177,8 @@ app.Run(async context =>
 
 Example behavior:
 
-| Request          | Response          |
+
+| Request        | Response        |
 | ---------------- | ----------------- |
 | `/admin`       | `Admin branch`  |
 | `/admin/users` | `Admin branch`  |
@@ -2179,8 +2190,9 @@ For example, a request to `/admin/users` will typically have `/users` in `Reques
 
 #### Quick comparison
 
-| Feature                | `Use()`               | `Run()`         | `Map()`                       |
-| ---------------------- | ----------------------- | ----------------- | ------------------------------- |
+
+| Feature                | `Use()`                 | `Run()`           | `Map()`                         |
+| ------------------------ | ------------------------- | ------------------- | --------------------------------- |
 | Main purpose           | Continue processing     | End processing    | Create a branch                 |
 | Calls next middleware  | Can                     | No                | Depends on branch configuration |
 | Executes conditionally | Can, with custom logic  | Not inherently    | Yes, based on path              |
@@ -2214,8 +2226,9 @@ because middleware order directly affects security, error handling, routing, and
 
 ASP.NET Core provides ready-made middleware for common tasks, so you don't need to implement everything yourself.
 
-| Middleware                | Purpose                                                   |
-| ------------------------- | --------------------------------------------------------- |
+
+| Middleware              | Purpose                                                   |
+| ------------------------- | ----------------------------------------------------------- |
 | `UseExceptionHandler()` | Handles unhandled exceptions in production                |
 | `UseHttpsRedirection()` | Redirects HTTP requests to HTTPS                          |
 | `UseStaticFiles()`      | Serves static files such as CSS, JavaScript, and images   |
@@ -2412,8 +2425,9 @@ public class RequestTimingMiddleware
 
 Let's understand the important parts.
 
-| Code                     | Meaning                                             |
-| ------------------------ | --------------------------------------------------- |
+
+| Code                   | Meaning                                             |
+| ------------------------ | ----------------------------------------------------- |
 | `RequestDelegate`      | Represents the next middleware in the pipeline      |
 | `_next`                | Stores the next middleware delegate                 |
 | `HttpContext`          | Contains the current HTTP request and response      |
@@ -2697,10 +2711,11 @@ This illustrates the DI pattern; in a real application, `AppDbContext` should no
 
 #### Comparison table
 
-| Feature                         | Conventional middleware        | `IMiddleware`                     |
-| ------------------------------- | ------------------------------ | ----------------------------------- |
+
+| Feature                         | Conventional middleware        | `IMiddleware`                       |
+| --------------------------------- | -------------------------------- | ------------------------------------- |
 | Interface required              | No                             | Yes                                 |
-| `RequestDelegate`             | Constructor parameter          | `InvokeAsync()`parameter          |
+| `RequestDelegate`               | Constructor parameter          | `InvokeAsync()`parameter            |
 | Activation                      | Usually when pipeline is built | Through DI per activation           |
 | Scoped constructor dependencies | Generally unsuitable           | Supported with compatible lifetimes |
 | Must register middleware in DI? | No                             | Yes                                 |
@@ -2843,12 +2858,13 @@ Common trap: Trying to set response headers after the response has started can f
 
 #### Request vs response processing
 
-| Request processing       | Response processing             |
-| ------------------------ | ------------------------------- |
-| Validate request headers | Add response headers            |
-| Start a stopwatch        | Record elapsed time             |
-| Check request properties | Log the final status code       |
-| Call`next()`           | Continue after`next()`returns |
+
+| Request processing       | Response processing           |
+| -------------------------- | ------------------------------- |
+| Validate request headers | Add response headers          |
+| Start a stopwatch        | Record elapsed time           |
+| Check request properties | Log the final status code     |
+| Call`next()`             | Continue after`next()`returns |
 
 A useful pattern is:
 
@@ -2996,8 +3012,9 @@ ASP.NET Core Web API is a framework for building HTTP-based services using C# an
 
 It lets you create endpoints such as:
 
-| HTTP method | Endpoint             | Purpose                      |
-| ----------- | -------------------- | ---------------------------- |
+
+| HTTP method | Endpoint           | Purpose                      |
+| ------------- | -------------------- | ------------------------------ |
 | GET         | `/api/products`    | Retrieve all products        |
 | GET         | `/api/products/10` | Retrieve product 10          |
 | POST        | `/api/products`    | Create a product             |
@@ -3118,8 +3135,9 @@ A REST API organizes data around resources and uses HTTP methods to perform oper
 
 For example, in an e-commerce application, products are resources.
 
-| Operation                  | HTTP method | Endpoint             |
-| -------------------------- | ----------- | -------------------- |
+
+| Operation                  | HTTP method | Endpoint           |
+| ---------------------------- | ------------- | -------------------- |
 | Get all products           | GET         | `/api/products`    |
 | Get one product            | GET         | `/api/products/10` |
 | Create a product           | POST        | `/api/products`    |
@@ -3172,8 +3190,9 @@ Important trap: Stateless does not mean the application cannot use a database, c
 
 #### REST vs SOAP
 
+
 | REST                          | SOAP                                                              |
-| ----------------------------- | ----------------------------------------------------------------- |
+| ------------------------------- | ------------------------------------------------------------------- |
 | Architectural style           | Messaging protocol                                                |
 | Commonly uses HTTP and JSON   | Uses XML-based messages                                           |
 | Generally lightweight         | More formal message structure                                     |
@@ -3210,8 +3229,9 @@ what each method does, but also how they differ in terms of safety, idempotency,
 
 Imagine you are developing a product management API.
 
-| Method     | Purpose                                   | Example              |
-| ---------- | ----------------------------------------- | -------------------- |
+
+| Method   | Purpose                                   | Example            |
+| ---------- | ------------------------------------------- | -------------------- |
 | `GET`    | Retrieve data                             | `/api/products/10` |
 | `POST`   | Create a resource or perform an operation | `/api/products`    |
 | `PUT`    | Replace a resource                        | `/api/products/10` |
@@ -3383,8 +3403,9 @@ Safe: The method is intended to read data without changing the server's applicat
 
 Idempotent: Repeating the same request has the same intended effect on server state as making it once.
 
+
 | Method | Safe? | Idempotent?              |
-| ------ | ----- | ------------------------ |
+| -------- | ------- | -------------------------- |
 | GET    | Yes   | Yes                      |
 | POST   | No    | Generally no             |
 | PUT    | No    | Yes                      |
@@ -3405,8 +3426,9 @@ In ASP.NET Core, we typically return status codes from controller actions using 
 
 Learn these first for interviews.
 
-| Status code                   | Meaning                           | When to use                                      |
-| ----------------------------- | --------------------------------- | ------------------------------------------------ |
+
+| Status code                 | Meaning                           | When to use                                      |
+| ----------------------------- | ----------------------------------- | -------------------------------------------------- |
 | `200 OK`                    | Success                           | GET or successful operation with a response body |
 | `201 Created`               | Resource created                  | POST successfully creates a resource             |
 | `204 No Content`            | Success, no body                  | Successful update or deletion                    |
@@ -3582,7 +3604,8 @@ public class ProductsController : ControllerBase
 
 The routes are:
 
-| Request                  | Action          |
+
+| Request                | Action        |
 | ------------------------ | --------------- |
 | `GET /api/products`    | `GetAll()`    |
 | `GET /api/products/10` | `GetById(10)` |
@@ -3626,10 +3649,11 @@ public IActionResult GetProducts(
 
 Here, `category` is `"electronics"` and `page` is `2`.
 
+
 | Route parameter             | Query parameter                              |
-| --------------------------- | -------------------------------------------- |
-| Part of the URL path        | Appears after`?`                           |
-| `/products/10`            | `/products?id=10`                          |
+| ----------------------------- | ---------------------------------------------- |
+| Part of the URL path        | Appears after`?`                             |
+| `/products/10`              | `/products?id=10`                            |
 | Often identifies a resource | Often filters or modifies a collection query |
 
 Both can bind to action parameters. The choice depends on the API's design.
@@ -3653,8 +3677,9 @@ The :int constraint means the route parameter must match an integer.
 
 Other common constraints include:
 
-| Constraint     | Purpose                      |
-| -------------- | ---------------------------- |
+
+| Constraint   | Purpose                      |
+| -------------- | ------------------------------ |
 | `:int`       | Integer                      |
 | `:guid`      | GUID                         |
 | `:bool`      | Boolean                      |
@@ -3964,8 +3989,9 @@ public class CreateProductRequest
 
 What do these attributes do?
 
-| Attribute               | Purpose                                                               |
-| ----------------------- | --------------------------------------------------------------------- |
+
+| Attribute             | Purpose                                                               |
+| ----------------------- | ----------------------------------------------------------------------- |
 | `[Required]`          | Requires a non-null value                                             |
 | `[StringLength]`      | Limits the length of a string                                         |
 | `[Range]`             | Restricts a value to a specified range                                |
@@ -4468,8 +4494,9 @@ A DTO helps prevent overposting, but it doesn't replace authorization checks.
 
 #### DTO vs Entity vs ViewModel
 
+
 | Type      | Main purpose                                   |
-| --------- | ---------------------------------------------- |
+| ----------- | ------------------------------------------------ |
 | Entity    | Represents domain or persisted data            |
 | DTO       | Transfers data across an application boundary  |
 | ViewModel | Represents data needed by a particular UI view |
@@ -4724,8 +4751,9 @@ ASP.NET Core also supports creating a custom exception-handling middleware or im
 
 #### What is the difference between `UseExceptionHandler()` and `UseDeveloperExceptionPage()`?
 
-| Feature                         | `UseExceptionHandler()`      | `UseDeveloperExceptionPage()`   |
-| ------------------------------- | ------------------------------ | --------------------------------- |
+
+| Feature                         | `UseExceptionHandler()`        | `UseDeveloperExceptionPage()`     |
+| --------------------------------- | -------------------------------- | ----------------------------------- |
 | Purpose                         | Production-safe error handling | Development diagnostics           |
 | Detailed stack traces to client | Normally no                    | Yes, for debugging                |
 | Typical environment             | Production                     | Development                       |
@@ -4737,8 +4765,9 @@ Never expose detailed exception pages to public clients in production.
 
 No. The response depends on the meaning of the error.
 
+
 | Situation                   | Typical status            |
-| --------------------------- | ------------------------- |
+| ----------------------------- | --------------------------- |
 | Invalid request data        | 400 Bad Request           |
 | Resource not found          | 404 Not Found             |
 | Unauthenticated request     | 401 Unauthorized          |
@@ -4853,8 +4882,9 @@ Interview point: ILogger< T > is an abstraction. The actual destination may be t
 
 #### What are the different log levels?
 
-| Log level       | Purpose                                  | Example                              |
-| --------------- | ---------------------------------------- | ------------------------------------ |
+
+| Log level     | Purpose                                  | Example                              |
+| --------------- | ------------------------------------------ | -------------------------------------- |
 | `Trace`       | Very detailed diagnostic information     | Detailed execution steps             |
 | `Debug`       | Information useful during debugging      | Intermediate diagnostic values       |
 | `Information` | Normal application events                | Request processed successfully       |
@@ -4999,8 +5029,9 @@ These attributes define access requirements; they do not, by themselves, configu
 
 This is a common interview question.
 
-| Status code          | Meaning                                        | Example                                         |
-| -------------------- | ---------------------------------------------- | ----------------------------------------------- |
+
+| Status code        | Meaning                                        | Example                                         |
+| -------------------- | ------------------------------------------------ | ------------------------------------------------- |
 | `401 Unauthorized` | Authentication is missing or invalid           | Expired or invalid bearer token                 |
 | `403 Forbidden`    | The user is authenticated but lacks permission | Customer tries to access an Admin-only endpoint |
 
@@ -5280,8 +5311,9 @@ The authenticated identity must contain the required claim for this policy to su
 
 #### Role-based vs policy-based
 
+
 | Feature         | Role-based             | Policy-based                 |
-| --------------- | ---------------------- | ---------------------------- |
+| ----------------- | ------------------------ | ------------------------------ |
 | Checks          | User roles             | Configured requirements      |
 | Example         | Admin can delete       | User has approval claim      |
 | Complexity      | Simple access rules    | Flexible access rules        |
@@ -5343,3 +5375,240 @@ No. Authorization must be enforced by the backend. Clients can call API endpoint
 Q5. Should every endpoint require authorization by default?
 
 For APIs containing protected data or operations, a secure-by-default approach is often appropriate. ASP.NET Core supports a fallback authorization policy, while individual public endpoints can use `[AllowAnonymous]`.
+
+### CORS in ASP.NET Core
+
+CORS stands for Cross-Origin Resource Sharing. It is a common ASP.NET Core Web API interview topic, especially when a frontend application built with React, Angular, or another framework calls a .NET backend.
+
+#### Why do we need CORS?
+
+Imagine you have two applications:
+
+- Frontend: https://myshop.com
+- Backend API: https://api.myshop.com
+
+These have different origins because their hostnames differ.
+
+When JavaScript in the frontend calls the backend, the browser applies its same-origin security policy. The API can use CORS response headers to tell the browser which cross-origin requests are permitted.
+
+Important: CORS is enforced by browsers. It is not a replacement for API authentication or authorization, and it does not prevent tools like Postman or server-side applications from making requests.
+
+#### What exactly is an origin?
+
+An origin consists of three parts:
+
+- Scheme (protocol)
+- Hostname
+- Port
+
+For example:
+
+
+| URL                               | Same origin as`https://localhost:7001`? |
+| ----------------------------------- | ----------------------------------------- |
+| `https://localhost:7001/products` | Yes                                     |
+| `http://localhost:7001`           | No — different scheme                  |
+| `https://localhost:7002`          | No — different port                    |
+| `https://example.com`             | No — different hostname                |
+
+The path, such as `/products`, does not determine the origin.
+
+#### How do we configure CORS in ASP.NET Core?
+
+Suppose your frontend runs at `https://myshop.com`.
+
+In `Program.cs`:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy
+            .WithOrigins("https://myshop.com")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors("FrontendPolicy");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
+Understand the methods
+
+- AddCors() registers CORS services.
+- WithOrigins() specifies permitted origins.
+- AllowAnyHeader() allows requests to use any HTTP header.
+- AllowAnyMethod() allows any HTTP method for that configured origin.
+- UseCors() applies the CORS middleware.
+
+This is a practical example of a named CORS policy. In production, allow only the origins, headers, and methods that your application actually needs.
+
+#### What is a preflight request?
+
+Some cross-origin requests trigger a browser-generated `OPTIONS` request before the actual request. This is called a CORS preflight request.
+
+For example, a frontend sends a `DELETE` request with an `Authorization` header. The browser may first ask the server whether that origin, method, and header are allowed.
+
+If the server's CORS response permits the request, the browser can proceed with the actual request.
+
+Not every cross-origin request requires preflight; it depends on the request method, headers, and content type.
+
+#### What about credentials and cookies?
+
+If your frontend needs to send cookies or other browser-managed credentials, the CORS policy may require:
+
+```
+policy
+    .WithOrigins("https://myshop.com")
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials();
+```
+
+Security trap: Do not combine `AllowAnyOrigin()` with `AllowCredentials()`. Browsers reject that combination because credentialed CORS requests require a specific permitted origin.
+
+Also, CORS configuration alone does not make cookie-based authentication safe. Cookie settings and protections against cross-site request forgery (CSRF) may be needed.
+
+#### Common interview questions
+
+Q1. Is CORS a feature of ASP.NET Core or the browser?
+
+ASP.NET Core can configure the server-side CORS policy, but the browser enforces the policy when JavaScript makes cross-origin requests.
+
+Q2. Does CORS protect an API from Postman?
+
+No. CORS is not API access control. Use authentication, authorization, and other security controls to protect the API.
+
+Q3. Why does a request fail in the browser but work in Postman?
+
+One possible reason is a CORS policy failure. Postman does not enforce the browser's same-origin policy.
+
+Q4. What happens if the origin is not allowed?
+
+The browser prevents frontend JavaScript from accessing the response. The request may still reach the server, so CORS must not be treated as an authorization mechanism.
+
+Q5. Where should `UseCors()` go?
+
+For a typical controller-based application, place it after routing and before authentication/authorization and endpoint execution, following the relevant ASP.NET Core middleware-ordering guidance.
+
+### Swagger and OpenAPI in ASP.NET Core
+
+#### What is OpenAPI? What is Swagger?
+
+OpenAPI is a specification that describes a REST API in a machine-readable format.
+
+Swagger is a collection of tools that work with OpenAPI documents, including Swagger UI, which provides an interactive interface for exploring and testing APIs.
+
+For example, suppose your API has these endpoints:
+
+- GET /api/products — retrieve products
+- GET /api/products/5 — retrieve one product
+- POST /api/products — create a product
+
+OpenAPI describes the endpoints, parameters, request bodies, response types, and status codes. Swagger UI can display this information in a browser.
+
+#### How do we enable Swagger in ASP.NET Core?
+
+In modern ASP.NET Core projects, built-in OpenAPI support is available through `Microsoft.AspNetCore.OpenApi`. Swagger UI is a separate UI tool and may require an additional package.
+
+Example using Swashbuckle, a commonly used Swagger toolset:
+
+Install the package:
+
+```
+dotnet add package Swashbuckle.AspNetCore
+```
+
+Then configure `Program.cs`:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
+Run the application and open the Swagger UI URL, typically `/swagger`, using the actual host and port shown by your application.
+
+Interview note: Package availability and the default template setup can differ by .NET version. Modern templates may use built-in OpenAPI document generation, while Swagger UI often requires a separate tool or package.
+
+#### What do these methods do?
+
+
+| Method                      | Purpose                                         |
+| ----------------------------- | ------------------------------------------------- |
+| `AddEndpointsApiExplorer()` | Exposes endpoint metadata for API exploration   |
+| `AddSwaggerGen()`           | Generates an OpenAPI document using Swashbuckle |
+| `UseSwagger()`              | Serves the generated OpenAPI JSON document      |
+| `UseSwaggerUI()`            | Serves the interactive Swagger UI               |
+
+Swagger UI is not the API itself. It is a tool that sends HTTP requests to your API and displays the responses.
+
+#### How does Swagger help developers?
+
+1. API documentation - Shows endpoints, parameters, request schemas, and response information.
+2. Interactive testing - Lets developers send requests and inspect HTTP responses without manually constructing every request.
+3. Team collaboration - Frontend and backend developers can understand the API contract and coordinate their work.
+
+#### How do you document an endpoint?
+
+You can add XML comments to a controller action:
+
+```
+/// <summary>
+/// Gets a product by its ID.
+/// </summary>
+/// <param name="id">The product ID.</param>
+/// <returns>The requested product.</returns>
+[HttpGet("{id:int}")]
+[ProducesResponseType(typeof(ProductResponseDto), 200)]
+[ProducesResponseType(404)]
+public async Task<ActionResult<ProductResponseDto>>
+    GetProduct(int id)
+{
+    // Call the service and return the appropriate result.
+    throw new NotImplementedException();
+}
+```
+
+#### How do you test a JWT-protected endpoint in Swagger?
+
+A common approach is to configure an HTTP bearer security scheme in the generated OpenAPI document, then use Swagger UI's Authorize feature to provide a valid access token.
+
+After authorization, Swagger UI can send the token in the request's `Authorization: Bearer ...` header.
+
+Remember: documenting bearer authentication does not validate tokens by itself. Your API still needs correct JWT bearer authentication and authorization configuration.
