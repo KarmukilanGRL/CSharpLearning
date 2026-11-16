@@ -27,9 +27,8 @@ Database [SQL Server, PostgreSQL, etc.]
 
 This is a common interview question.
 
-
 | Feature              | ASP.NET Framework                           | ASP.NET Core                         |
-| ---------------------- | --------------------------------------------- | -------------------------------------- |
+| -------------------- | ------------------------------------------- | ------------------------------------ |
 | Platform             | Windows only                                | Cross-platform                       |
 | Performance          | Generally lower for modern web workloads    | Designed for high performance        |
 | Hosting              | Commonly IIS                                | Kestrel, IIS, containers, and others |
@@ -193,9 +192,8 @@ Common interview trap: Routing selects the appropriate endpoint. It does not exe
 
 You will study middleware deeply in its own roadmap section. For now, understand the distinction.
 
-
 | Middleware                                              | Routing                                         |
-| --------------------------------------------------------- | ------------------------------------------------- |
+| ------------------------------------------------------- | ----------------------------------------------- |
 | Processes requests and responses                        | Matches requests to endpoints                   |
 | Can perform logging, authentication, and error handling | Determines which endpoint matches a request     |
 | Can modify the request or response                      | Provides endpoint selection                     |
@@ -215,9 +213,8 @@ If no endpoint matches the URL, the request normally results in 404 Not Found, p
 
 #### Common HTTP status codes:
 
-
-| Status                      | Meaning                              |
-| ----------------------------- | -------------------------------------- |
+| Status                        | Meaning                              |
+| ----------------------------- | ------------------------------------ |
 | `200 OK`                    | Request succeeded                    |
 | `201 Created`               | Resource created                     |
 | `400 Bad Request`           | Invalid request                      |
@@ -441,11 +438,10 @@ A configuration provider reads settings from a particular source and makes them 
 
 Common providers include:
 
-
 | Provider                                | Typical use                                    |
-| ----------------------------------------- | ------------------------------------------------ |
-| `appsettings.json`                      | Default application settings                   |
-| `appsettings.Development.json`          | Development-specific overrides                 |
+| --------------------------------------- | ---------------------------------------------- |
+| `appsettings.json`                    | Default application settings                   |
+| `appsettings.Development.json`        | Development-specific overrides                 |
 | Environment variables                   | Deployment-specific settings                   |
 | User Secrets                            | Local development secrets                      |
 | Command-line arguments                  | Settings passed when launching the application |
@@ -610,9 +606,8 @@ Now your service receives strongly typed settings rather than repeatedly retriev
 
 ##### Difference between `IOptions`, `IOptionsSnapshot`, and `IOptionsMonitor`
 
-
 | Feature<T></t>   | IOptions< T >               | IOptionsSnapshot< T >                               | IOptionsMonitor< T >                         |
-| ------------------ | ----------------------------- | ----------------------------------------------------- | ---------------------------------------------- |
+| ---------------- | --------------------------- | --------------------------------------------------- | -------------------------------------------- |
 | Main purpose     | Basic options access        | Per-scope options snapshot                          | Current options and change notifications     |
 | Scoped lifetime  | No; singleton-friendly      | Yes                                                 | No; singleton-friendly                       |
 | Observes changes | Not as a refreshed value    | Can refresh between scopes when reload is supported | Can observe supported configuration changes  |
@@ -629,9 +624,8 @@ Also, configuration reload behavior depends on the provider and whether reload i
 
 ##### Configuration vs Options pattern
 
-
 | IConfiguration                           | Options pattern                                                   |
-| ------------------------------------------ | ------------------------------------------------------------------- |
+| ---------------------------------------- | ----------------------------------------------------------------- |
 | Reads values using configuration keys    | Maps a configuration section to a C# class                        |
 | Useful for individual or dynamic keys    | Useful for related groups of settings                             |
 | Values are often accessed by string keys | Provides strongly typed properties                                |
@@ -1028,9 +1022,8 @@ Important: Registering a service does not usually create its instance immediatel
 
 There are three commonly discussed forms of injection.
 
-
 | Type                  | How it works                               | Typical use                                         |
-| ----------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| --------------------- | ------------------------------------------ | --------------------------------------------------- |
 | Constructor Injection | Dependency is passed through a constructor | Required dependencies; preferred in most cases      |
 | Property Injection    | Dependency is assigned through a property  | Optional dependencies in frameworks that support it |
 | Method Injection      | Dependency is passed as a method parameter | Needed only for a particular operation              |
@@ -1137,9 +1130,8 @@ Think of registration as giving the container a set of instructions.
 
 ASP.NET Core provides three commonly used lifetime registration methods.
 
-
-| Method                                      | Meaning                                                   |
-| --------------------------------------------- | ----------------------------------------------------------- |
+| Method                                        | Meaning                                                   |
+| --------------------------------------------- | --------------------------------------------------------- |
 | `AddTransient<TService, TImplementation>()` | Creates a new instance each time the service is resolved. |
 | `AddScoped<TService, TImplementation>()`    | Reuses an instance within the same DI scope.              |
 | `AddSingleton<TService, TImplementation>()` | Reuses one instance for the lifetime of the DI container. |
@@ -1330,13 +1322,12 @@ These results assume the service is resolved twice in the same scope, as shown.
 
 #### Compare the three lifetimes
 
-
-| Behavior                 | Transient                                    | Scoped                                                  | Singleton                                               |
-| -------------------------- | ---------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                   | Across scopes within the same container                 |
-| Across two HTTP requests | Usually new instances                        | Different instances                                     | Same instance                                           |
+| Behavior                 | Transient                                    | Scoped                                                    | Singleton                                               |
+| ------------------------ | -------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| Instance reuse           | No reuse by the container across resolutions | Within the same scope                                     | Across scopes within the same container                 |
+| Across two HTTP requests | Usually new instances                        | Different instances                                       | Same instance                                           |
 | Typical use              | Lightweight, stateless services              | Request-related business services and EFCore`DbContext` | Shared, thread-safe services and caches                 |
-| Thread safety            | Depends on usage                             | Depends on usage                                        | Especially important because many requests may share it |
+| Thread safety            | Depends on usage                             | Depends on usage                                          | Especially important because many requests may share it |
 
 Important distinction: Transient doesn't mean a new instance for every method call. It means a new instance each time the DI container resolves that service. If the service is injected once into a longer-lived object, that object keeps its injected instance.
 
@@ -2008,9 +1999,8 @@ Important: `next` represents the next middleware in the pipeline. Awaiting `next
 
 #### Important middleware methods
 
-
-| Method  | Purpose                                                         |
-| --------- | ----------------------------------------------------------------- |
+| Method    | Purpose                                                         |
+| --------- | --------------------------------------------------------------- |
 | `Use()` | Adds middleware that can call the next component.               |
 | `Run()` | Adds terminal middleware that does not call the next component. |
 | `Map()` | Branches the pipeline based on a matching path.                 |
@@ -2177,8 +2167,7 @@ app.Run(async context =>
 
 Example behavior:
 
-
-| Request        | Response        |
+| Request          | Response          |
 | ---------------- | ----------------- |
 | `/admin`       | `Admin branch`  |
 | `/admin/users` | `Admin branch`  |
@@ -2190,9 +2179,8 @@ For example, a request to `/admin/users` will typically have `/users` in `Reques
 
 #### Quick comparison
 
-
-| Feature                | `Use()`                 | `Run()`           | `Map()`                         |
-| ------------------------ | ------------------------- | ------------------- | --------------------------------- |
+| Feature                | `Use()`               | `Run()`         | `Map()`                       |
+| ---------------------- | ----------------------- | ----------------- | ------------------------------- |
 | Main purpose           | Continue processing     | End processing    | Create a branch                 |
 | Calls next middleware  | Can                     | No                | Depends on branch configuration |
 | Executes conditionally | Can, with custom logic  | Not inherently    | Yes, based on path              |
@@ -2226,9 +2214,8 @@ because middleware order directly affects security, error handling, routing, and
 
 ASP.NET Core provides ready-made middleware for common tasks, so you don't need to implement everything yourself.
 
-
-| Middleware              | Purpose                                                   |
-| ------------------------- | ----------------------------------------------------------- |
+| Middleware                | Purpose                                                   |
+| ------------------------- | --------------------------------------------------------- |
 | `UseExceptionHandler()` | Handles unhandled exceptions in production                |
 | `UseHttpsRedirection()` | Redirects HTTP requests to HTTPS                          |
 | `UseStaticFiles()`      | Serves static files such as CSS, JavaScript, and images   |
@@ -2425,9 +2412,8 @@ public class RequestTimingMiddleware
 
 Let's understand the important parts.
 
-
-| Code                   | Meaning                                             |
-| ------------------------ | ----------------------------------------------------- |
+| Code                     | Meaning                                             |
+| ------------------------ | --------------------------------------------------- |
 | `RequestDelegate`      | Represents the next middleware in the pipeline      |
 | `_next`                | Stores the next middleware delegate                 |
 | `HttpContext`          | Contains the current HTTP request and response      |
@@ -2711,11 +2697,10 @@ This illustrates the DI pattern; in a real application, `AppDbContext` should no
 
 #### Comparison table
 
-
-| Feature                         | Conventional middleware        | `IMiddleware`                       |
-| --------------------------------- | -------------------------------- | ------------------------------------- |
+| Feature                         | Conventional middleware        | `IMiddleware`                     |
+| ------------------------------- | ------------------------------ | ----------------------------------- |
 | Interface required              | No                             | Yes                                 |
-| `RequestDelegate`               | Constructor parameter          | `InvokeAsync()`parameter            |
+| `RequestDelegate`             | Constructor parameter          | `InvokeAsync()`parameter          |
 | Activation                      | Usually when pipeline is built | Through DI per activation           |
 | Scoped constructor dependencies | Generally unsuitable           | Supported with compatible lifetimes |
 | Must register middleware in DI? | No                             | Yes                                 |
@@ -2858,13 +2843,12 @@ Common trap: Trying to set response headers after the response has started can f
 
 #### Request vs response processing
 
-
-| Request processing       | Response processing           |
-| -------------------------- | ------------------------------- |
-| Validate request headers | Add response headers          |
-| Start a stopwatch        | Record elapsed time           |
-| Check request properties | Log the final status code     |
-| Call`next()`             | Continue after`next()`returns |
+| Request processing       | Response processing             |
+| ------------------------ | ------------------------------- |
+| Validate request headers | Add response headers            |
+| Start a stopwatch        | Record elapsed time             |
+| Check request properties | Log the final status code       |
+| Call`next()`           | Continue after`next()`returns |
 
 A useful pattern is:
 
@@ -3012,9 +2996,8 @@ ASP.NET Core Web API is a framework for building HTTP-based services using C# an
 
 It lets you create endpoints such as:
 
-
-| HTTP method | Endpoint           | Purpose                      |
-| ------------- | -------------------- | ------------------------------ |
+| HTTP method | Endpoint             | Purpose                      |
+| ----------- | -------------------- | ---------------------------- |
 | GET         | `/api/products`    | Retrieve all products        |
 | GET         | `/api/products/10` | Retrieve product 10          |
 | POST        | `/api/products`    | Create a product             |
@@ -3135,9 +3118,8 @@ A REST API organizes data around resources and uses HTTP methods to perform oper
 
 For example, in an e-commerce application, products are resources.
 
-
-| Operation                  | HTTP method | Endpoint           |
-| ---------------------------- | ------------- | -------------------- |
+| Operation                  | HTTP method | Endpoint             |
+| -------------------------- | ----------- | -------------------- |
 | Get all products           | GET         | `/api/products`    |
 | Get one product            | GET         | `/api/products/10` |
 | Create a product           | POST        | `/api/products`    |
@@ -3190,9 +3172,8 @@ Important trap: Stateless does not mean the application cannot use a database, c
 
 #### REST vs SOAP
 
-
 | REST                          | SOAP                                                              |
-| ------------------------------- | ------------------------------------------------------------------- |
+| ----------------------------- | ----------------------------------------------------------------- |
 | Architectural style           | Messaging protocol                                                |
 | Commonly uses HTTP and JSON   | Uses XML-based messages                                           |
 | Generally lightweight         | More formal message structure                                     |
@@ -3229,9 +3210,8 @@ what each method does, but also how they differ in terms of safety, idempotency,
 
 Imagine you are developing a product management API.
 
-
-| Method   | Purpose                                   | Example            |
-| ---------- | ------------------------------------------- | -------------------- |
+| Method     | Purpose                                   | Example              |
+| ---------- | ----------------------------------------- | -------------------- |
 | `GET`    | Retrieve data                             | `/api/products/10` |
 | `POST`   | Create a resource or perform an operation | `/api/products`    |
 | `PUT`    | Replace a resource                        | `/api/products/10` |
@@ -3403,9 +3383,8 @@ Safe: The method is intended to read data without changing the server's applicat
 
 Idempotent: Repeating the same request has the same intended effect on server state as making it once.
 
-
 | Method | Safe? | Idempotent?              |
-| -------- | ------- | -------------------------- |
+| ------ | ----- | ------------------------ |
 | GET    | Yes   | Yes                      |
 | POST   | No    | Generally no             |
 | PUT    | No    | Yes                      |
@@ -3426,9 +3405,8 @@ In ASP.NET Core, we typically return status codes from controller actions using 
 
 Learn these first for interviews.
 
-
-| Status code                 | Meaning                           | When to use                                      |
-| ----------------------------- | ----------------------------------- | -------------------------------------------------- |
+| Status code                   | Meaning                           | When to use                                      |
+| ----------------------------- | --------------------------------- | ------------------------------------------------ |
 | `200 OK`                    | Success                           | GET or successful operation with a response body |
 | `201 Created`               | Resource created                  | POST successfully creates a resource             |
 | `204 No Content`            | Success, no body                  | Successful update or deletion                    |
@@ -3604,8 +3582,7 @@ public class ProductsController : ControllerBase
 
 The routes are:
 
-
-| Request                | Action        |
+| Request                  | Action          |
 | ------------------------ | --------------- |
 | `GET /api/products`    | `GetAll()`    |
 | `GET /api/products/10` | `GetById(10)` |
@@ -3649,11 +3626,10 @@ public IActionResult GetProducts(
 
 Here, `category` is `"electronics"` and `page` is `2`.
 
-
 | Route parameter             | Query parameter                              |
-| ----------------------------- | ---------------------------------------------- |
-| Part of the URL path        | Appears after`?`                             |
-| `/products/10`              | `/products?id=10`                            |
+| --------------------------- | -------------------------------------------- |
+| Part of the URL path        | Appears after`?`                           |
+| `/products/10`            | `/products?id=10`                          |
 | Often identifies a resource | Often filters or modifies a collection query |
 
 Both can bind to action parameters. The choice depends on the API's design.
@@ -3677,9 +3653,8 @@ The :int constraint means the route parameter must match an integer.
 
 Other common constraints include:
 
-
-| Constraint   | Purpose                      |
-| -------------- | ------------------------------ |
+| Constraint     | Purpose                      |
+| -------------- | ---------------------------- |
 | `:int`       | Integer                      |
 | `:guid`      | GUID                         |
 | `:bool`      | Boolean                      |
@@ -3989,9 +3964,8 @@ public class CreateProductRequest
 
 What do these attributes do?
 
-
-| Attribute             | Purpose                                                               |
-| ----------------------- | ----------------------------------------------------------------------- |
+| Attribute               | Purpose                                                               |
+| ----------------------- | --------------------------------------------------------------------- |
 | `[Required]`          | Requires a non-null value                                             |
 | `[StringLength]`      | Limits the length of a string                                         |
 | `[Range]`             | Restricts a value to a specified range                                |
@@ -4494,9 +4468,8 @@ A DTO helps prevent overposting, but it doesn't replace authorization checks.
 
 #### DTO vs Entity vs ViewModel
 
-
 | Type      | Main purpose                                   |
-| ----------- | ------------------------------------------------ |
+| --------- | ---------------------------------------------- |
 | Entity    | Represents domain or persisted data            |
 | DTO       | Transfers data across an application boundary  |
 | ViewModel | Represents data needed by a particular UI view |
@@ -4751,9 +4724,8 @@ ASP.NET Core also supports creating a custom exception-handling middleware or im
 
 #### What is the difference between `UseExceptionHandler()` and `UseDeveloperExceptionPage()`?
 
-
-| Feature                         | `UseExceptionHandler()`        | `UseDeveloperExceptionPage()`     |
-| --------------------------------- | -------------------------------- | ----------------------------------- |
+| Feature                         | `UseExceptionHandler()`      | `UseDeveloperExceptionPage()`   |
+| ------------------------------- | ------------------------------ | --------------------------------- |
 | Purpose                         | Production-safe error handling | Development diagnostics           |
 | Detailed stack traces to client | Normally no                    | Yes, for debugging                |
 | Typical environment             | Production                     | Development                       |
@@ -4765,9 +4737,8 @@ Never expose detailed exception pages to public clients in production.
 
 No. The response depends on the meaning of the error.
 
-
 | Situation                   | Typical status            |
-| ----------------------------- | --------------------------- |
+| --------------------------- | ------------------------- |
 | Invalid request data        | 400 Bad Request           |
 | Resource not found          | 404 Not Found             |
 | Unauthenticated request     | 401 Unauthorized          |
@@ -4882,9 +4853,8 @@ Interview point: ILogger< T > is an abstraction. The actual destination may be t
 
 #### What are the different log levels?
 
-
-| Log level     | Purpose                                  | Example                              |
-| --------------- | ------------------------------------------ | -------------------------------------- |
+| Log level       | Purpose                                  | Example                              |
+| --------------- | ---------------------------------------- | ------------------------------------ |
 | `Trace`       | Very detailed diagnostic information     | Detailed execution steps             |
 | `Debug`       | Information useful during debugging      | Intermediate diagnostic values       |
 | `Information` | Normal application events                | Request processed successfully       |
@@ -5029,9 +4999,8 @@ These attributes define access requirements; they do not, by themselves, configu
 
 This is a common interview question.
 
-
-| Status code        | Meaning                                        | Example                                         |
-| -------------------- | ------------------------------------------------ | ------------------------------------------------- |
+| Status code          | Meaning                                        | Example                                         |
+| -------------------- | ---------------------------------------------- | ----------------------------------------------- |
 | `401 Unauthorized` | Authentication is missing or invalid           | Expired or invalid bearer token                 |
 | `403 Forbidden`    | The user is authenticated but lacks permission | Customer tries to access an Admin-only endpoint |
 
@@ -5311,9 +5280,8 @@ The authenticated identity must contain the required claim for this policy to su
 
 #### Role-based vs policy-based
 
-
 | Feature         | Role-based             | Policy-based                 |
-| ----------------- | ------------------------ | ------------------------------ |
+| --------------- | ---------------------- | ---------------------------- |
 | Checks          | User roles             | Configured requirements      |
 | Example         | Admin can delete       | User has approval claim      |
 | Complexity      | Simple access rules    | Flexible access rules        |
@@ -5403,13 +5371,12 @@ An origin consists of three parts:
 
 For example:
 
-
-| URL                               | Same origin as`https://localhost:7001`? |
+| URL                                 | Same origin as`https://localhost:7001`? |
 | ----------------------------------- | ----------------------------------------- |
-| `https://localhost:7001/products` | Yes                                     |
-| `http://localhost:7001`           | No — different scheme                  |
-| `https://localhost:7002`          | No — different port                    |
-| `https://example.com`             | No — different hostname                |
+| `https://localhost:7001/products` | Yes                                       |
+| `http://localhost:7001`           | No — different scheme                    |
+| `https://localhost:7002`          | No — different port                      |
+| `https://example.com`             | No — different hostname                  |
 
 The path, such as `/products`, does not determine the origin.
 
@@ -5568,9 +5535,8 @@ Interview note: Package availability and the default template setup can differ b
 
 #### What do these methods do?
 
-
-| Method                      | Purpose                                         |
-| ----------------------------- | ------------------------------------------------- |
+| Method                        | Purpose                                         |
+| ----------------------------- | ----------------------------------------------- |
 | `AddEndpointsApiExplorer()` | Exposes endpoint metadata for API exploration   |
 | `AddSwaggerGen()`           | Generates an OpenAPI document using Swashbuckle |
 | `UseSwagger()`              | Serves the generated OpenAPI JSON document      |
@@ -5612,3 +5578,819 @@ A common approach is to configure an HTTP bearer security scheme in the generate
 After authorization, Swagger UI can send the token in the request's `Authorization: Bearer ...` header.
 
 Remember: documenting bearer authentication does not validate tokens by itself. Your API still needs correct JWT bearer authentication and authorization configuration.
+
+### API Versioning in ASP.NET Core
+
+In real-world projects because APIs evolve over time, but existing clients may still depend on older versions.
+
+#### **What is API Versioning?**
+
+API versioning means maintaining different versions of an API so that changes in the API do not unexpectedly break existing clients.
+
+**Real-world example**
+
+Suppose you have an e-commerce API.
+
+**Version** **1:**
+
+`GET /api/v1/products`
+
+Response:
+
+```
+{
+  "id": 1,
+  "name": "Laptop"
+}
+```
+
+Later, your business wants to include product price and category.
+
+**Version 2:**
+
+`GET /api/v2/products`
+
+Response:
+
+```
+{
+  "id": 1,
+  "name": "Laptop",
+  "price": 50000,
+  "category": "Electronics"
+}
+```
+
+Existing frontend applications can continue using V1, while newer applications use V2.
+
+This helps maintain backward compatibility.
+
+#### **Why do we need API Versioning?**
+
+Imagine you change an existing response:
+
+Old response:
+
+```
+{
+  "id": 1,
+  "name": "Laptop"
+}
+```
+
+New response:
+
+```
+{
+  "productId": 1,
+  "productName": "Laptop"
+}
+```
+
+An existing frontend expecting `id` and `name` may stop working.
+
+API versioning allows you to introduce such breaking changes without immediately forcing all clients to upgrade.
+
+#### **Different approaches to API Versioning**
+
+There are four commonly discussed approaches.
+
+##### **A. URL-based versioning**
+
+The version is included in the URL.
+
+```
+/api/v1/products
+/api/v2/products
+```
+
+Easy to understand. This is a common and straightforward approach.
+
+##### **B. Query string versioning**
+
+The version is passed as a query parameter.
+
+```
+/api/products?api-version=1.0
+/api/products?api-version=2.0
+```
+
+##### **C. Header-based versioning**
+
+The version is passed through an HTTP header.
+
+```
+GET /api/products
+api-version: 1.0
+```
+
+##### **D. Media type versioning**
+
+The version is specified through the `Accept` header.
+
+```
+Accept: application/json;v=1.0
+```
+
+##### **Comparison**
+
+| Approach     | Example                            | Main characteristic            |
+| ------------ | ---------------------------------- | ------------------------------ |
+| URL          | `/api/v1/products`               | Visible in URL                 |
+| Query string | `?api-version=1.0`               | Uses query parameter           |
+| Header       | `api-version: 1.0`               | Keeps URL unchanged            |
+| Media type   | `Accept: application/json;v=1.0` | Version in content negotiation |
+
+**Interview point:** URL-based versioning is simple and widely understood, but there is no universally best approach. Follow the API design standards of your organization.
+
+#### **How to implement API Versioning in ASP.NET Core?**
+
+ASP.NET Core API versioning is commonly implemented using the `Asp.Versioning.Mvc` package.
+
+Install:
+
+```
+dotnet add package Asp.Versioning.Mvc
+```
+
+Configure in `Program.cs`:
+
+```
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+
+    options.AssumeDefaultVersionWhenUnspecified = true;
+
+    options.ReportApiVersions = true;
+});
+```
+
+This configures:
+
+- Default API version: 1.0.
+- Requests without an explicit version can use the default version.
+- Response headers can report supported and deprecated versions.
+
+For URL-based versioning, also configure the URL segment reader using the appropriate API versioning URL-segment package and its reader configuration.
+
+#### **How do we define different versions in controllers?**
+
+Example using URL segment versioning:
+
+```
+[ApiController]
+[ApiVersion(1.0)]
+[Route("api/v{version:apiVersion}/products")]
+public class ProductsV1Controller : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetProducts()
+    {
+        return Ok("Products API V1");
+    }
+}
+```
+
+```
+[ApiController]
+[ApiVersion(2.0)]
+[Route("api/v{version:apiVersion}/products")]
+public class ProductsV2Controller : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetProducts()
+    {
+        return Ok("Products API V2");
+    }
+}
+```
+
+The requests are:
+
+```
+GET /api/v1/products
+GET /api/v2/products
+```
+
+Each controller serves its corresponding API version.
+
+The example illustrates the controller attributes; the URL-segment reader must be configured for these routes to work.
+
+#### What is backward compatibility?
+
+Backward compatibility means newer changes do not break existing clients that rely on the previous API contract.
+
+For example:
+
+- Adding an optional response property is often backward-compatible.
+- Renaming an existing property can be breaking.
+- Removing an endpoint can be breaking.
+- Changing a response type can be breaking.
+
+**Interview trap:** Adding a new API version does not automatically make the old version backward-compatible. You must maintain the old contract for existing clients.
+
+### **Pagination, Filtering and Sorting**
+
+Imagine your database contains 100,000 products. Should your API return all 100,000 products in a single request?
+
+No. It can consume significant memory, increase response time, and put unnecessary load on the server and database.
+
+We solve this using **Pagination, Filtering and Sorting**.
+
+#### **What is Pagination?**
+
+Pagination means dividing a large dataset into smaller portions called pages.
+
+For example, suppose we have 100 products and want to display 10 products per page.
+
+**Example: Products API**
+
+**100** - Total products
+
+**10** - Products per page
+
+**API requests**
+
+```
+GET /api/products?pageNumber=1&pageSize=10
+GET /api/products?pageNumber=2&pageSize=10
+GET /api/products?pageNumber=3&pageSize=10
+```
+
+Each request retrieves a different portion of the dataset.
+
+Important pagination parameters
+
+- pageNumber — which page to retrieve.
+- pageSize — how many records to retrieve per page.
+
+For example:
+
+```
+pageNumber = 2
+pageSize = 10
+```
+
+The API retrieves records 11–20, assuming a stable ordering.
+
+#### **How does pagination work internally?**
+
+A common approach is using SQL `OFFSET` and `FETCH`, or LINQ's `Skip()` and `Take()`.
+
+```
+var products = await _context.Products
+    .OrderBy(p => p.Id)
+    .Skip((pageNumber - 1) * pageSize)
+    .Take(pageSize)
+    .ToListAsync();
+```
+
+Understand these methods:
+
+- Skip() skips a specified number of records.
+- Take() retrieves the specified number of records.
+
+For page 2 with a page size of 10:
+
+```
+.Skip(10)
+.Take(10)
+```
+
+**Interview trap:** Always apply a deterministic ordering before pagination. Without ordering, the records returned for a page may not be consistent.
+
+Also validate the page number and page size. Do not allow clients to request an unlimited page size.
+
+#### **What is Filtering?**
+
+Filtering means retrieving only records that match specified conditions.
+
+Example:
+
+```
+GET /api/products?category=Electronics
+```
+
+Or:
+
+```
+GET /api/products?minPrice=1000&maxPrice=50000
+```
+
+Example using LINQ:
+
+```
+var query = _context.Products.AsQueryable();
+
+if (!string.IsNullOrEmpty(category))
+{
+    query = query.Where(p => p.Category == category);
+}
+
+if (minPrice.HasValue)
+{
+    query = query.Where(p => p.Price >= minPrice.Value);
+}
+
+if (maxPrice.HasValue)
+{
+    query = query.Where(p => p.Price <= maxPrice.Value);
+}
+
+var products = await query.ToListAsync();
+```
+
+The query is built conditionally, so only the supplied filters are applied.
+
+#### **What is Sorting?**
+
+Sorting means arranging records based on a particular field.
+
+Examples:
+
+```
+GET /api/products?sortBy=price&sortOrder=asc
+GET /api/products?sortBy=name&sortOrder=desc
+```
+
+LINQ example:
+
+```
+query = sortBy?.ToLower() switch
+{
+    "price" when sortOrder == "desc" =>
+        query.OrderByDescending(p => p.Price),
+
+    "price" =>
+        query.OrderBy(p => p.Price),
+
+    "name" when sortOrder == "desc" =>
+        query.OrderByDescending(p => p.Name),
+
+    "name" =>
+        query.OrderBy(p => p.Name),
+
+    _ => query.OrderBy(p => p.Id)
+};
+```
+
+**Important:** Never pass arbitrary client-supplied strings directly into dynamic SQL. Whitelist allowed sorting fields and validate sort directions.
+
+#### **Can we combine all three?**
+
+Yes! Real-world APIs commonly combine pagination, filtering and sorting.
+
+Example:
+
+```
+GET /api/products
+    ?category=Electronics
+    &minPrice=1000
+    &sortBy=price
+    &sortOrder=asc
+    &pageNumber=1
+    &pageSize=10
+```
+
+Typical processing order:
+
+**1 - Start with the dataset**
+
+**2 - Apply filters**
+
+**3 - Apply sorting**
+
+**4 - Apply pagination**
+
+**5 - Return results and metadata**
+
+#### **What should a paginated response look like?**
+
+A good API often returns pagination metadata along with the data.
+
+```
+{
+  "pageNumber": 1,
+  "pageSize": 10,
+  "totalRecords": 100,
+  "totalPages": 10,
+  "data": [
+    {
+      "id": 1,
+      "name": "Laptop",
+      "price": 50000
+    }
+  ]
+}
+```
+
+This allows the frontend to display page numbers, next/previous controls, and total record counts.
+
+#### **Offset pagination vs cursor pagination**
+
+There are two important pagination approaches.
+
+| Offset pagination                                         | Cursor pagination                                        |
+| --------------------------------------------------------- | -------------------------------------------------------- |
+| Uses`Skip()`and`Take()`                               | Uses a continuation cursor                               |
+| Easy to implement                                         | More complex                                             |
+| Large offsets can be expensive                            | Often more efficient for large datasets                  |
+| Can be affected by inserted/deleted rows between requests | Can provide more stable traversal with a suitable cursor |
+
+Example cursor-based request:
+
+```
+GET /api/products?cursor=product_100&limit=10
+```
+
+The cursor identifies where to continue. In a real implementation, use a stable, indexed ordering key and encode the continuation information appropriately.
+
+**Interview point:** Offset pagination is suitable for many ordinary applications. Cursor pagination is worth considering for large datasets and frequently changing data.
+
+### **API Security Essentials**
+
+#### HTTPS and TLS
+
+What is HTTPS? HTTPS is HTTP communication protected by TLS (Transport Layer Security).
+
+It protects data exchanged between the client and server from being read or modified by attackers while it travels over the network.
+
+For example, when a client sends login credentials:
+
+- HTTP: credentials can potentially be intercepted.
+- HTTPS: the communication is encrypted using TLS.
+
+Without HTTPS = Client  -> Attacker may read data  - > API
+
+With HTTPS = Client -> Encrypted connection - > API
+
+#### **How do we enable HTTPS in ASP.NET Core?**
+
+In `Program.cs`:
+
+```
+var builder = WebApplication.CreateBuilder(args);
+
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+
+app.MapControllers();
+
+app.Run();
+```
+
+`UseHttpsRedirection()` redirects HTTP requests to HTTPS when the application has the necessary HTTPS endpoint configuration.
+
+In production, we should also configure HSTS (HTTP Strict Transport Security):
+
+```
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+```
+
+HSTS tells supported browsers to use HTTPS for future requests to the site.
+
+#### Secrets Management
+
+What are secrets? Sensitive application values such as:
+
+- Database connection strings
+- JWT signing keys
+- API keys
+- Third-party service credentials
+- Passwords
+
+**Bad practice:** Never hardcode secrets directly in source code:
+
+```
+var connectionString =
+    "Server=localhost;User Id=admin;Password=MyPassword123;";
+```
+
+Why is this dangerous?
+
+- Secrets can accidentally be committed to Git.
+- Other developers may gain access.
+- Exposed credentials can be misused.
+
+**Better practice:** Use appropriate secret storage for each environment:
+
+| Environment               | Recommended approach                      |
+| ------------------------- | ----------------------------------------- |
+| Local development         | .NET User Secrets                         |
+| Production                | Environment variables or a secret manager |
+| Azure-hosted applications | Azure Key Vault                           |
+
+For example, read a connection string through configuration:
+
+```
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
+```
+
+The application can obtain the actual value from an appropriately configured configuration provider.
+
+**Important:** User Secrets are for development, not production secret storage.
+
+#### **Input Validation and Common Security Vulnerabilities**
+
+how to protect an API from unsafe or malicious input.
+
+##### **Never trust client input**
+
+A common security principle in backend development is:
+
+**Never trust data coming from the client. Always validate it on the server.**
+
+For example, suppose we have an API to create a user.
+
+```
+[HttpPost]
+public IActionResult CreateUser(CreateUserRequest request)
+{
+    // Save user
+    return Ok();
+}
+```
+
+A frontend developer may add validation to ensure that the email is valid and the age is greater than zero.
+
+But can we trust frontend validation? No. A user can bypass frontend validation by using:
+
+- Postman
+- Browser developer tools
+- Custom scripts
+- Direct HTTP requests
+
+Therefore, validation must also happen on the backend.
+
+##### **Data validation in ASP.NET Core**
+
+We can use Data Annotations in DTOs.
+
+```
+public class CreateUserRequest
+{
+    [Required]
+    public string Name { get; set; }
+
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; }
+
+    [Range(18, 100)]
+    public int Age { get; set; }
+}
+```
+
+Controller:
+
+```
+[HttpPost]
+public IActionResult CreateUser(CreateUserRequest request)
+{
+    return Ok("User created");
+}
+```
+
+When using [ApiController], ASP.NET Core automatically returns HTTP 400 when model validation fails.
+
+Important distinction:
+
+- Model validation checks whether the input has an acceptable format and meets declared constraints.
+- Business validation checks whether the operation makes sense according to application rules.
+
+For example:
+
+A user enters a valid email address, but that email is already registered.
+
+The email format is valid, but the business rule is violated.
+
+##### **SQL Injection**
+
+Important interview topic
+
+SQL Injection occurs when an attacker manipulates input to change the SQL query executed by the application.
+
+Consider this unsafe example:
+
+```
+string query =
+    "SELECT * FROM Users WHERE Name = '" + userName + "'";
+```
+
+If an attacker supplies specially crafted input, they may alter the intended SQL query.
+
+**How do we prevent SQL Injection?**
+
+Use parameterized queries instead of concatenating user input into SQL.
+
+Example using ADO.NET:
+
+```
+string query =
+    "SELECT * FROM Users WHERE Name = @Name";
+
+using var command = new SqlCommand(query, connection);
+
+command.Parameters.AddWithValue("@Name", userName);
+```
+
+The database treats the supplied value as data rather than executable SQL syntax.
+
+EF Core also parameterizes normal LINQ queries. However, be careful when building raw SQL dynamically.
+
+#### **Other common API security vulnerabilities**
+
+| Vulnerability           | Meaning                                                              | Prevention                                     |
+| ----------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| SQL Injection           | Attacker manipulates SQL queries                                     | Parameterized queries                          |
+| Broken Authentication   | Weak or improperly implemented authentication                        | Secure authentication and token validation     |
+| Broken Authorization    | User accesses resources they shouldn't                               | Check permissions on every protected operation |
+| Sensitive Data Exposure | API reveals passwords or confidential data                           | Return only necessary fields; protect secrets  |
+| Overposting             | Client submits properties they shouldn't control                     | Use request DTOs and explicit mapping          |
+| Mass Assignment         | Automatically binding untrusted fields to sensitive model properties | Allow-list bindable properties                 |
+| Excessive Data Exposure | Returning more information than the client needs                     | Use response DTOs                              |
+
+#### **Authentication vs Authorization vulnerability**
+
+Suppose an API has this endpoint:
+
+```
+[Authorize]
+[HttpGet("orders/{id}")]
+public IActionResult GetOrder(int id)
+{
+    // Fetch order
+    return Ok();
+}
+```
+
+The `[Authorize]` attribute ensures that the caller is authenticated.
+
+But what if User A requests User B's order?
+
+The API must also check whether User A is allowed to access that particular order.
+
+Authentication alone is not enough.
+
+This is an example of an object-level authorization problem, commonly called **Broken Object Level Authorization (BOLA)**.
+
+#### **What is overposting?**
+
+Overposting happens when a client submits additional properties that the application unintentionally binds and updates.
+
+For example, a user submits:
+
+```
+{
+  "name": "John",
+  "isAdmin": true
+}
+```
+
+If the application directly binds this request to a database entity, the user might modify a property they shouldn't control.
+
+Use DTOs containing only the properties the client is allowed to provide.
+
+### **Rate Limiting in ASP.NET Core**
+
+#### What is Rate Limiting?
+
+Rate limiting controls how many requests a client can send to an API within a specified period.
+
+For example, suppose we have a login API.
+
+We configure:
+
+- Maximum 5 requests per minute per client.
+- If the client sends more than 5 requests, reject additional requests temporarily.
+- Return HTTP 429 Too Many Requests.
+
+Why do we need rate limiting?
+
+1. Protect APIs from excessive requests.
+2. Reduce the impact of certain automated attacks.
+3. Prevent accidental overuse by clients.
+4. Protect server resources.
+5. Improve API availability for other users.
+
+**Important:** Rate limiting helps protect an API, but it does not completely prevent DDoS attacks.
+
+#### **Types of Rate Limiting**
+
+There are several commonly used algorithms.
+
+| Algorithm           | Explanation                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| Fixed Window        | Allows a fixed number of requests within a fixed time window |
+| Sliding Window      | Controls requests over a continuously moving time window     |
+| Token Bucket        | Requests consume tokens; tokens refill over time             |
+| Concurrency Limiter | Limits how many requests execute simultaneously              |
+
+**Simple examples**
+
+**1. Fixed Window**
+
+Allow 100 requests per minute.
+
+The counter resets at the beginning of each minute.
+
+**2. Sliding Window**
+
+Allow 100 requests in any rolling 60-second period.
+
+**3. Token Bucket**
+
+A bucket contains tokens. Each request consumes one token, and tokens are replenished over time.
+
+**4. Concurrency Limiter**
+
+Allow only 10 requests to execute simultaneously, regardless of how many requests arrive overall.
+
+#### **Implementing Rate Limiting in ASP.NET Core**
+
+ASP.NET Core provides built-in rate-limiting middleware.
+
+First, configure it in `Program.cs`.
+
+```
+using System.Threading.RateLimiting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", limiter =>
+    {
+        limiter.PermitLimit = 5;
+
+        limiter.Window = TimeSpan.FromMinutes(1);
+
+        limiter.QueueLimit = 0;
+
+        limiter.QueueProcessingOrder =
+            QueueProcessingOrder.OldestFirst;
+    });
+});
+
+var app = builder.Build();
+
+app.UseRateLimiter();
+
+app.MapGet("/api/products", () =>
+{
+    return Results.Ok("Products");
+})
+.RequireRateLimiting("fixed");
+
+app.Run();
+```
+
+**Understand the important properties**
+
+| Property                 | Meaning                                      |
+| ------------------------ | -------------------------------------------- |
+| `PermitLimit`          | Maximum allowed requests                     |
+| `Window`               | Time period                                  |
+| `QueueLimit`           | Number of requests allowed to wait           |
+| `QueueProcessingOrder` | Order in which queued requests are processed |
+
+Here:
+
+- 5 requests are allowed per minute.
+- Additional requests are rejected.
+- No requests are queued.
+
+**Note:** This example uses a fixed-window limiter and applies it to the products endpoint.
+
+For controller-based APIs, you can apply a named policy using `[EnableRateLimiting("fixed")]` after registering the policy and enabling the middleware.
+
+#### **What is HTTP 429?**
+
+HTTP 429 means: **Too Many Requests**
+
+It indicates that the client has exceeded the API's rate limit.
+
+The response may include a `Retry-After` header indicating when the client can retry.
+
+For example:
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+```
+
+This tells the client to wait before retrying.
+
+**What is the difference between rate limiting and throttling?**
+
+Rate limiting establishes request limits. Throttling is often used more broadly to describe controlling or slowing request processing when limits or resource constraints are reached. The terms are sometimes used interchangeably.
+
+**Can rate limiting be applied to individual endpoints?**
+
+Yes. Named policies can be applied to endpoints using `.RequireRateLimiting()` or `[EnableRateLimiting]`.
